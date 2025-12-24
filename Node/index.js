@@ -4,19 +4,9 @@ const { createServer } = require('node:http');
 const { join} = require('node:path');
 const { Server } = require('socket.io');
 
-//connect to local mysql database
-const mysql = require('mysql2/promise');
-async function startServer() {
-    const dbConfig = await mysql.createPool(
-        {
-            host: 'localhost',
-            port: 3306,
-            user: 'root',
-            password: 'Xzw13068!',
-            database: 'chat_db',
-        });
-}
-startServer();
+//import my js files here
+const pool = require('./help_me_db.js');
+const registerChatHandler = require('./chatHandler.js');
 
 const app = express();
 const server = createServer(app);
@@ -27,47 +17,31 @@ const io = new Server(server, {
     origin: 'http://localhost:8100',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   }
-
 });
 
-//a text html here
-app.get('/', (req, res) => {
+//read the database (messages table)
+app.get('/', async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM messages');
+  console.log("Reading...");
+  res.json(rows); // 关键：返回纯 JSON 数据
+  console.log(rows);
+});
+
+//this is a test html for simple chat
+app.get('/test', (req, res) => {
     res.sendFile(join(__dirname + '/test.html'));
 });
 
+//this part for socketIO
 io.on('connection', (socket) => {
+  registerChatHandler(io, socket);
 
-    //send a msg that connect success
-    socket.emit('connectSuccess', {
-        text: '连接聊天服务器成功！',
-        senderId: 'system_bot',
-        userName: '系统通知',
-        timestamp: new Date(),
-      }
-      );
-
-    //get the msg from client
-    //add async - part7
-    socket.on('chat message', async (msg) => {
-        try {
-            const messageData = {
-              text: msg.text,
-              senderId: msg.senderId,
-              userName: msg.userName,
-              timestamp: new Date().toISOString(),
-            }
-
-            console.log(`[${messageData.timestamp}] ${messageData.userName}: ${messageData.text}`);
-            //转发给所有连接的客户端
-            io.emit('chat message', messageData);
-        }
-        catch (error) {
-            console.log(error);
-        }
-    })
+  socket.on('disconnect', () => {
+    console.log('disconnect');
+  })
 })
 
-
+//server listen on port 3000
 server.listen(3000, () => {
     console.log('server running at http://localhost:3000');
 });
