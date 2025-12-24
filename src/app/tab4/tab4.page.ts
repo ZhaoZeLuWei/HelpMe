@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, NgZone } from '@angular/core';
+import { Component, NgZone, OnDestroy } from '@angular/core';
 import { addIcons } from 'ionicons';
 
 import {
@@ -11,6 +11,7 @@ import {
   heart,
   eye,
   personCircle,
+  logOut,
   trash,
   create,
   checkmarkCircle,
@@ -36,6 +37,9 @@ import {
   IonText,
   IonAlert,
 } from '@ionic/angular/standalone';
+import { ToastController } from '@ionic/angular';
+import { LoginPage } from '../login/login.page';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-tab4',
@@ -59,10 +63,14 @@ import {
     IonItem,
     IonText,
     IonAlert,
+    LoginPage,
   ],
 })
-export class Tab4Page {
-  constructor(private zone: NgZone) {
+export class Tab4Page implements OnDestroy {
+  isLoggedIn = false;
+  private _sub: any;
+
+  constructor(private zone: NgZone, private auth: AuthService, private toastController: ToastController) {
     // 注册页面用到的 Ionicons 图标
     addIcons({
       documentText,
@@ -78,7 +86,10 @@ export class Tab4Page {
       checkmarkCircle,
       starHalf,
       chatbubbles,
+      logOut,
     });
+    // 订阅登录状态
+    this._sub = this.auth.isLoggedIn$.subscribe(v => this.zone.run(() => this.isLoggedIn = v));
   }
   // 删除确认弹窗状态
   isDeleteAlertOpen = false;
@@ -173,7 +184,18 @@ export class Tab4Page {
     this.zone.run(() => {
       this.tasks = this.tasks.filter(t => t.id !== taskId);
     });
+    // 显示删除成功的提示
+    this.presentDeleteToast();
     //后续调用删除API
+  }
+
+  async presentDeleteToast() {
+    const toast = await this.toastController.create({
+      message: '删除成功',
+      duration: 3000,
+      position: 'bottom',
+    });
+    await toast.present();
   }
 
   editTask(taskId: number) {
@@ -211,5 +233,15 @@ export class Tab4Page {
       review: 'medium'
     };
     return map[status] || 'medium';
+  }
+
+  logout() {
+    this.zone.run(() => {
+      this.auth.logout();
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this._sub) this._sub.unsubscribe();
   }
 }

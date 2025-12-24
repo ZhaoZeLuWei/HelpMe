@@ -7,7 +7,11 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  @if (!isLoggedIn) {
+    <app-login></app-login>
+  }
 
+  @if (isLoggedIn) {
   <!-- 用户信息 -->
   <ion-card class="user-card">
     <ion-item lines="none" class="user-header">
@@ -20,6 +24,10 @@
           <ion-badge color="success" class="verified">{{ userInfo.isVerified }}</ion-badge>
         </div>
         <p class="user-credit">买家信用: {{ userInfo.creditLevel }} · 好评率: {{ userInfo.goodReviewRate }}</p>
+        <ion-button color="danger" (click)="logout()">
+          <ion-icon name="log-out"></ion-icon>
+          <span>登出</span>
+        </ion-button>
       </ion-label>
     </ion-item>
     <div class="user-actions">
@@ -109,5 +117,7 @@
     message="删除后不可恢复，是否继续？"
     [buttons]="alertButtons">
   </ion-alert>
+
+  }
 
 </ion-content>
