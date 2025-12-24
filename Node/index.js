@@ -38,15 +38,28 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
 
     //send a msg that connect success
-    socket.emit('connectSuccess','Connect to the chat server success!');
+    socket.emit('connectSuccess', {
+        text: '连接聊天服务器成功！',
+        senderId: 'system_bot',
+        userName: '系统通知',
+        timestamp: new Date(),
+      }
+      );
 
     //get the msg from client
     //add async - part7
     socket.on('chat message', async (msg) => {
         try {
-            console.log('message: ' + msg);
+            const messageData = {
+              text: msg.text,
+              senderId: msg.senderId,
+              userName: msg.userName,
+              timestamp: new Date().toISOString(),
+            }
+
+            console.log(`[${messageData.timestamp}] ${messageData.userName}: ${messageData.text}`);
             //转发给所有连接的客户端
-            io.emit('chat message', msg);
+            io.emit('chat message', messageData);
         }
         catch (error) {
             console.log(error);

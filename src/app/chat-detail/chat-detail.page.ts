@@ -8,10 +8,13 @@ import {
   IonToolbar,
   IonButtons,
   IonBackButton,
-  IonList,
   IonItem,
-  IonFooter, IonInput, IonButton,
+  IonFooter,
+  IonInput,
+  IonButton,
 } from '@ionic/angular/standalone';
+import {ChatModel} from "../models/chat.model";
+import { DatePipe } from "@angular/common";
 
 
 @Component({
@@ -19,14 +22,32 @@ import {
   templateUrl: './chat-detail.page.html',
   styleUrls: ['./chat-detail.page.scss'],
   standalone: true,
-  imports: [ReactiveFormsModule,IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton
-    , IonList, IonItem, IonFooter, IonInput, IonButtons, IonButton],
+  imports: [
+    ReactiveFormsModule,
+    DatePipe,
+    IonContent,
+    IonHeader,
+    IonTitle,
+    IonToolbar,
+    IonButtons,
+    IonBackButton,
+    IonItem,
+    IonFooter,
+    IonInput,
+    IonButtons,
+    IonButton,
+  ],
 })
 export class ChatDetailPage implements OnInit, OnDestroy {
   socket: any;
   //signal NEW in angular rather than RxJS
-  messages = signal<string[]>([]);
+  messages = signal<ChatModel[]>([]);
   serverOffset = 0;
+
+  currentUser = {
+    id: 'user_' + Math.floor(Math.random() * 1000), // 随机生成一个ID
+    name: '华为用户'
+  }
 
   //input checking before it send to node
   messageInput = new FormControl('', {
@@ -43,12 +64,12 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     });
 
     // Check the connection
-    this.socket.on('connectSuccess', (msg: string) => {
+    this.socket.on('connectSuccess', (msg: ChatModel) => {
       this.addMessage(msg);
     });
 
     // step 2: receive msg from node and show it
-    this.socket.on('chat message', (msg: string, offset?: number) => {
+    this.socket.on('chat message', (msg: ChatModel, offset?: number) => {
       this.addMessage(msg);
       if (offset) {
         this.serverOffset = offset;
@@ -63,15 +84,21 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
     //check if the input not null and not only space
     if (checkMsg && checkMsg.trim()) {
+      const newMsg: ChatModel = {
+        text: checkMsg,
+        senderId: this.currentUser.id,
+        userName: this.currentUser.name,
+        timestamp: new Date(),
+      }
       //send msg to server
-      this.socket.emit('chat message', checkMsg.trim());
+      this.socket.emit('chat message', newMsg);
       //clean all inputs from client site
       this.messageInput.reset();
     }
   }
 
   //在messages这个数据结构中，继续顺序添加新的msg
-  private addMessage(msg: string) {
+  private addMessage(msg: ChatModel) {
     this.messages.update(prev => [...prev, msg]);
   }
 
