@@ -1,13 +1,29 @@
-import { Component } from '@angular/core';
-import { IonHeader, IonToolbar, IonTitle, IonContent } from '@ionic/angular/standalone';
-import { ExploreContainerComponent } from '../explore-container/explore-container.component';
+import {Component, inject} from '@angular/core';
+//Standalone need to import specific component tag
+import { IonContent,IonHeader,IonToolbar,IonTitle,IonItem, IonList, IonAvatar, IonBadge, IonNote, IonLabel } from '@ionic/angular/standalone';
+import {Router} from '@angular/router';
+
 
 @Component({
   selector: 'app-tab3',
   templateUrl: 'tab3.page.html',
   styleUrls: ['tab3.page.scss'],
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent, ExploreContainerComponent],
+  imports: [IonContent,IonHeader,IonToolbar,IonTitle,IonItem, IonList, IonAvatar, IonBadge, IonNote, IonLabel],
+  standalone: true,
 })
 export class Tab3Page {
+  private router = inject(Router);
   constructor() {}
+
+  //later on we will try to connect with database
+  userList = [
+    { name: 'User1', time: '13:29', lastMsg: 'Hello World', count: 1, avatar: 'assets/icon/user.svg' },
+    { name: 'User2', time: '14:30', lastMsg: '你好', count: 2, avatar: 'assets/icon/user.svg' }
+  ];
+
+  //go to the chat with router
+  goChat(user: any) {
+    this.router.navigate(['/chat-detail', user.name]);
+  }
+
 }
