@@ -1,17 +1,82 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Tab 1
-    </ion-title>
-  </ion-toolbar>
-</ion-header>
+<div class="page-container">
+  <!-- 顶部搜索框 -->
+  <div class="search-container ion-padding">
+    <input 
+      type="text" 
+      class="search-input" 
+      placeholder="搜索想找的事件..."
+      (input)="onSearchInput($event)"
+      (keypress)="onSearchKeyPress($event)"
+    >
+    <button class="search-btn" (click)="onSearchClick()">搜索</button>
+  </div>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Tab 1</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <!-- 2个大卡片-->
+  <div class="content-area ion-padding">
+    <!-- 第一个大卡片：求助 -->
+    <div class="big-card request-card">
+      <h3 class="big-card-title">求助</h3>
+      <!-- 求助小卡片网格 -->
+      <div class="small-card-grid">
+        <div class="small-card" *ngFor="let req of requestList; trackBy: trackById">
+          <!-- 图片区域 -->
+          <div class="card-image-wrapper">
+            <ion-icon [name]="req.cardImage" class="card-image-icon"></ion-icon>
+            <div class="distance-in-image">
+              <ion-icon [name]="req.icon" class="distance-icon"></ion-icon>
+              <span>{{ req.distance }}</span>
+            </div>
+          </div>
+          <div class="user-info-row">
+            <ion-avatar class="user-avatar">
+              <ion-icon [name]="req.avatar" class="avatar-icon"></ion-icon>
+            </ion-avatar>
+            <div class="name-address-wrapper">
+              <span class="user-name">{{ req.name }}</span>
+              <span class="user-address">{{ req.address }}</span>
+            </div>
+          </div>
 
-  <app-explore-container name="Tab 1 page"></app-explore-container>
-</ion-content>
+          <div class="demand">{{ req.demand }}</div>
+          <div class="card-footer">
+            <span class="price">{{ req.price }}</span>
+          </div>
+        </div>
+      </div>
+      <button class="big-card-more-btn" (click)="onBigCardMoreClick('request')">更多</button>
+    </div>
+
+    <!-- 第二个大卡片：帮助 -->
+    <div class="big-card help-card">
+      <h3 class="big-card-title">帮助</h3>
+      <!-- 帮助小卡片网格 -->
+      <div class="small-card-grid">
+        <div class="small-card" *ngFor="let help of helpList; trackBy: trackById">
+          <!-- 图片区域-->
+          <div class="card-image-wrapper">
+            <ion-icon [name]="help.cardImage" class="card-image-icon"></ion-icon>
+            <div class="distance-in-image">
+              <ion-icon [name]="help.icon" class="distance-icon"></ion-icon>
+              <span>{{ help.distance }}</span>
+            </div>
+          </div>
+          <div class="user-info-row">
+            <ion-avatar class="user-avatar">
+              <ion-icon [name]="help.avatar" class="avatar-icon"></ion-icon>
+            </ion-avatar>
+            <div class="name-address-wrapper">
+              <span class="user-name">{{ help.name }}</span>
+              <span class="user-address">{{ help.address }}</span>
+            </div>
+          </div>
+
+          <div class="demand">{{ help.demand }}</div>
+          <div class="card-footer">
+            <span class="price">{{ help.price }}</span>
+          </div>
+        </div>
+      </div>
+      <button class="big-card-more-btn" (click)="onBigCardMoreClick('help')">更多</button>
+    </div>
+  </div>
+</div>
