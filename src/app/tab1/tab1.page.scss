@@ -101,13 +101,34 @@
   gap: 15px;
 }
 
-// 小卡片样式
+// 小卡片基础样式
 .small-card {
   background-color: #FFF3E6;
   border: 1px solid #FED7AA;
   border-radius: 8px;
   padding: 15px;
   position: relative;
+}
+
+// 核心：所有小卡片的点击视觉反应
+.clickable-card {
+  cursor: pointer; // 鼠标变手型
+  transition: all 0.15s ease; // 快速过渡
+
+  // 鼠标悬浮
+  &:hover {
+    background-color: #FDE6C8; // 浅橙背景
+    border-color: #F97316; // 橙色边框
+    box-shadow: 0 3px 8px rgba(249, 115, 22, 0.15); // 轻微阴影
+    transform: translateY(-2px); // 轻微上移
+  }
+
+  // 点击按下
+  &:active {
+    transform: translateY(0); // 复位
+    background-color: #FED7AA; // 更深背景
+    box-shadow: 0 1px 3px rgba(249, 115, 22, 0.2); // 缩小阴影
+  }
 }
 
 // 图片区域（相对定位）+ 距离左下角样式
@@ -224,7 +245,7 @@
   color: #F97316;
 }
 
-// 大卡片更多按钮
+// 大卡片更多按钮（含纯CSS小三角）
 .big-card-more-btn {
   position: absolute;
   bottom: 20px;
@@ -237,15 +258,31 @@
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 
   &:hover {
     background-color: #FEF3C7;
     border-color: #F97316;
+    .css-triangle {
+      border-left-color: #7C2D12 !important;
+    }
   }
 
   &:active {
     background-color: #FED7AA;
   }
+}
+
+// 纯CSS小三角样式
+.css-triangle {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid #F97316;
+  transition: border-left-color 0.2s;
 }
 
 // 全局重置

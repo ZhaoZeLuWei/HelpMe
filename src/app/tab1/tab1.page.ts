@@ -2,17 +2,17 @@ import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { IonicModule } from '@ionic/angular'; 
 import { CommonModule } from '@angular/common'; 
 
-// 小卡片类型定义（新增cardImage字段，对应“花、药”等图片）
+// 小卡片类型定义
 interface CardItem {
   id: string;
-  cardImage: string; // 小卡片顶部图片（图标/图片链接，对应手绘图的花、药）
-  icon: string;      // 距离旁的小图标
-  distance: string;  // 距离
-  name: string;      // 姓名
-  address: string;   // 地址
-  demand: string;    // 需求描述
-  price: string;     // 价格
-  avatar: string;    // 头像
+  cardImage: string;
+  icon: string;
+  distance: string;
+  name: string;
+  address: string;
+  demand: string;
+  price: string;
+  avatar: string;
 }
 
 @Component({
@@ -24,12 +24,12 @@ interface CardItem {
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class Tab1Page {
-  // 求助大卡片的小卡片数据（新增cardImage，对应“花、药”）
+  // 求助大卡片的小卡片数据
   requestList: CardItem[] = [
     {
       id: 'req-1',
-      cardImage: 'flower',       // 对应手绘图的“花”
-      icon: 'navigate-outline',  // 距离旁的小图标
+      cardImage: 'flower',       
+      icon: 'navigate-outline',  
       distance: '1.0km',
       name: '刘xx',
       address: '广科大小区',
@@ -39,7 +39,7 @@ export class Tab1Page {
     },
     {
       id: 'req-2',
-      cardImage: 'medkit',       // 对应手绘图的“药”
+      cardImage: 'medkit',       
       icon: 'navigate-outline',
       distance: '78m',
       name: '李xx',
@@ -50,11 +50,11 @@ export class Tab1Page {
     }
   ];
 
-  // 帮助大卡片的小卡片数据（新增cardImage，对应“家电、打扫”）
+  // 帮助大卡片的小卡片数据
   helpList: CardItem[] = [
     {
       id: 'help-1',
-      cardImage: 'build',        // 对应手绘图的“家电”
+      cardImage: 'build',        
       icon: 'navigate-outline',
       distance: '500m',
       name: '刘xx',
@@ -65,7 +65,7 @@ export class Tab1Page {
     },
     {
       id: 'help-2',
-      cardImage: 'trash',        // 对应手绘图的“打扫”
+      cardImage: 'trash',        
       icon: 'navigate-outline',
       distance: '200m',
       name: '李xx',
@@ -164,6 +164,11 @@ export class Tab1Page {
         avatar: 'person-circle'
       }
     ];
+  }
+
+  // 所有小卡片点击反馈（仅打印日志）
+  cardClickFeedback(item: CardItem) {
+    console.log('点击了小卡片：', item.name, 'ID：', item.id);
   }
 
   onBigCardMoreClick(type: 'request' | 'help') {
