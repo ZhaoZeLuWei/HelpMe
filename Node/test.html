@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Socket.IO chat</title>
+</head>
+<body>
+<ul id="messages"></ul>
+<form id="form" action="">
+  <input id="input" autocomplete="off" /><button>Send</button>
+</form>
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  //add severOffset auth 会在 连接 / 重连时自动发送给服务器
+  const socket = io({
+    auth: {
+      serverOffset:0
+    }
+  });
+
+  const form = document.getElementById('form');
+  const input = document.getElementById('input');
+  const messages = document.getElementById('messages');
+
+  //create li element for each msg send
+  function showMessage(text, serverOffset) {
+    const chatMsg = document.createElement('li');
+    chatMsg.textContent = text;
+    messages.appendChild(chatMsg);
+    window.scrollTo(0, document.body.scrollHeight);
+    //add sever offset
+    socket.auth.serverOffset = serverOffset;
+  }
+
+  //get welcome msg (connection success)
+  //use Acknowledgement 给不确定的网络环境，加一个明确的结果反馈
+  socket.on('connectSuccess', (msg) => {
+    showMessage(msg);
+  })
+
+  socket.on('tryJson', (msg) => {
+    showMessage(msg.name + msg.age);
+    console.log(msg);
+  })
+
+  //监听form 的 submit操作
+  form.addEventListener('submit', (e) => {
+    //组织表单的默认提交行为
+    e.preventDefault();
+    //检查输入非空
+    if(input.value){
+      //将输入内容发送到node server
+      socket.timeout(3000).emit('chat message', input.value);
+      //清空前端输入
+      input.value = '';
+    }
+  })
+
+  //show msg from server
+  socket.on('chat message', (msg) => {
+    showMessage(msg);
+  })
+
+
+</script>
+</html>

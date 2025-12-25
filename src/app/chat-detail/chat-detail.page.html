@@ -1,0 +1,37 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/tab3"></ion-back-button>
+    </ion-buttons>
+    <ion-title>聊天详情</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="chat-container">
+    @for (msg of messages(); track $index) {
+      <div class="message-group" [class.me]="msg.senderId === currentUser.id">
+        <span class="user-name">{{ msg.userName }} </span>
+        <span class="timestamp"> {{ msg.timestamp | date:'HH:mm' }}</span>
+        <div class="message-bubble">
+          {{ msg.text }}
+        </div>
+      </div>
+    }
+  </div>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-item lines="none">
+      <ion-input
+        [formControl]="messageInput"
+        placeholder="输入消息..."
+        (keyup.enter)="sendMessage()">
+      </ion-input>
+      <ion-button slot="end" fill="clear" (click)="sendMessage()">
+        发送
+      </ion-button>
+    </ion-item>
+  </ion-toolbar>
+</ion-footer>
