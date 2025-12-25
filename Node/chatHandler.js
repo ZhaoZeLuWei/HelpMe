@@ -11,6 +11,7 @@ module.exports = (io, socket) => {
         timestamp: new Date(),
       }
     );
+    console.log("Connected!!");
   };
 
   //get the msg from client
@@ -24,7 +25,7 @@ module.exports = (io, socket) => {
         timestamp: new Date().toISOString(),
       }
       //before that we need to store the msg into our database
-      console.log("SQL Query waiting ~~~");
+      console.log("wait to store this msg into db");
 
       //a simple console to check the node actually get the msg details
       console.log(`[${messageData.timestamp}] ${messageData.userName}: ${messageData.text}`);
