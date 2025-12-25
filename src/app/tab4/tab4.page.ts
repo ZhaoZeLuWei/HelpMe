@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, NgZone, OnDestroy } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { addIcons } from 'ionicons';
 
 import {
@@ -70,7 +70,7 @@ export class Tab4Page implements OnDestroy {
   isLoggedIn = false;
   private _sub: any;
 
-  constructor(private zone: NgZone, private auth: AuthService, private toastController: ToastController) {
+  constructor(private auth: AuthService, private toastController: ToastController) {
     // 注册页面用到的 Ionicons 图标
     addIcons({
       documentText,
@@ -89,7 +89,7 @@ export class Tab4Page implements OnDestroy {
       logOut,
     });
     // 订阅登录状态
-    this._sub = this.auth.isLoggedIn$.subscribe(v => this.zone.run(() => this.isLoggedIn = v));
+    this._sub = this.auth.isLoggedIn$.subscribe(v => this.isLoggedIn = v);
   }
   // 删除确认弹窗状态
   isDeleteAlertOpen = false;
@@ -100,23 +100,19 @@ export class Tab4Page implements OnDestroy {
       text: '取消',
       role: 'cancel',
       handler: () => {
-        this.zone.run(() => {
-          this.isDeleteAlertOpen = false;
-          this.deleteTargetId = null;
-        });
+        this.isDeleteAlertOpen = false;
+        this.deleteTargetId = null;
       },
     },
     {
       text: '删除',
       role: 'destructive',
       handler: () => {
-        this.zone.run(() => {
-          if (this.deleteTargetId != null) {
-            this.deleteTask(this.deleteTargetId);
-          }
-          this.isDeleteAlertOpen = false;
-          this.deleteTargetId = null;
-        });
+        if (this.deleteTargetId != null) {
+          this.deleteTask(this.deleteTargetId);
+        }
+        this.isDeleteAlertOpen = false;
+        this.deleteTargetId = null;
       },
     },
   ];
@@ -180,11 +176,8 @@ export class Tab4Page implements OnDestroy {
   }
 
   deleteTask(taskId: number) {
-    // 使用 zone.run 确保变更检测立即触发
-    this.zone.run(() => {
-      this.tasks = this.tasks.filter(t => t.id !== taskId);
-    });
-    // 显示删除成功的提示
+    // 更新任务列表
+    this.tasks = this.tasks.filter(t => t.id !== taskId);
     this.presentDeleteToast();
     //后续调用删除API
   }
@@ -236,9 +229,7 @@ export class Tab4Page implements OnDestroy {
   }
 
   logout() {
-    this.zone.run(() => {
-      this.auth.logout();
-    });
+    this.auth.logout(); // 登出会触发状态变更
   }
 
   ngOnDestroy(): void {
