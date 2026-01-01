@@ -2,7 +2,6 @@ import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { IonicModule } from '@ionic/angular'; 
 import { CommonModule } from '@angular/common'; 
 
-// 小卡片类型定义
 interface CardItem {
   id: string;
   cardImage: string;
@@ -24,62 +23,68 @@ interface CardItem {
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class Tab1Page {
-  // 求助大卡片的小卡片数据
-  requestList: CardItem[] = [
+  // 原始数据常量
+  private readonly ORIGINAL_REQUESTS: CardItem[] = [
     {
       id: 'req-1',
-      cardImage: 'flower',       
-      icon: 'navigate-outline',  
-      distance: '1.0km',
+      cardImage: 'flower-outline',
+      icon: 'locate-outline',
+      distance: '距1.0km',
       name: '刘xx',
-      address: '广科大小区',
+      address: '广科小区',
       demand: '有一些花需要浇水',
-      price: '10.00¥',
-      avatar: 'person-circle'
+      price: '10.80元',
+      avatar: 'person-circle-outline'
     },
     {
       id: 'req-2',
-      cardImage: 'medkit',       
-      icon: 'navigate-outline',
-      distance: '78m',
+      cardImage: 'medkit-outline',
+      icon: 'locate-outline',
+      distance: '距7.8m',
       name: '李xx',
-      address: '广科大小区',
+      address: '涂料小区',
       demand: '需要跑腿买药',
-      price: '5.00¥',
-      avatar: 'person-circle'
+      price: '5.00元',
+      avatar: 'person-circle-outline'
     }
   ];
 
-  // 帮助大卡片的小卡片数据
-  helpList: CardItem[] = [
+  private readonly ORIGINAL_HELPS: CardItem[] = [
     {
       id: 'help-1',
-      cardImage: 'build',        
-      icon: 'navigate-outline',
-      distance: '500m',
+      cardImage: 'construct-outline',
+      icon: 'locate-outline',
+      distance: '距500m',
       name: '刘xx',
-      address: '广科大小区',
+      address: '涂料小区',
       demand: '可以修理家电',
-      price: '50.00¥',
-      avatar: 'person-circle'
+      price: '0.00元',
+      avatar: 'person-circle-outline'
     },
     {
       id: 'help-2',
-      cardImage: 'trash',        
-      icon: 'navigate-outline',
-      distance: '200m',
+      cardImage: 'sparkles-outline',
+      icon: 'locate-outline',
+      distance: '距2.0km',
       name: '李xx',
-      address: '广科大小区',
+      address: '涂料小区',
       demand: '可以打扫卫生',
-      price: '100.00¥',
-      avatar: 'person-circle'
+      price: '100.00元',
+      avatar: 'person-circle-outline'
     }
   ];
 
+  // 当前显示的数据（用于渲染视图）
+  requestList: CardItem[] = [];
+  helpList: CardItem[] = [];
+
   private searchKeyword = '';
 
-  constructor() {}
+  constructor() {
+    this.resetCardList();
+  }
 
+  // 监听输入框事件（不使用 ngModel）
   onSearchInput(event: Event) {
     const input = event.target as HTMLInputElement;
     this.searchKeyword = input.value.trim().toLowerCase();
@@ -101,13 +106,13 @@ export class Tab1Page {
       return;
     }
 
-    this.requestList = this.requestList.filter(item => 
+    this.requestList = this.ORIGINAL_REQUESTS.filter(item => 
       item.name.toLowerCase().includes(this.searchKeyword) ||
       item.address.toLowerCase().includes(this.searchKeyword) ||
       item.demand.toLowerCase().includes(this.searchKeyword)
     );
 
-    this.helpList = this.helpList.filter(item => 
+    this.helpList = this.ORIGINAL_HELPS.filter(item => 
       item.name.toLowerCase().includes(this.searchKeyword) ||
       item.address.toLowerCase().includes(this.searchKeyword) ||
       item.demand.toLowerCase().includes(this.searchKeyword)
@@ -115,58 +120,10 @@ export class Tab1Page {
   }
 
   private resetCardList() {
-    this.requestList = [
-      {
-        id: 'req-1',
-        cardImage: 'flower',
-        icon: 'navigate-outline',
-        distance: '1.0km',
-        name: '刘xx',
-        address: '广科大小区',
-        demand: '有一些花需要浇水',
-        price: '10.00¥',
-        avatar: 'person-circle'
-      },
-      {
-        id: 'req-2',
-        cardImage: 'medkit',
-        icon: 'navigate-outline',
-        distance: '78m',
-        name: '李xx',
-        address: '广科大小区',
-        demand: '需要跑腿买药',
-        price: '5.00¥',
-        avatar: 'person-circle'
-      }
-    ];
-
-    this.helpList = [
-      {
-        id: 'help-1',
-        cardImage: 'build',
-        icon: 'navigate-outline',
-        distance: '500m',
-        name: '刘xx',
-        address: '广科大小区',
-        demand: '可以修理家电',
-        price: '50.00¥',
-        avatar: 'person-circle'
-      },
-      {
-        id: 'help-2',
-        cardImage: 'trash',
-        icon: 'navigate-outline',
-        distance: '200m',
-        name: '李xx',
-        address: '广科大小区',
-        demand: '可以打扫卫生',
-        price: '100.00¥',
-        avatar: 'person-circle'
-      }
-    ];
+    this.requestList = [...this.ORIGINAL_REQUESTS];
+    this.helpList = [...this.ORIGINAL_HELPS];
   }
 
-  // 所有小卡片点击反馈（仅打印日志）
   cardClickFeedback(item: CardItem) {
     console.log('点击了小卡片：', item.name, 'ID：', item.id);
   }
