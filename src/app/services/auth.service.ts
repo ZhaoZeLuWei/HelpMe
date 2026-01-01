@@ -11,14 +11,28 @@ export class AuthService {
 
   constructor() {}
 
-  // 本地模拟登录。后续替换为API 调用。
-  loginWithPhone(phone: string, code: string): boolean {
-    const ok = phone === '15200000000' && code === '1234';
-    if (ok) {
-      localStorage.setItem('isLoggedIn', '1');
-      this._isLoggedIn$.next(true);
+  // 使用后端 API 登录
+  async loginWithPhone(phone: string, code: string): Promise<boolean> {
+    if (!phone || !code) return false;
+    try {
+      const resp = await fetch('http://localhost:3000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code })
+      });
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      if (data && data.success && data.user) {
+        localStorage.setItem('isLoggedIn', '1');
+        localStorage.setItem('user', JSON.stringify(data.user));
+        this._isLoggedIn$.next(true);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Login error:', err);
+      return false;
     }
-    return ok;
   }
 
   logout() {

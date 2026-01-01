@@ -62,7 +62,7 @@ export class LoginPage {
     const phone = this.form.controls.phone.value || '';
     const code = this.form.controls.code.value || '';
 
-    const ok = this.auth.loginWithPhone(phone, code);
+    const ok = await this.auth.loginWithPhone(phone, code);
     if (!ok) {
       const t = await this.toastCtrl.create({ message: '手机号或验证码错误', duration: 3000 });
       await t.present();
