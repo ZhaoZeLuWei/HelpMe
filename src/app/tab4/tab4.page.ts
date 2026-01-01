@@ -12,11 +12,6 @@ import {
   eye,
   personCircle,
   logOut,
-  trash,
-  create,
-  checkmarkCircle,
-  starHalf,
-  chatbubbles,
 } from 'ionicons/icons';
 
 import {
@@ -81,15 +76,17 @@ export class Tab4Page implements OnDestroy {
       heart,
       eye,
       personCircle,
-      trash,
-      create,
-      checkmarkCircle,
-      starHalf,
-      chatbubbles,
       logOut,
     });
     // 订阅登录状态
-    this._sub = this.auth.isLoggedIn$.subscribe(v => this.isLoggedIn = v);
+    this._sub = this.auth.isLoggedIn$.subscribe(v => {
+      this.isLoggedIn = v;
+      if (v) {
+        this.loadUserFromStorage();
+      } else {
+        this.resetUserInfo();
+      }
+    });
   }
   // 删除确认弹窗状态
   isDeleteAlertOpen = false;
@@ -119,29 +116,9 @@ export class Tab4Page implements OnDestroy {
 
   activeTab: string = 'published';
 
-  // 用户信息（示例数据）
-  userInfo = {
-    name: '张三',
-    isVerified: '已验证',
-    creditLevel: '优秀',
-    goodReviewRate: '100%',
-    stats: {
-      favorites: 5,
-      views: 20,
-      follows: 10
-    }
-  };
+  userInfo: any = this.createDefaultUserInfo();
 
-  // 任务列表（示例数据）
-  tasks = [
-    { id: 1, publisher: '张三', title: '买药', status: 'published', createdAt: '2025-12-20' },
-    { id: 2, publisher: '张三', title: '代取快递', status: 'inProgress', createdAt: '2025-12-21' },
-    { id: 3, publisher: '张三', title: '陪诊', status: 'completed', createdAt: '2025-12-22' },
-    { id: 4, publisher: '张三', title: '超市代购', status: 'completed', createdAt: '2025-12-23' },
-    { id: 5, publisher: '张三', title: '挂号', status: 'published', createdAt: '2000-01-01' },
-    { id: 6, publisher: '张三', title: '送文件', status: 'review', createdAt: '2000-01-02' }
-  ];
-
+  tasks: any[] = [];
 
   // Segment 切换事件
   onTabChange(event: CustomEvent) {
@@ -228,11 +205,117 @@ export class Tab4Page implements OnDestroy {
     return map[status] || 'medium';
   }
 
+  getVerificationColor(status: string): string {
+    if (status === '已认证') return 'success';
+    if (status === '被驳回') return 'danger';
+    if (status === '待审核') return 'warning';
+    return 'medium';
+  }
+
   logout() {
     this.auth.logout(); // 登出会触发状态变更
   }
 
   ngOnDestroy(): void {
     if (this._sub) this._sub.unsubscribe();
+  }
+
+  // 提取的默认用户信息
+  private createDefaultUserInfo() {
+    return {
+      name: '',
+      isVerified: '未认证',
+      creditLevel: '',
+      goodReviewRate: '',
+      buyerRanking: 0,
+      providerRole: 0,
+      orderCount: 0,
+      serviceRanking: 0,
+      location: '',
+      avatar: '',
+      introduction: '',
+      stats: { favorites: 0, views: 0, follows: 0 }
+    };
+  }
+
+  // 重置用户信息（登出时调用）
+  resetUserInfo() {
+    this.userInfo = this.createDefaultUserInfo();
+    this.tasks = []; // 清空任务列表
+  }
+
+  // 统一更新用户信息的工具方法
+  private updateUserFromData(data: any): void {
+    this.userInfo.name = data.UserName || '';
+    this.userInfo.location = data.Location || '';
+    this.userInfo.introduction = data.Introduction || '';
+    this.userInfo.avatar = data.UserAvatar || '';
+    this.userInfo.buyerRanking = data.BuyerRanking ?? 0;
+    this.userInfo.providerRole = data.ProviderRole ?? 0;
+    this.userInfo.orderCount = data.OrderCount ?? 0;
+    this.userInfo.serviceRanking = data.ServiceRanking ?? 0;
+
+    const vs = data.VerificationStatus;
+    if (vs === 1) this.userInfo.isVerified = '已认证';
+    else if (vs === 2) this.userInfo.isVerified = '驳回';
+    else if (vs === 0) this.userInfo.isVerified = '待审';
+    else this.userInfo.isVerified = '未认证';
+  }
+
+  // 从 localStorage 加载用户
+  async loadUserFromStorage(): Promise<void> {
+    try {
+      const raw = localStorage.getItem('user');
+      if (!raw) return;
+
+      const u = JSON.parse(raw);
+      const id = u.UserId || u.userId || u.id;
+
+      if (id) {
+        try {
+          const resp = await fetch(`http://localhost:3000/users/${id}/profile`);
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data?.success && data.user) {
+              this.updateUserFromData(data.user);
+              this.loadUserEvents(data.user.UserId);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('profile fetch failed, fallback to local user', e);
+        }
+      }
+
+      // Fallback: 使用 localStorage 中的数据
+      this.updateUserFromData(u);
+      const fid = u.UserId || u.userId || u.id;
+      if (fid) this.loadUserEvents(fid);
+    } catch (e) {
+      console.error('loadUserFromStorage error', e);
+    }
+  }
+
+  async loadUserEvents(userId: number): Promise<void> {
+    try {
+      const resp = await fetch(`http://localhost:3000/users/${userId}/events`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (!Array.isArray(data)) return;
+      this.tasks = data.map((e: any) => ({
+        id: e.EventId,
+        publisher: this.userInfo.name || '',
+        title: e.EventTitle,
+        status: 'published',
+        createdAt: e.CreateTime || ''
+      }));
+    } catch (e) {
+      console.warn('loadUserEvents failed', e);
+    }
+  }
+
+  getAssetUrl(path: string): string {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `http://localhost:3000${path}`;
   }
 }

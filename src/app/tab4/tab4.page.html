@@ -8,7 +8,7 @@
 
 <ion-content [fullscreen]="true">
   @if (!isLoggedIn) {
-    <app-login></app-login>
+  <app-login></app-login>
   }
 
   @if (isLoggedIn) {
@@ -16,14 +16,19 @@
   <ion-card class="user-card">
     <ion-item lines="none" class="user-header">
       <ion-avatar slot="start" class="user-avatar">
-        <ion-icon name="person-circle"></ion-icon>
+        <img *ngIf="userInfo.avatar" [src]="getAssetUrl(userInfo.avatar)" alt="avatar">
+        <ion-icon *ngIf="!userInfo.avatar" name="person-circle"></ion-icon>
       </ion-avatar>
       <ion-label>
         <div class="user-name-row">
           <span class="user-name">{{ userInfo.name }}</span>
           <ion-badge color="success" class="verified">{{ userInfo.isVerified }}</ion-badge>
         </div>
-        <p class="user-credit">买家信用: {{ userInfo.creditLevel }} · 好评率: {{ userInfo.goodReviewRate }}</p>
+        <p class="user-meta">地址:{{ userInfo.location }}</p>
+        <p class="user-credit">买家评分: {{ (userInfo.buyerRanking || 0) }} </p>
+        <p class="user-credit">服务评分: {{ (userInfo.serviceRanking || 0) }} · 服务总单数: {{ userInfo.orderCount || 0 }} ·
+          服务等级: {{ userInfo.providerRole || 0 }}</p>
+        <p class="user-credit">个人介绍: {{ userInfo.introduction }}</p>
         <ion-button color="danger" (click)="logout()">
           <ion-icon name="log-out"></ion-icon>
           <span>登出</span>
@@ -68,54 +73,50 @@
   <!-- 任务列表 -->
   <div class="tasks-list">
     @for (task of getFilteredTasks(); track task.id) {
-      <ion-card class="task-item">
-        <ion-item lines="none">
-          <ion-icon name="document-text" slot="start" class="task-icon"></ion-icon>
-          <ion-label>
-            <h2 class="task-title">{{ task.publisher }} · {{ task.title }}</h2>
-            <p class="task-meta">发布时间: {{ task.createdAt }}</p>
-          </ion-label>
-          <ion-badge slot="end" [color]="getStatusColor(task.status)" class="status-badge">
-            {{ getStatusText(task.status) }}
-          </ion-badge>
-        </ion-item>
-        <ion-item lines="none" class="task-actions">
-          <ion-buttons slot="end">
-            @if (task.status === 'published') {
-              <ion-button (click)="openDeleteAlert(task.id)">删除</ion-button>
-              <ion-button (click)="editTask(task.id)">编辑</ion-button>
-            }
-            @if (task.status === 'inProgress') {
-              <ion-button (click)="viewDetails(task.id)">详情</ion-button>
-            }
-            @if (task.status === 'completed') {
-              <ion-button (click)="openDeleteAlert(task.id)">删除</ion-button>
-              <ion-button (click)="viewDetails(task.id)">详情</ion-button>
-            }
-            @if (task.status === 'review') {
-              <ion-button (click)="goToReview(task.id)">评价</ion-button>
-            }
-          </ion-buttons>
-        </ion-item>
-      </ion-card>
+    <ion-card class="task-item">
+      <ion-item lines="none">
+        <ion-icon name="document-text" slot="start" class="task-icon"></ion-icon>
+        <ion-label>
+          <h2 class="task-title">{{ task.publisher }} · {{ task.title }}</h2>
+          <p class="task-meta">发布时间: {{ task.createdAt }}</p>
+        </ion-label>
+        <ion-badge slot="end" [color]="getStatusColor(task.status)" class="status-badge">
+          {{ getStatusText(task.status) }}
+        </ion-badge>
+      </ion-item>
+      <ion-item lines="none" class="task-actions">
+        <ion-buttons slot="end">
+          @if (task.status === 'published') {
+          <ion-button (click)="openDeleteAlert(task.id)">删除</ion-button>
+          <ion-button (click)="editTask(task.id)">编辑</ion-button>
+          }
+          @if (task.status === 'inProgress') {
+          <ion-button (click)="viewDetails(task.id)">详情</ion-button>
+          }
+          @if (task.status === 'completed') {
+          <ion-button (click)="openDeleteAlert(task.id)">删除</ion-button>
+          <ion-button (click)="viewDetails(task.id)">详情</ion-button>
+          }
+          @if (task.status === 'review') {
+          <ion-button (click)="goToReview(task.id)">评价</ion-button>
+          }
+        </ion-buttons>
+      </ion-item>
+    </ion-card>
     }
 
     @if (getFilteredTasks().length === 0) {
-      <div class="empty-state">
-        <ion-icon name="document-text" class="empty-icon"></ion-icon>
-        <ion-text color="medium">
-          <p>暂无相关任务</p>
-        </ion-text>
-      </div>
+    <div class="empty-state">
+      <ion-icon name="document-text" class="empty-icon"></ion-icon>
+      <ion-text color="medium">
+        <p>暂无相关任务</p>
+      </ion-text>
+    </div>
     }
   </div>
 
   <!-- 删除确认弹窗 -->
-  <ion-alert
-    [isOpen]="isDeleteAlertOpen"
-    header="确认删除"
-    message="删除后不可恢复，是否继续？"
-    [buttons]="alertButtons">
+  <ion-alert [isOpen]="isDeleteAlertOpen" header="确认删除" message="删除后不可恢复，是否继续？" [buttons]="alertButtons">
   </ion-alert>
 
   }

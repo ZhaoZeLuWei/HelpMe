@@ -19,6 +19,9 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
+
+// 将数据库当中的 /img/* 映射到本地 upload/img 文件夹
+app.use('/img', express.static(join(__dirname, '..', 'upload', 'img')));
 const server = createServer(app);
 const io = new Server(server, {
   connectionStateRecovery:{},
@@ -82,6 +85,28 @@ app.get('/users/:id/events', async (req, res) => {
   } catch (err) {
     console.error('DB query error (events):', err);
     res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// 获取用户完整资料（包含 Consumers/Providers 信息）
+app.get('/users/:id/profile', async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const [rows] = await pool.query(
+      `SELECT u.UserId, u.UserName, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction,
+              (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
+              c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
+       FROM Users u
+       LEFT JOIN Consumers c ON u.UserId = c.ConsumerId
+       LEFT JOIN Providers p ON u.UserId = p.ProviderId
+       WHERE u.UserId = ? LIMIT 1`,
+      [userId]
+    );
+    if (!rows || rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    return res.json({ success: true, user: rows[0] });
+  } catch (err) {
+    console.error('DB query error (profile):', err);
+    return res.status(500).json({ error: 'Database query failed' });
   }
 });
 

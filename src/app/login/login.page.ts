@@ -68,7 +68,18 @@ export class LoginPage {
       await t.present();
       return;
     }
-    const t = await this.toastCtrl.create({ message: '登录成功', duration: 3000 });
+
+    let name = '';
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) {
+        name = JSON.parse(raw).UserName || '';
+      }
+    } catch (e) {
+    }
+    const message = name ? `登录成功，${name}，欢迎您！` : '登录成功，欢迎您！';
+    const t = await this.toastCtrl.create({ message, duration: 3000 });
+    
     await t.present();
     // 登录成功后 AuthService 已更新，Tab4 会订阅到变化并显示个人中心
   }
