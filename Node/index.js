@@ -19,6 +19,7 @@ const io = new Server(server, {
   }
 });
 
+/*
 //read the database (messages table)
 app.get('/', async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM messages');
@@ -26,10 +27,37 @@ app.get('/', async (req, res) => {
   res.json(rows); // 关键：返回纯 JSON 数据
   console.log(rows);
 });
+*/
 
 //this is a test html for simple chat
 app.get('/test', (req, res) => {
     res.sendFile(join(__dirname + '/test.html'));
+});
+
+//测试数据库连接
+app.get('/users', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT UserId, UserName, PhoneNumber, Location FROM Users LIMIT 10');
+    res.json(rows);
+  } catch (err) {
+    console.error('DB query error:', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
+});
+
+// 测试获取用户发布的事件列表
+app.get('/users/:id/events', async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const [rows] = await pool.query(
+      'SELECT EventId, EventTitle, EventCategory, Location, Price, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50',
+      [userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('DB query error (events):', err);
+    res.status(500).json({ error: 'Database query failed' });
+  }
 });
 
 //this part for socketIO
