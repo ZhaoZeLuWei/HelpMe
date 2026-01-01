@@ -1,6 +1,20 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="light">
-    <ion-searchbar placeholder="搜索..."></ion-searchbar>
+    <div class="search-container ion-padding">
+      <!--
+           修改点：添加 [formControl]="filterForm.get('searchText')"
+           这样输入的内容就会自动进入表单流，触发 filteredEvents 的计算
+      -->
+      <input
+        type="text"
+        class="search-input"
+        placeholder="搜索想找的事件..."
+        [formControl]="searchControl"
+      >
+      <!-- 按钮保留，因为有了上面的绑定，输入时列表会自动刷新，点击按钮可以作为手动触发或无操作 -->
+      <button>搜索</button>
+    </div>
+
     <!-- 将formGroup绑定到一个容器div上，这样ion-segment也能使用formControlName -->
     <div [formGroup]="filterForm">
       <!-- 绑定表单控件的 category -->
@@ -68,7 +82,7 @@
             </ion-item>
 
             <ion-card-content>
-              <h3 class="event-title">{{ event.title }}</h3>
+              <h3 class="event-Introduction">{{ event.Introduction }}</h3>
               <div class="detail-row">
                 <div class="detail-item">
                   <ion-icon name="cash"></ion-icon>
