@@ -1,4 +1,11 @@
 <div class="page-container">
+  
+  <!-- 右上角语言切换按钮 -->
+  <button class="lang-switch-btn" (click)="toggleLanguage()">
+    <span class="material-icons">public</span>
+    <span>{{ currentLang }}</span>
+  </button>
+
   <!-- 顶部搜索框 -->
   <div class="search-container ion-padding">
     <input 
@@ -18,23 +25,23 @@
     <div class="big-card request-card">
       <h3 class="big-card-title">求助</h3>
       
-      <!-- 使用 *ngFor 循环渲染求助列表 -->
       <div class="small-card-grid">
         <div class="small-card clickable-card" 
              *ngFor="let req of requestList; trackBy: trackById"
              (click)="cardClickFeedback(req)">
           
+          <!-- 图片区域 -->
           <div class="card-image-wrapper">
-            <ion-icon [name]="req.cardImage" class="card-image-icon"></ion-icon>
+            <img [src]="req.cardImage" class="card-image-img" alt="事件图片">
             <div class="distance-in-image">
-              <ion-icon [name]="req.icon" class="distance-icon"></ion-icon>
+              <span class="material-icons">location_on</span>
               <span>{{ req.distance }}</span>
             </div>
           </div>
           
           <div class="user-info-row">
             <div class="user-avatar">
-              <ion-icon [name]="req.avatar" class="avatar-icon"></ion-icon>
+              <span class="material-icons">account_circle</span>
             </div>
             <div class="name-address-wrapper">
               <span class="user-name">{{ req.name }}</span>
@@ -49,7 +56,6 @@
         </div>
       </div>
 
-      <!-- 更多按钮（绝对定位 + CSS三角） -->
       <button class="big-card-more-btn" (click)="onBigCardMoreClick('request')">
         <div class="css-triangle"></div>
         更多
@@ -60,23 +66,23 @@
     <div class="big-card help-card">
       <h3 class="big-card-title">帮助</h3>
 
-      <!-- 使用 *ngFor 循环渲染帮助列表 -->
       <div class="small-card-grid">
         <div class="small-card clickable-card" 
              *ngFor="let help of helpList; trackBy: trackById"
              (click)="cardClickFeedback(help)">
           
+          <!-- 图片区域 -->
           <div class="card-image-wrapper">
-            <ion-icon [name]="help.cardImage" class="card-image-icon"></ion-icon>
+            <img [src]="help.cardImage" class="card-image-img" alt="事件图片">
             <div class="distance-in-image">
-              <ion-icon [name]="help.icon" class="distance-icon"></ion-icon>
+              <span class="material-icons">location_on</span>
               <span>{{ help.distance }}</span>
             </div>
           </div>
           
           <div class="user-info-row">
             <div class="user-avatar">
-              <ion-icon [name]="help.avatar" class="avatar-icon"></ion-icon>
+              <span class="material-icons">account_circle</span>
             </div>
             <div class="name-address-wrapper">
               <span class="user-name">{{ help.name }}</span>
@@ -91,11 +97,37 @@
         </div>
       </div>
 
-      <!-- 更多按钮 -->
       <button class="big-card-more-btn" (click)="onBigCardMoreClick('help')">
         <div class="css-triangle"></div>
         更多
       </button>
     </div>
   </div>
+
+  <div class="custom-modal-overlay" *ngIf="showLangConfirmModal" (click)="cancelSwitchLanguage()">
+    <!-- 弹窗卡片：点击卡片本身阻止冒泡(不会取消) -->
+    <div class="custom-modal-card" (click)="$event.stopPropagation()">
+      
+      <!-- 顶部图标装饰 -->
+      <div class="modal-icon-circle">
+        <span class="material-icons">language</span>
+      </div>
+
+      <!-- 标题 -->
+      <h3 class="modal-header">提示 / Alert</h3>
+      
+      <!-- 内容 -->
+      <p class="modal-body">
+        您确定要切换语言吗？<br>
+        <span class="sub-text">Are you sure you want to switch language?</span>
+      </p>
+      
+      <!-- 按钮区域 -->
+      <div class="modal-actions">
+        <button class="modal-btn cancel" (click)="cancelSwitchLanguage()">取消 / Cancel</button>
+        <button class="modal-btn confirm" (click)="confirmSwitchLanguage()">确定 / OK</button>
+      </div>
+    </div>
+  </div>
+
 </div>
