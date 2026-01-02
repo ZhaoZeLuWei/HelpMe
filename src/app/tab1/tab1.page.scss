@@ -1,4 +1,4 @@
-// === 1. 引入 Google Material Icons 字体 ===
+// === 引入 Google Material Icons 字体 (如果全局未引入) ===
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
 // 页面整体容器
@@ -11,17 +11,17 @@
   position: relative; 
 }
 
-// === 2. 定义 Material Icons 通用样式 ===
+// 全局 Material Icons 样式 (父页面也需要)
 .material-icons {
   display: inline-block;
-  font-size: 1em; 
+  font-size: 1em;
   width: 1em;
   height: 1em;
   line-height: 1;
   vertical-align: middle;
 }
 
-// === 右上角语言切换按钮 ===
+// 右上角语言切换按钮
 .lang-switch-btn {
   position: absolute;
   top: 15px;
@@ -125,6 +125,7 @@
   padding: 10px 15px !important;
 }
 
+// 大卡片容器
 .big-card {
   background-color: #FFFFFF; 
   border: 1px solid #E2E8F0; 
@@ -146,7 +147,7 @@
   border-left: 4px solid #0F766E; 
 }
 
-// === 核心修改：响应式 Grid 布局 (手机 2x2, 电脑 4x1) ===
+// 网格布局 (保留在这里，因为它控制的是卡片的排列)
 .small-card-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr); 
@@ -158,150 +159,7 @@
   }
 }
 
-// 小卡片样式
-.small-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 10px; 
-  padding: 10px; 
-  position: relative;
-  transition: transform 0.2s ease;
-  width: 100%; 
-}
-
-.clickable-card {
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: #F0FDFA; 
-    border-color: #0F766E; 
-    box-shadow: 0 10px 15px -3px rgba(15, 118, 110, 0.15);
-    transform: translateY(-3px); 
-  }
-
-  &:active {
-    transform: translateY(-1px);
-    background-color: #CCFBF1;
-    box-shadow: 0 2px 4px rgba(15, 118, 110, 0.1);
-  }
-}
-
-.card-image-wrapper {
-  position: relative; 
-  margin-bottom: 10px; 
-  border-radius: 8px;
-  overflow: hidden; 
-  background-color: #F1F5F9; 
-  min-height: 140px; 
-  height: 140px; 
-
-  @media (min-width: 768px) {
-    min-height: 160px;
-    height: 160px;
-  }
-}
-
-.card-image-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; 
-  display: block;
-}
-
-.distance-in-image {
-  position: absolute;
-  bottom: 8px; 
-  left: 8px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: rgba(0, 0, 0, 0.6); 
-  color: white; 
-  padding: 3px 8px; 
-  border-radius: 12px;
-  font-size: 11px; 
-  font-weight: 600;
-  backdrop-filter: blur(2px); 
-  z-index: 2;
-  
-  .material-icons {
-    font-size: 14px;
-    color: white;
-  }
-}
-
-.user-info-row {
-  display: flex;
-  align-items: center;
-  gap: 6px; 
-  margin-bottom: 6px; 
-}
-
-.user-avatar {
-  width: 28px; 
-  height: 28px; 
-  background-color: #E0F2FE; 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%; 
-  
-  .material-icons {
-    font-size: 24px;
-    color: #0284C7;
-  }
-}
-
-.name-address-wrapper {
-  display: flex;
-  flex-direction: row; 
-  align-items: center;
-  gap: 0; 
-  flex: 1;
-  overflow: hidden;
-}
-
-.user-name {
-  font-size: 13px; 
-  color: #1E293B; 
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.user-address {
-  font-size: 13px; 
-  color: #1E293B;  
-  margin-left: auto; 
-  font-weight: 400;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.demand {
-  font-size: 12px; 
-  color: #475569; 
-  line-height: 1.4; 
-  margin-bottom: 8px; 
-  min-height: 34px; 
-}
-
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  border-top: 1px solid #F1F5F9; 
-  padding-top: 6px; 
-  margin-top: 4px;
-}
-
-.price {
-  font-weight: 800;
-  font-size: 16px; 
-  color: #D97706; 
-}
-
+// 更多按钮
 .big-card-more-btn {
   position: absolute;
   bottom: 20px;
@@ -341,7 +199,7 @@
   transition: border-left-color 0.2s;
 }
 
-// === 新增：自定义美观弹窗样式 ===
+// 自定义弹窗样式 
 .custom-modal-overlay {
   position: fixed;
   top: 0;
@@ -369,7 +227,6 @@
   position: relative;
 }
 
-// 弹窗顶部的图标圆圈
 .modal-icon-circle {
   width: 60px;
   height: 60px;
@@ -424,7 +281,6 @@
   outline: none;
 }
 
-// 取消按钮：灰色
 .modal-btn.cancel {
   background-color: #F1F5F9;
   color: #64748B;
@@ -434,7 +290,6 @@
   }
 }
 
-// 确定按钮：主题蓝绿色
 .modal-btn.confirm {
   background-color: #0F766E;
   color: white;
@@ -450,7 +305,6 @@
   }
 }
 
-// 动画定义
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

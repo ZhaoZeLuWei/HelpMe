@@ -2,6 +2,9 @@ import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { IonicModule } from '@ionic/angular'; 
 import { CommonModule } from '@angular/common'; 
 
+// 导入新创建的子组件
+import { ShowEventComponent } from '../show-event/show-event.component';
+
 interface CardItem {
   id: string;
   cardImage: string;
@@ -19,11 +22,11 @@ interface CardItem {
   templateUrl: './tab1.page.html',
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule],
+  imports: [IonicModule, CommonModule, ShowEventComponent], 
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class Tab1Page {
-  //  求助列表 
+  //求助列表 
   private readonly ORIGINAL_REQUESTS: CardItem[] = [
     {
       id: 'req-1',
@@ -119,10 +122,8 @@ export class Tab1Page {
     }
   ];
 
-  // 当前显示的数据
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
-
   private searchKeyword = '';
   
   // 语言变量
@@ -150,19 +151,17 @@ export class Tab1Page {
     this.executeSearch();
   }
 
-  // 点击切换语言
+  //自定义弹窗相关的方法
   toggleLanguage() {
     this.showLangConfirmModal = true;
   }
 
-  // 确认切换
   confirmSwitchLanguage() {
     this.currentLang = this.currentLang === '中文' ? 'EN' : '中文';
     console.log('语言切换为:', this.currentLang);
-    this.showLangConfirmModal = false; 
+    this.showLangConfirmModal = false;
   }
 
-  // 取消切换
   cancelSwitchLanguage() {
     this.showLangConfirmModal = false;
   }
@@ -191,8 +190,9 @@ export class Tab1Page {
     this.helpList = [...this.ORIGINAL_HELPS];
   }
 
+  // 处理子组件传来的点击事件
   cardClickFeedback(item: CardItem) {
-    console.log('点击了小卡片：', item.name);
+    console.log('点击了小卡片：', item.name, 'ID：', item.id);
   }
 
   onBigCardMoreClick(type: 'request' | 'help') {
