@@ -24,7 +24,7 @@
       <ion-badge slot="end" color="danger">0</ion-badge>
     </ion-item>
 
-    @for (user of userList; track user.name) {
+    @for (user of chatRooms; track user.name) {
       <ion-item [button]="true" (click)="goChat(user)">
         <ion-avatar slot="start">
           <img [src]="user.avatar" [alt]="user.name" />

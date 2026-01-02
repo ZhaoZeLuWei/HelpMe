@@ -50,7 +50,7 @@ app.post('/login', async (req, res) => {
 /*
 //read the database (messages table)
 app.get('/', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM messages');
+  const [rows] = await pool.query('SELECT * FROM Users');
   console.log("Reading...");
   res.json(rows); // 关键：返回纯 JSON 数据
   console.log(rows);
