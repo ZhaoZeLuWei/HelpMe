@@ -1,0 +1,205 @@
+ion-content {
+  --background: #f4f5f8;
+}
+
+.filter-row {
+  background: white;
+  padding: 10px 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  margin-bottom: 10px;
+}
+
+.custom-card {
+  margin: 0 16px 16px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  background: #fff;
+}
+
+.card-header {
+  --background: transparent;
+  --padding-start: 16px;
+  --padding-end: 16px;
+}
+
+.event-Introduction {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  color: #666;
+  font-size: 0.9rem;
+
+  .detail-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    ion-icon {
+      color: #3880ff;
+    }
+  }
+}
+
+.card-footer {
+  border-top: 1px solid #eee;
+  padding: 8px 16px;
+}
+
+.empty-state {
+  text-align: center;
+  margin-top: 100px;
+  color: #999;
+}
+
+// 模态框中的样式
+.sidebar {
+  background-color: #f2f2f2;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-item {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+  color: #666;
+}
+
+.sidebar-item.active {
+  background-color: #fff;
+  color: #3880ff;
+  border-left: 4px solid #3880ff;
+}
+/* 之前的样式保持不变，增加以下内容 */
+
+ion-content {
+  --background: #f4f5f8;
+}
+
+.filter-row {
+  background: white;
+  padding: 10px 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  margin-bottom: 10px;
+}
+
+.custom-card {
+  margin: 0 16px 16px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  background: #fff;
+  overflow: hidden; // 确保图片圆角
+}
+
+// 新增：顶部图片样式
+.card-hero-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.card-header {
+  --background: transparent;
+  --padding-start: 16px;
+  --padding-end: 16px;
+}
+
+.event-demand {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: #333;
+  white-space: normal; /* 允许换行 */
+  line-height: 1.4;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  color: #666;
+  font-size: 0.9rem;
+
+  .detail-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    ion-icon {
+      color: #3880ff;
+    }
+  }
+}
+
+.card-footer {
+  border-top: 1px solid #eee;
+  padding: 8px 16px;
+}
+
+.empty-state {
+  text-align: center;
+  margin-top: 100px;
+  color: #999;
+}
+/* ... 之前的样式保持不变 ... */
+
+/* 新增：搜索框和按钮的容器样式 */
+.search-actions-container {
+  display: flex;            /* 使用 Flexbox 布局 */
+  align-items: center;      /* 垂直居中对齐 */
+  padding: 10px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 10px;
+}
+
+.search-bar-custom {
+  flex: 1;                  /* 搜索框占据剩余空间 */
+  --background: #fff;
+  --box-shadow: none;       /* 去掉默认阴影，融入背景 */
+  --border-radius: 20px;
+}
+
+.search-actions-container ion-button {
+  margin-left: 10px;       /* 按钮左边距 */
+  --padding-start: 10px;
+  --padding-end: 10px;
+  height: 50px;             /* 按钮高度稍微大一点 */
+}
+
+/* ... 之前的样式保持不变 ... */
+/* 搜索框和按钮并排布局 */
+.search-actions-container {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 10px;
+}
+
+.search-bar-custom {
+  flex: 1;
+  --background: #fff;
+  --box-shadow: none;
+  --border-radius: 20px;
+}
+
+.search-actions-container ion-button {
+  margin-left: 10px;
+  --padding-start: 10px;
+  --padding-end: 10px;
+  height: 50px;
+}
+
+/* 顶部大图样式 */
+.card-hero-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}

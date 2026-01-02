@@ -1,0 +1,149 @@
+<ion-content [fullscreen]="true">
+  <div [formGroup]="filterForm">
+
+    <!-- ===== 1. 搜索区域 (点击按钮搜索) ===== -->
+    <div class="search-actions-container">
+      <!-- 搜索框 -->
+      <ion-searchbar
+        class="search-bar-custom"
+        [animated]="true"
+        placeholder="输入需求描述..."
+        show-clear-button="true"
+        [formControl]="searchControl"
+        (ionClear)="resetFilters()"> <!-- 点击小X时自动重置 -->
+      </ion-searchbar>
+
+      <!-- 搜索确认按钮 -->
+      <ion-button (click)="onSearch()" shape="round" color="primary">
+        <ion-icon slot="icon-only" name="search"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- ===== 2. 筛选按钮行 ===== -->
+    <ion-row class="filter-row">
+      <ion-col>
+        <ion-button expand="block" fill="clear" size="small" color="dark" (click)="setModal('price', true)">
+          <ion-icon slot="start" name="pricetag"></ion-icon>
+          价格区间
+        </ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button expand="block" fill="clear" size="small" color="dark" (click)="setModal('location', true)">
+          <ion-icon slot="start" name="location"></ion-icon>
+          地点筛选
+        </ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button expand="block" fill="clear" size="small" color="dark" (click)="resetFilters()">
+          <ion-icon slot="start" name="funnel"></ion-icon>
+          重置
+        </ion-button>
+      </ion-col>
+    </ion-row>
+
+    <!-- ===== 3. 列表展示区 ===== -->
+    <div class="event-list-container">
+      @if (filteredEvents().length > 0) {
+        @for (event of filteredEvents(); track event.id) {
+          <ion-card class="custom-card" (click)="goToDetail(event.id)">
+
+            <!-- 顶部大图 -->
+            <img [src]="event.cardImage" class="card-hero-image" alt="Event Image" />
+
+            <ion-item lines="none" class="card-header">
+              <ion-avatar slot="start">
+                <img [src]="event.avatar" />
+              </ion-avatar>
+              <ion-label>
+                <h2>{{ event.name }}</h2>
+                <p>{{ event.distance }}</p>
+              </ion-label>
+              <!-- 图标展示 -->
+              <ion-icon slot="end" [name]="event.icon" color="primary" size="large"></ion-icon>
+            </ion-item>
+
+            <ion-card-content>
+              <!-- 需求描述 -->
+              <h3 class="event-demand">{{ event.demand }}</h3>
+
+              <div class="detail-row">
+                <div class="detail-item">
+                  <ion-icon name="cash"></ion-icon>
+                  <span>¥{{ event.price }}</span>
+                </div>
+                <div class="detail-item">
+                  <ion-icon name="navigate"></ion-icon>
+                  <!-- 地址 -->
+                  <span>{{ event.address }}</span>
+                </div>
+              </div>
+            </ion-card-content>
+
+            <ion-row class="card-footer">
+              <ion-col text-right>
+                <small color="medium">点击查看详情 </small>
+                <ion-icon name="chevron-forward" color="medium"></ion-icon>
+              </ion-col>
+            </ion-row>
+          </ion-card>
+        }
+      } @else {
+        <div class="empty-state">
+          <ion-icon name="file-tray" size="large" color="medium"></ion-icon>
+          <p>暂无符合条件的需求</p>
+        </div>
+      }
+    </div>
+
+    <!-- ==================== 模态框区域 ==================== -->
+
+    <!-- 价格筛选 -->
+    <ion-modal [isOpen]="modals().price" (willDismiss)="setModal('price', false)">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>价格筛选</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="setModal('price', false)">关闭</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div formGroupName="priceRange">
+            <ion-item>
+              <ion-label>最低: {{ filterForm.get('priceRange')?.get('min')?.value }}</ion-label>
+              <ion-range formControlName="min" [min]="0" [max]="500" [snaps]="true" color="secondary"></ion-range>
+            </ion-item>
+            <ion-item>
+              <ion-label>最高: {{ filterForm.get('priceRange')?.get('max')?.value }}</ion-label>
+              <ion-range formControlName="max" [min]="0" [max]="1000" [snaps]="true" color="secondary"></ion-range>
+            </ion-item>
+          </div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+
+    <!-- 地点筛选 -->
+    <ion-modal [isOpen]="modals().location" (willDismiss)="setModal('location', false)">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>输入地点关键词</ion-title>
+            <ion-buttons slot="end">
+              <ion-button (click)="setModal('location', false)">关闭</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content>
+          <ion-list>
+            <ion-item>
+              <ion-label position="stacked">地点关键词 (匹配地址)</ion-label>
+              <ion-input type="text" [formControlName]="'location'" placeholder="例如: 广科, 001..."></ion-input>
+            </ion-item>
+          </ion-list>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+
+  </div>
+</ion-content>
