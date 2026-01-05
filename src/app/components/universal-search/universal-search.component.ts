@@ -1,16 +1,16 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal, ContentChild, TemplateRef } from '@angular/core'; // <--- 引入 ContentChild 和 TemplateRef
 import { CommonModule } from '@angular/common';
-// 1. 在这里添加 IonInput
+// 修改后 (确保 IonList 和 IonItem 都在)
 import {
   IonHeader, IonToolbar, IonContent, IonTitle,
   IonLabel, IonButton,
-  IonRow, IonCol, IonCard, IonCardContent, IonAvatar,
-  IonItem,
-  IonIcon, IonModal, IonList,
-  IonSearchbar, IonRange,
-  IonButtons,
+  IonRow, IonCol,
+  IonGrid,
+  IonIcon, IonModal, IonList, IonItem,
+  IonSearchbar, IonRange, IonButtons,
   IonInput
 } from '@ionic/angular/standalone';
+
 import {
   FormBuilder,
   FormGroup,
@@ -25,20 +25,10 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
-import { pricetag, location, funnel, time, cash, navigate, chevronForward, fileTray, call, search } from 'ionicons/icons';
+import { pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search } from 'ionicons/icons';
 
-// 1. 使用队友定义的接口
-export interface EventCardData {
-  id: string;
-  cardImage: string;
-  icon: string;
-  distance: string;
-  name: string;
-  address: string;
-  demand: string; // <--- 重点：这里是我们需要搜索的内容
-  price: string; // <--- 注意：这里是字符串，过滤时需转为数字
-  avatar: string;
-}
+// 只保留这一个 import，删除了重复的引入
+import { EventCardData } from '../../show-event/show-event.component';
 
 @Component({
   selector: 'app-universal-search',
@@ -50,10 +40,11 @@ export interface EventCardData {
     ReactiveFormsModule,
     IonHeader, IonToolbar, IonContent, IonTitle,
     IonLabel, IonButton,
-    IonRow, IonCol, IonCard, IonCardContent, IonAvatar,
-    IonItem, IonIcon, IonModal, IonList,
+    IonRow, IonCol,
+    IonGrid,
+    IonIcon, IonModal, IonList, IonItem, // <--- 添加 IonItem
     IonSearchbar, IonRange, IonButtons,
-    IonInput
+    IonInput,
   ]
 })
 export class UniversalSearchComponent {
@@ -61,25 +52,27 @@ export class UniversalSearchComponent {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
 
-  // 2. Input 接收新接口的数据
+  // --- 数据输入 ---
   dataSource = input<EventCardData[]>([]);
   detailRoute = input<string>('/');
 
+  // --- 状态管理 ---
   modals = signal({
     price: false,
     location: false
-    // 注意：由于新接口没有明确的 'category' (分类) 和 'demandType' (需求类型) 字段，
-    // 我移除了这两个模态框的开关，只保留 价格 和 地点(地址) 筛选。
   });
 
-  // 3. 表单定义简化，只保留需要的
+  // 【优化】将确认搜索词的 Signal 移到这里，更清晰
+  confirmedSearchText = signal('');
+
+  // --- 表单定义 ---
   filterForm: FormGroup = this.fb.group({
-    searchText: [''], // 搜索 demand 的内容
+    searchText: [''],
     priceRange: this.fb.group({
       min: [0],
       max: [1000]
     }),
-    location: [''] // 筛选 address
+    location: ['']
   });
 
   formValueSignal = toSignal(
@@ -90,43 +83,42 @@ export class UniversalSearchComponent {
     ),
     { initialValue: this.filterForm.value }
   );
+  @ContentChild('cardTemplate', { static: true }) cardTemplate!: TemplateRef<any>;
 
-  // 4. 核心筛选逻辑更新
+  // --- 核心筛选逻辑 ---
   filteredEvents = computed(() => {
     const allEvents = this.dataSource();
-    // 这里我们直接读取 form 的值来获取价格和地点筛选
-    const formValues = this.filterForm.value;
-    // 获取用户确认后的搜索词 (而不是直接用输入框的值)
-    const term = this.confirmedSearchText();
+    const form        = this.formValueSignal();          // 只用于价格/地点
+    const term        = this.confirmedSearchText();      // 只用于搜索词
 
-    if (!allEvents || allEvents.length === 0) return [];
+    if (!Array.isArray(allEvents)) return [];
 
     return allEvents.filter(item => {
-      // A. 【关键修改】使用 confirmedSearchText 进行搜索
-      if (term && !item.demand.toLowerCase().includes(term.toLowerCase())) {
+      // 1. 搜索词过滤（核心修复）
+      if (term && !item.demand?.toLowerCase().includes(term.toLowerCase())) {
         return false;
       }
 
-      // B. 价格筛选 (保持不变)
-      const itemPrice = parseFloat(item.price);
-      if (!isNaN(itemPrice)) {
-        if (itemPrice < formValues.priceRange.min || itemPrice > formValues.priceRange.max) {
-          return false;
-        }
-      }
+      // 2. 价格区间
+      const min = form.priceRange?.min ?? 0;
+      const max = form.priceRange?.max ?? 1000;
+      const price = parseFloat(item.price ?? '0');
+      if (!isNaN(price) && (price < min || price > max)) return false;
 
-      // C. 地点筛选 (保持不变)
-      if (formValues.location && !item.address.includes(formValues.location)) {
-        return false;
-      }
+      // 3. 地点关键词
+      const locKeyword = form.location ?? '';
+      if (locKeyword && !item.address?.includes(locKeyword)) return false;
 
       return true;
     });
   });
 
+  // --- 构造函数 ---
   constructor() {
     addIcons({ pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search });
   }
+
+  // --- 方法 ---
 
   setModal(key: string, isOpen: boolean) {
     this.modals.update(m => ({ ...m, [key]: isOpen }));
@@ -138,11 +130,19 @@ export class UniversalSearchComponent {
       priceRange: { min: 0, max: 1000 },
       location: ''
     });
-    // 2. 【关键点】必须清空确认的搜索词，列表才会恢复显示所有数据
-    this.confirmedSearchText.set('');
+    this.confirmedSearchText.set(''); // 清空确认的搜索词
   }
 
-  goToDetail(itemId: string) { // ID现在是string类型
+  onSearch() {
+    const currentVal = this.searchControl.value || '';
+    this.confirmedSearchText.set(currentVal);
+  }
+  // 修改一下 goToDetail，让它接收完整的 event 对象，方便模板调用
+  handleCardClick(event: EventCardData) {
+    this.goToDetail(event.id);
+  }
+
+  goToDetail(itemId: string) {
     const path = this.detailRoute();
     const formattedPath = path.endsWith('/') ? path : path + '/';
     this.router.navigate([formattedPath, itemId]);
@@ -151,13 +151,6 @@ export class UniversalSearchComponent {
   get searchControl(): FormControl {
     return this.filterForm.get('searchText') as FormControl;
   }
-
-  // 1. 【新增】创建一个 Signal 专门存储用户确认后的搜索词
-  confirmedSearchText = signal('');
-
-  // 2. 【新增】点击搜索按钮时触发的函数
-  onSearch() {
-    // 将输入框当前的值赋给确认搜索词，从而触发 computed 重新计算列表
-    const currentVal = this.searchControl.value || '';
-    this.confirmedSearchText.set(currentVal);}
 }
+
+export { EventCardData };

@@ -1,4 +1,3 @@
-<!-- tab2.page.html -->
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>事件列表</ion-title>
@@ -6,11 +5,24 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <!-- 直接使用我们封装好的通用搜索组件 -->
-  <!-- [dataSource] 传入符合 EventCardData 接口的数据 -->
-  <!-- [detailRoute] 传入详情页的跳转路径 -->
-  <app-universal-search
-    [dataSource]="eventsData()"
-    [detailRoute]="'/tabs/tab2/detail'">
+  <!-- 调用搜索组件 -->
+  <app-universal-search [dataSource]="eventsData()" [detailRoute]="'/tabs/tab2/detail'">
+
+    <!--
+      【关键点】必须把自定义的组件写在 <ng-template> 里面
+      #cardTemplate: 模板标识符
+      let-event="event": 定义变量 event，接收搜索组件传来的数据
+      let-onClick="onItemClick": 定义变量 onClick，接收搜索组件传来的点击方法
+    -->
+    <ng-template #cardTemplate let-event="event" let-onClick="onItemClick">
+
+
+      <app-show-event
+        [event]="event"
+        (cardClick)="onClick(event)">
+      </app-show-event>
+
+    </ng-template>
+
   </app-universal-search>
 </ion-content>

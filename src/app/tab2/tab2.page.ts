@@ -1,7 +1,12 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonHeader, IonToolbar, IonTitle, IonContent } from '@ionic/angular/standalone';
+
+// 引入搜索组件 (不再依赖 UI)
 import { UniversalSearchComponent, EventCardData } from '../components/universal-search/universal-search.component';
+
+// 引入展示组件 (在这里由 Tab2 接管)
+import { ShowEventComponent } from '../show-event/show-event.component';
 
 @Component({
   selector: 'app-tab2',
@@ -11,47 +16,82 @@ import { UniversalSearchComponent, EventCardData } from '../components/universal
   imports: [
     CommonModule,
     IonHeader, IonToolbar, IonTitle, IonContent,
-    UniversalSearchComponent
+    UniversalSearchComponent,
+    ShowEventComponent
   ]
 })
-export class Tab2Page {
+export class Tab2Page implements OnInit {
 
-  // 数据现在符合队友的 EventCardData 接口
-  eventsData = signal<EventCardData[]>([
-    {
-      id: '101',
-      cardImage: 'https://picsum.photos/seed/101/400/200',
-      icon: 'construct',
-      distance: '500m',
-      name: '封金',
-      address: '广科社区',
-      demand: '家里水龙头漏水严重，急需修理水龙头，有工具最好', // <--- 搜这个字段
-      price: '50',
-      avatar: 'https://picsum.photos/seed/fj/100/100'
-    },
-    {
-      id: '102',
-      cardImage: 'https://picsum.photos/seed/102/400/200',
-      icon: 'broom',
-      distance: '1.2km',
-      name: '张阿姨',
-      address: '001社区',
-      demand: '需要做一次全屋的深度清洁',
-      price: '120',
-      avatar: 'https://picsum.photos/seed/zhang/100/100'
-    },
-    {
-      id: '103',
-      cardImage: 'https://picsum.photos/seed/103/400/200',
-      icon: 'medkit',
-      distance: '200m',
-      name: '李四',
-      address: '002社区',
-      demand: '帮忙去校门口买点药',
-      price: '20',
-      avatar: 'https://picsum.photos/seed/lisi/100/100'
-    }
-  ]);
+  // 数据容器
+  eventsData = signal<EventCardData[]>([]);
 
-  constructor() {}
+  ngOnInit() {
+    this.loadEvents();
+  }
+
+  loadEvents() {
+    // 1. 定义两个请求地址
+    const requestUrl = 'http://localhost:3000/api/cards?type=request';
+    const helpUrl = 'http://localhost:3000/api/cards?type=help';
+
+    // 2. 使用原生 fetch 同时发起请求
+    Promise.all([
+      fetch(requestUrl),
+      fetch(helpUrl)
+    ])
+      .then(async ([reqRes, helpRes]) => {
+        // 检查两个请求是否成功
+        if (!reqRes.ok || !helpRes.ok) {
+          throw new Error('网络请求失败');
+        }
+
+        // 3. 解析 JSON
+        const reqData = await reqRes.json();
+        const helpData = await helpRes.json();
+
+        // 4. 合并数据
+        const allData = [...reqData, ...helpData];
+
+// 在 tab2.page.ts 的 loadEvents 方法里
+        const transformedData = allData.map(item => {
+
+          // 【新增】把后端返回的每一项打印出来，看控制台
+          console.log('正在处理的数据项：', item);
+
+          const priceStr = item.price ? String(item.price) : '0.00';
+          let photoUrl = 'https://picsum.photos/seed/default/600/400';
+
+          if (item.cardImage) {
+            try {
+              const photosArray = JSON.parse(item.cardImage);
+              if (Array.isArray(photosArray) && photosArray.length > 0) {
+                photoUrl = photosArray[0];
+              }
+            } catch (e) {
+              console.error('图片 JSON 解析失败', e);
+            }
+          }
+
+          return {
+            id: String(item.id),
+            cardImage: photoUrl,
+            icon: item.icon || 'navigate-outline',
+            distance: item.distance || '未知距离',
+            name: item.name,
+            address: item.address,
+            demand: item.demand,
+            price: priceStr,
+            avatar: item.avatar
+          } as EventCardData;
+        });
+
+        // 6. 更新 Signal
+        console.log('从后端加载的数据（求助+帮助）：', transformedData);
+        this.eventsData.set(transformedData);
+
+      })
+      .catch(err => {
+        console.error('请求后端失败，请确保后端已启动', err);
+      });
+  }
 }
