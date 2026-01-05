@@ -136,7 +136,7 @@ app.get('/api/cards', async (req, res) => {
         u.UserName AS name,
         u.UserAvatar AS avatar
       FROM Events e
-      JOIN Users u ON e.CreatorID = u.UserId
+      JOIN Users u ON e.CreatorId = u.UserId
       WHERE e.EventType = ?
     `, [eventType]);
 
