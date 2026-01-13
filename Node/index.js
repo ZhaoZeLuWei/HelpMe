@@ -110,6 +110,7 @@ app.get('/users/:id/profile', async (req, res) => {
   }
 });
 
+// 获取卡片数据接口
 app.get('/api/cards', async (req, res) => {
   try {
     const { type } = req.query;
@@ -119,17 +120,17 @@ app.get('/api/cards', async (req, res) => {
     if (type === 'help') {
       eventType = 1; // 帮助
     } else if (type === 'request') {
-      eventType = 0; // 求助 (从 2 改为 0)
+      eventType = 0; // 求助 
     } else {
       return res.status(400).json({ msg: '参数错误，type需为 request 或 help' });
     }
 
     // 执行SQL查询
     const [rows] = await pool.query(`
-      SELECT
+      SELECT 
         e.EventId AS id,
         e.Photos AS cardImage,
-        e.Location AS address,
+        e.Location AS address,    
         e.EventDetails AS demand,
         e.Price AS price,
         u.UserName AS name,
