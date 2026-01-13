@@ -25,14 +25,25 @@
     <div class="big-card request-card">
       <h3 class="big-card-title">求助</h3>
       
-      <!-- 使用 app-show-event 组件循环显示 -->
       <div class="small-card-grid">
-        <!-- 注意：这里使用了我们新建的组件标签 -->
-        <app-show-event 
-          *ngFor="let req of requestList; trackBy: trackById"
-          [event]="req"
-          (cardClick)="cardClickFeedback($event)">
-        </app-show-event>
+        <!-- === 修改开始：添加空状态判断 === -->
+        
+        <!-- 情况1：有数据时，显示列表 -->
+        <ng-container *ngIf="requestList.length > 0">
+          <app-show-event 
+            *ngFor="let req of requestList; trackBy: trackById"
+            [event]="req"
+            (cardClick)="cardClickFeedback($event)">
+          </app-show-event>
+        </ng-container>
+
+        <!-- 情况2：没数据时，显示提示框 -->
+        <div *ngIf="requestList.length === 0" class="empty-state">
+          <span class="material-icons">search_off</span>
+          <p>还没有求助事件</p>
+        </div>
+        
+        <!-- === 修改结束 === -->
       </div>
 
       <!-- 更多按钮 -->
@@ -47,12 +58,23 @@
       <h3 class="big-card-title">帮助</h3>
 
       <div class="small-card-grid">
-        <!-- 帮助列表也使用新组件 -->
-        <app-show-event 
-          *ngFor="let help of helpList; trackBy: trackById"
-          [event]="help"
-          (cardClick)="cardClickFeedback($event)">
-        </app-show-event>
+        
+        <!-- 有数据时，显示列表 -->
+        <ng-container *ngIf="helpList.length > 0">
+          <app-show-event 
+            *ngFor="let help of helpList; trackBy: trackById"
+            [event]="help"
+            (cardClick)="cardClickFeedback($event)">
+          </app-show-event>
+        </ng-container>
+
+        <!-- 没数据时，显示提示框 -->
+        <div *ngIf="helpList.length === 0" class="empty-state">
+          <span class="material-icons">search_off</span>
+          <p>还没有帮助事件</p>
+        </div>
+        
+        <!-- === 修改结束 === -->
       </div>
 
       <button class="big-card-more-btn" (click)="onBigCardMoreClick('help')">

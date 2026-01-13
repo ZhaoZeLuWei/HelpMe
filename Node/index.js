@@ -110,6 +110,50 @@ app.get('/users/:id/profile', async (req, res) => {
   }
 });
 
+// 获取卡片数据接口
+app.get('/api/cards', async (req, res) => {
+  try {
+    const { type } = req.query;
+
+    let eventType = 0;
+
+    if (type === 'help') {
+      eventType = 1; // 帮助
+    } else if (type === 'request') {
+      eventType = 0; // 求助 
+    } else {
+      return res.status(400).json({ msg: '参数错误，type需为 request 或 help' });
+    }
+
+    // 执行SQL查询
+    const [rows] = await pool.query(`
+      SELECT 
+        e.EventId AS id,
+        e.Photos AS cardImage,
+        e.Location AS address,    
+        e.EventDetails AS demand,
+        e.Price AS price,
+        u.UserName AS name,
+        u.UserAvatar AS avatar
+      FROM Events e
+      JOIN Users u ON e.CreatorId = u.UserId
+      WHERE e.EventType = ?
+    `, [eventType]);
+
+    // 补充固定字段
+    const cardData = rows.map(item => ({
+      ...item,
+      icon: 'navigate-outline',
+      distance: '距500m'
+    }));
+
+    res.status(200).json(cardData);
+  } catch (error) {
+    console.error('数据库查询错误：', error);
+    res.status(500).json({ msg: '读取卡片数据失败' });
+  }
+});
+
 //this part for socketIO
 io.on('connection', (socket) => {
   registerChatHandler(io, socket);

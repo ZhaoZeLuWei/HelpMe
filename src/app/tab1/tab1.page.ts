@@ -1,10 +1,11 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { IonicModule } from '@ionic/angular'; 
-import { CommonModule } from '@angular/common'; 
-
-// 导入新创建的子组件
+import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from '@angular/core';
+import { IonicModule } from '@ionic/angular';
+import { CommonModule } from '@angular/common';
+import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { map } from 'rxjs/operators';
 import { ShowEventComponent } from '../show-event/show-event.component';
 
+// 卡片数据接口
 interface CardItem {
   id: string;
   cardImage: string;
@@ -22,183 +23,143 @@ interface CardItem {
   templateUrl: './tab1.page.html',
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, ShowEventComponent], 
+  imports: [
+    IonicModule,
+    CommonModule,
+    ShowEventComponent,
+    HttpClientModule
+  ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
-export class Tab1Page {
-  //求助列表 
-  private readonly ORIGINAL_REQUESTS: CardItem[] = [
-    {
-      id: 'req-1',
-      cardImage: 'https://picsum.photos/seed/flower/600/400',
-      icon: 'navigate-outline',
-      distance: '距1.0km',
-      name: '刘xx',
-      address: '广科小区',
-      demand: '有一些花需要浇水',
-      price: '10.80元',
-      avatar: 'person-circle-outline'
-    },
-    {
-      id: 'req-2',
-      cardImage: 'https://picsum.photos/seed/medicine/600/400',
-      icon: 'navigate-outline',
-      distance: '距7.8m',
-      name: '李xx',
-      address: '涂料小区',
-      demand: '需要跑腿买药',
-      price: '5.00元',
-      avatar: 'person-circle-outline'
-    },
-    {
-      id: 'req-3',
-      cardImage: 'https://picsum.photos/seed/rice/600/400',
-      icon: 'navigate-outline',
-      distance: '距300m',
-      name: '王xx',
-      address: '幸福家园',
-      demand: '帮忙提两袋米上楼',
-      price: '15.00元',
-      avatar: 'person-circle-outline'
-    },
-    {
-      id: 'req-4',
-      cardImage: 'https://picsum.photos/seed/smartphone/600/400',
-      icon: 'navigate-outline',
-      distance: '距1.2km',
-      name: '张xx',
-      address: '广科小区',
-      demand: '手机连不上网，教一下',
-      price: '0.00元',
-      avatar: 'person-circle-outline'
-    }
-  ];
-
-  // 帮助列表 
-  private readonly ORIGINAL_HELPS: CardItem[] = [
-    {
-      id: 'help-1',
-      cardImage: 'https://picsum.photos/seed/tools/600/400',
-      icon: 'navigate-outline',
-      distance: '距500m',
-      name: '刘xx',
-      address: '涂料小区',
-      demand: '可以修理家电',
-      price: '0.00元',
-      avatar: 'person-circle-outline'
-    },
-    {
-      id: 'help-2',
-      cardImage: 'https://picsum.photos/seed/cleaning/600/400',
-      icon: 'navigate-outline',
-      distance: '距2.0km',
-      name: '李xx',
-      address: '涂料小区',
-      demand: '可以打扫卫生',
-      price: '100.00元',
-      avatar: 'person-circle-outline'
-    },
-    {
-      id: 'help-3',
-      cardImage: 'https://picsum.photos/seed/sewing/600/400',
-      icon: 'navigate-outline',
-      distance: '距800m',
-      name: '赵奶奶',
-      address: '广科小区',
-      demand: '擅长缝补衣服、改裤脚',
-      price: '5.00元',
-      avatar: 'person-circle-outline'
-    },
-    {
-      id: 'help-4',
-      cardImage: 'https://picsum.photos/seed/dumpling/600/400',
-      icon: 'navigate-outline',
-      distance: '距50m',
-      name: '孙大爷',
-      address: '幸福家园',
-      demand: '现做手工水饺，味道好',
-      price: '30.00元',
-      avatar: 'person-circle-outline'
-    }
-  ];
-
-  requestList: CardItem[] = [];
-  helpList: CardItem[] = [];
+export class Tab1Page implements OnInit {
+  requestList: CardItem[] = []; 
+  helpList: CardItem[] = [];    
   private searchKeyword = '';
-  
-  // 语言变量
   currentLang = '中文';
-  
-  // 控制自定义弹窗显示的变量
   showLangConfirmModal = false;
 
-  constructor() {
-    this.resetCardList();
+  constructor(private http: HttpClient) {}
+
+  ngOnInit() {
+    this.getCardData('request').subscribe(data => {
+      this.requestList = data;
+    });
+    this.getCardData('help').subscribe(data => {
+      this.helpList = data;
+    });
   }
 
+  // 封装：请求卡片数据 + 随机显示4个逻辑
+  private getCardData(type: 'request' | 'help') {
+    return this.http.get<any[]>(`http://localhost:3000/api/cards?type=${type}`).pipe(
+      map(rawData => {
+        // 1. 基础数据处理：格式化字段
+        const processedData = rawData.map(item => ({
+          ...item,
+          icon: 'navigate-outline',
+          distance: '距500m',
+          price: item.price ? item.price.toString() : '0.00元' 
+        }));
+
+        let finalData = processedData;
+
+        // 如果数据库返回的数据超过4个，则进行随机截取
+        if (processedData.length > 4) {
+          finalData = this.shuffleArray(processedData).slice(0, 4);
+        }
+
+        return finalData;
+      })
+    );
+  }
+  //随机打乱数组
+  shuffleArray(array: any[]): any[] {
+    let currentIndex = array.length;
+    let randomIndex;
+  
+    const newArray = [...array];
+
+    // 当还剩有元素未洗牌时
+    while (currentIndex != 0) {
+      // 选取一个剩余元素
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      
+      // 交换它与当前元素
+      [newArray[currentIndex], newArray[randomIndex]] = [
+        newArray[randomIndex], newArray[currentIndex]];
+    }
+    return newArray;
+  }
+
+  // 搜索输入事件
   onSearchInput(event: Event) {
     const input = event.target as HTMLInputElement;
     this.searchKeyword = input.value.trim().toLowerCase();
   }
 
+  // 回车触发搜索
   onSearchKeyPress(event: KeyboardEvent) {
     if (event.key === 'Enter') {
       this.executeSearch();
     }
   }
 
+  // 点击搜索按钮
   onSearchClick() {
     this.executeSearch();
   }
 
-  //自定义弹窗相关的方法
+  // 切换语言
   toggleLanguage() {
     this.showLangConfirmModal = true;
   }
 
+  // 确认切换语言
   confirmSwitchLanguage() {
     this.currentLang = this.currentLang === '中文' ? 'EN' : '中文';
-    console.log('语言切换为:', this.currentLang);
     this.showLangConfirmModal = false;
   }
 
+  // 取消切换语言
   cancelSwitchLanguage() {
     this.showLangConfirmModal = false;
   }
 
+  // 执行搜索逻辑
   private executeSearch() {
     if (!this.searchKeyword) {
-      this.resetCardList();
+
+      this.getCardData('request').subscribe(data => this.requestList = data);
+      this.getCardData('help').subscribe(data => this.helpList = data);
+
       return;
     }
 
-    this.requestList = this.ORIGINAL_REQUESTS.filter(item => 
+    // 过滤现有数据
+    this.requestList = this.requestList.filter(item =>
       item.name.toLowerCase().includes(this.searchKeyword) ||
       item.address.toLowerCase().includes(this.searchKeyword) ||
       item.demand.toLowerCase().includes(this.searchKeyword)
     );
-
-    this.helpList = this.ORIGINAL_HELPS.filter(item => 
+    this.helpList = this.helpList.filter(item =>
       item.name.toLowerCase().includes(this.searchKeyword) ||
       item.address.toLowerCase().includes(this.searchKeyword) ||
       item.demand.toLowerCase().includes(this.searchKeyword)
     );
   }
 
-  private resetCardList() {
-    this.requestList = [...this.ORIGINAL_REQUESTS];
-    this.helpList = [...this.ORIGINAL_HELPS];
-  }
-
-  // 处理子组件传来的点击事件
+  // 卡片点击反馈
   cardClickFeedback(item: CardItem) {
     console.log('点击了小卡片：', item.name, 'ID：', item.id);
   }
 
+  // 更多按钮点击
   onBigCardMoreClick(type: 'request' | 'help') {
     console.log(`点击了【${type === 'request' ? '求助' : '帮助'}】大卡片的更多按钮`);
   }
 
+  // 列表跟踪标识
   trackById(index: number, item: CardItem): string {
     return item.id;
   }
