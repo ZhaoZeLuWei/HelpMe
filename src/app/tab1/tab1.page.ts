@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { map } from 'rxjs/operators';
 import { ShowEventComponent } from '../show-event/show-event.component';
+import { UniversalSearchComponent } from '../components/universal-search/universal-search.component';
 
 // 卡片数据接口
 interface CardItem {
@@ -27,13 +28,19 @@ interface CardItem {
     IonicModule,
     CommonModule,
     ShowEventComponent,
-    HttpClientModule
+    HttpClientModule, // 【修复1】这里加上了逗号
+    UniversalSearchComponent
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class Tab1Page implements OnInit {
   requestList: CardItem[] = []; 
   helpList: CardItem[] = [];    
+  
+  // 【修复2】在类中定义了缺失的 eventData 属性
+  // 初始化为空数组，类型为 CardItem[]
+  eventData: CardItem[] = []; 
+
   private searchKeyword = '';
   currentLang = '中文';
   showLangConfirmModal = false;
@@ -43,10 +50,17 @@ export class Tab1Page implements OnInit {
   ngOnInit() {
     this.getCardData('request').subscribe(data => {
       this.requestList = data;
+      this.updateEventData(); // 更新总数据
     });
     this.getCardData('help').subscribe(data => {
       this.helpList = data;
+      this.updateEventData(); // 更新总数据
     });
+  }
+
+  // 新增辅助方法：合并 request 和 help 数据，供搜索组件使用
+  private updateEventData() {
+    this.eventData = [...this.requestList, ...this.helpList];
   }
 
   // 封装：请求卡片数据 + 随机显示4个逻辑
@@ -72,6 +86,7 @@ export class Tab1Page implements OnInit {
       })
     );
   }
+
   //随机打乱数组
   shuffleArray(array: any[]): any[] {
     let currentIndex = array.length;
@@ -130,8 +145,14 @@ export class Tab1Page implements OnInit {
   private executeSearch() {
     if (!this.searchKeyword) {
 
-      this.getCardData('request').subscribe(data => this.requestList = data);
-      this.getCardData('help').subscribe(data => this.helpList = data);
+      this.getCardData('request').subscribe(data => {
+        this.requestList = data;
+        this.updateEventData();
+      });
+      this.getCardData('help').subscribe(data => {
+        this.helpList = data;
+        this.updateEventData();
+      });
 
       return;
     }

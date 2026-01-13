@@ -114,33 +114,38 @@ app.get('/users/:id/profile', async (req, res) => {
 app.get('/api/cards', async (req, res) => {
   try {
     const { type } = req.query;
+    let eventType = null; 
+    let sqlWhere = '';    
+    let sqlParams = [];   
 
-    let eventType = 0;
-
-    if (type === 'help') {
-      eventType = 1; // 帮助
-    } else if (type === 'request') {
-      eventType = 0; // 求助 
-    } else {
-      return res.status(400).json({ msg: '参数错误，type需为 request 或 help' });
+    if (type) {
+      if (type === 'help') {
+        eventType = 1; 
+      } else if (type === 'request') {
+        eventType = 0; 
+      } else {
+        return res.status(400).json({ msg: '参数错误，type需为 request 或 help' });
+      }
+      sqlWhere = ' WHERE e.EventType = ?';
+      sqlParams = [eventType];
     }
 
-    // 执行SQL查询
+    // 2. 执行SQL查询
     const [rows] = await pool.query(`
       SELECT 
-        e.EventId AS id,
+        e.Eventid AS id,
         e.Photos AS cardImage,
-        e.Location AS address,    
+        e.Location AS address,
         e.EventDetails AS demand,
         e.Price AS price,
         u.UserName AS name,
         u.UserAvatar AS avatar
       FROM Events e
       JOIN Users u ON e.CreatorId = u.UserId
-      WHERE e.EventType = ?
-    `, [eventType]);
+      ${sqlWhere}  
+    `, sqlParams);
 
-    // 补充固定字段
+    // 3. 补充固定字段
     const cardData = rows.map(item => ({
       ...item,
       icon: 'navigate-outline',

@@ -30,7 +30,7 @@ export class Tab2Page implements OnInit {
   }
 
   loadEvents() {
-    // 1. 定义两个请求地址
+    // 1. 定义两个请求地址（！！！！！！！！！！）
     const requestUrl = 'http://localhost:3000/api/cards?type=request';
     const helpUrl = 'http://localhost:3000/api/cards?type=help';
 

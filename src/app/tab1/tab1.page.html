@@ -7,16 +7,11 @@
   </button>
 
   <!-- 顶部搜索框 -->
-  <div class="search-container ion-padding">
-    <input 
-      type="text" 
-      class="search-input" 
-      placeholder="搜索想找的事件..."
-      (input)="onSearchInput($event)"
-      (keypress)="onSearchKeyPress($event)"
-    >
-    <button class="search-btn" (click)="onSearchClick()">搜索</button>
-  </div>
+   <app-universal-search 
+  [dataSource]="eventData"  
+  [detailRoute]="'/event-detail'"  
+></app-universal-search>
+  
 
   <!-- 内容区域 -->
   <div class="content-area ion-padding">
