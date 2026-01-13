@@ -1,0 +1,280 @@
+:host {
+  --card-radius: 16px;
+  display: block;
+}
+
+.hero {
+  text-align: center;
+  margin: 24px 0 20px;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--ion-color-text);
+}
+
+.headline {
+  margin: 4px 0;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--ion-color-text);
+}
+
+.cards {
+  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  border-radius: var(--card-radius);
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+  position: relative;
+}
+
+.action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.1);
+}
+
+.request-card {
+  background: #fff7ed;
+}
+
+.help-card {
+  background: #ecfeff;
+}
+
+.identity-card {
+  background: #f8fafc;
+}
+
+.icon-bubble {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 14px;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.request-card .icon-bubble {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+.help-card .icon-bubble {
+  background: #cffafe;
+  color: #0284c7;
+}
+
+.identity-card .icon-bubble {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.card-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ion-color-text);
+}
+
+.desc {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ion-color-medium);
+}
+
+.close-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 24px;
+  gap: 10px;
+  padding: 0 12px;
+}
+
+.close-btn {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: none;
+  background: var(--ion-color-step-900, #111827);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.16);
+  transition:
+    transform 0.35s ease,
+    background 0.2s ease;
+  cursor: pointer;
+}
+
+.close-btn:active {
+  transform: scale(0.95);
+}
+
+.close-hint {
+  font-size: 13px;
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+.modal-content {
+  --background: var(--ion-background-color);
+  padding: 12px 16px 24px;
+  display: block;
+}
+
+.modal-actions {
+  display: flex;
+  padding: 12px 16px 20px;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.modal-actions ion-button {
+  min-width: 110px;
+}
+
+@media (max-width: 520px) {
+  .modal-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .modal-actions ion-button {
+    width: 100%;
+  }
+}
+
+.photo-upload-area {
+  padding: 0 16px 16px;
+}
+
+.upload-hint {
+  font-size: 12px;
+  margin-top: 8px;
+  display: block;
+}
+
+.photo-preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.photo-preview {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--ion-color-step-200, #e5e7eb);
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-photo {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 50%;
+  font-size: 16px;
+  color: var(--ion-color-danger, #ef4444);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border: 2px dashed var(--ion-color-step-400, #9ca3af);
+  border-radius: 8px;
+  color: var(--ion-color-medium);
+}
+
+.upload-placeholder ion-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 420px) {
+  .headline {
+    font-size: 26px;
+  }
+
+  .icon-bubble {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+  }
+
+  .tag {
+    font-size: 16px;
+  }
+
+  .photo-preview,
+  .upload-placeholder {
+    width: 76px;
+    height: 76px;
+  }
+}
+
+/* Form input improvements */
+.modal-content ion-list {
+  padding: 0;
+}
+.modal-content ion-item {
+  --border-radius: 8px;
+  margin-bottom: 8px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+.modal-content ion-label[position="stacked"] {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.upload-hint {
+  display: block;
+  margin-left: 4px;
+}

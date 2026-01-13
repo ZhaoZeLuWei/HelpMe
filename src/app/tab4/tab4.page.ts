@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
+import type { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 
 import {
@@ -32,6 +33,7 @@ import {
   IonText,
   IonAlert,
 } from '@ionic/angular/standalone';
+
 import { ToastController } from '@ionic/angular';
 import { LoginPage } from '../login/login.page';
 import { AuthService } from '../services/auth.service';
@@ -62,36 +64,16 @@ import { AuthService } from '../services/auth.service';
   ],
 })
 export class Tab4Page implements OnDestroy {
-  isLoggedIn = false;
-  private _sub: any;
+  private readonly auth = inject(AuthService);
+  private readonly toastController = inject(ToastController);
 
-  constructor(private auth: AuthService, private toastController: ToastController) {
-    // 注册页面用到的 Ionicons 图标
-    addIcons({
-      documentText,
-      time,
-      checkmarkDone,
-      star,
-      heartOutline,
-      heart,
-      eye,
-      personCircle,
-      logOut,
-    });
-    // 订阅登录状态
-    this._sub = this.auth.isLoggedIn$.subscribe(v => {
-      this.isLoggedIn = v;
-      if (v) {
-        this.loadUserFromStorage();
-      } else {
-        this.resetUserInfo();
-      }
-    });
-  }
+  isLoggedIn = false;
+  private readonly _sub: Subscription;
+
   // 删除确认弹窗状态
   isDeleteAlertOpen = false;
 
-  deleteTargetId: number | null = null;     // 待删除任务的 ID（null 表示未选择）
+  deleteTargetId: number | null = null; // 待删除任务的 ID（null 表示未选择）
   alertButtons = [
     {
       text: '取消',
@@ -117,8 +99,32 @@ export class Tab4Page implements OnDestroy {
   activeTab: string = 'published';
 
   userInfo: any = this.createDefaultUserInfo();
-
   tasks: any[] = [];
+
+  constructor() {
+    // 注册页面用到的 Ionicons 图标
+    addIcons({
+      documentText,
+      time,
+      checkmarkDone,
+      star,
+      heartOutline,
+      heart,
+      eye,
+      personCircle,
+      logOut,
+    });
+
+    // 订阅登录状态
+    this._sub = this.auth.isLoggedIn$.subscribe((v) => {
+      this.isLoggedIn = v;
+      if (v) {
+        void this.loadUserFromStorage();
+      } else {
+        this.resetUserInfo();
+      }
+    });
+  }
 
   // Segment 切换事件
   onTabChange(event: CustomEvent) {
@@ -127,7 +133,7 @@ export class Tab4Page implements OnDestroy {
 
   // 根据当前标签筛选显示任务
   getFilteredTasks() {
-    return this.tasks.filter(task => task.status === this.activeTab);
+    return this.tasks.filter((task) => task.status === this.activeTab);
   }
 
   // !!!!!以下跳转函数为占位，后续接入路由或 API
@@ -154,8 +160,8 @@ export class Tab4Page implements OnDestroy {
 
   deleteTask(taskId: number) {
     // 更新任务列表
-    this.tasks = this.tasks.filter(t => t.id !== taskId);
-    this.presentDeleteToast();
+    this.tasks = this.tasks.filter((t) => t.id !== taskId);
+    void this.presentDeleteToast();
     //后续调用删除API
   }
 
@@ -174,8 +180,8 @@ export class Tab4Page implements OnDestroy {
   }
 
   viewDetails(taskId: number) {
-  console.log(`查看任务详情 ${taskId}`);
-  //后续跳转详情页
+    console.log(`查看任务详情 ${taskId}`);
+    //后续跳转详情页
   }
 
   goToReview(taskId: number) {
@@ -189,7 +195,7 @@ export class Tab4Page implements OnDestroy {
       published: '已发布',
       inProgress: '进行中',
       completed: '已完成',
-      review: '待评价'
+      review: '待评价',
     };
     return map[status] || '未知';
   }
@@ -200,11 +206,12 @@ export class Tab4Page implements OnDestroy {
       published: 'primary',
       inProgress: 'warning',
       completed: 'success',
-      review: 'medium'
+      review: 'medium',
     };
     return map[status] || 'medium';
   }
 
+  // 根据认证状态显示数据
   getVerificationColor(status: string): string {
     if (status === '已认证') return 'success';
     if (status === '被驳回') return 'danger';
@@ -217,7 +224,7 @@ export class Tab4Page implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this._sub) this._sub.unsubscribe();
+    this._sub.unsubscribe();
   }
 
   // 提取的默认用户信息
@@ -234,7 +241,7 @@ export class Tab4Page implements OnDestroy {
       location: '',
       avatar: '',
       introduction: '',
-      stats: { favorites: 0, views: 0, follows: 0 }
+      stats: { favorites: 0, views: 0, follows: 0 },
     };
   }
 
@@ -257,8 +264,8 @@ export class Tab4Page implements OnDestroy {
 
     const vs = data.VerificationStatus;
     if (vs === 1) this.userInfo.isVerified = '已认证';
-    else if (vs === 2) this.userInfo.isVerified = '驳回';
-    else if (vs === 0) this.userInfo.isVerified = '待审';
+    else if (vs === 2) this.userInfo.isVerified = '被驳回';
+    else if (vs === 0) this.userInfo.isVerified = '待审核';
     else this.userInfo.isVerified = '未认证';
   }
 
@@ -278,7 +285,8 @@ export class Tab4Page implements OnDestroy {
             const data = await resp.json();
             if (data?.success && data.user) {
               this.updateUserFromData(data.user);
-              this.loadUserEvents(data.user.UserId);
+
+              await this.loadUserEvents(data.user.UserId);
               return;
             }
           }
@@ -290,7 +298,8 @@ export class Tab4Page implements OnDestroy {
       // Fallback: 使用 localStorage 中的数据
       this.updateUserFromData(u);
       const fid = u.UserId || u.userId || u.id;
-      if (fid) this.loadUserEvents(fid);
+
+      if (fid) await this.loadUserEvents(fid);
     } catch (e) {
       console.error('loadUserFromStorage error', e);
     }
@@ -300,14 +309,16 @@ export class Tab4Page implements OnDestroy {
     try {
       const resp = await fetch(`http://localhost:3000/users/${userId}/events`);
       if (!resp.ok) return;
+
       const data = await resp.json();
       if (!Array.isArray(data)) return;
+
       this.tasks = data.map((e: any) => ({
         id: e.EventId,
         publisher: this.userInfo.name || '',
         title: e.EventTitle,
         status: 'published',
-        createdAt: e.CreateTime || ''
+        createdAt: e.CreateTime || '',
       }));
     } catch (e) {
       console.warn('loadUserEvents failed', e);

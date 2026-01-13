@@ -1,6 +1,11 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { IonicModule, ToastController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
 
@@ -12,21 +17,29 @@ import { AuthService } from '../services/auth.service';
   imports: [CommonModule, ReactiveFormsModule, IonicModule],
 })
 export class LoginPage {
+  private auth = inject(AuthService);
+  private toastCtrl = inject(ToastController);
+
   form = new FormGroup({
-    phone: new FormControl('', [Validators.required, Validators.pattern(/^\d{11}$/)]),
-    code: new FormControl('', [Validators.required, Validators.pattern(/^\d{4}$/)])
+    phone: new FormControl('', [
+      Validators.required,
+      Validators.pattern(/^\d{11}$/),
+    ]),
+    code: new FormControl('', [
+      Validators.required,
+      Validators.pattern(/^\d{4}$/),
+    ]),
   });
 
   sending = signal(false);
   sendCooldown = signal(0); // 秒
 
-  //使用 AuthService 调用后端 API 并处理 token
-
-  constructor(private auth: AuthService, private toastCtrl: ToastController) {}
-
   async sendCode() {
     if (this.form.controls.phone.invalid) {
-      const t = await this.toastCtrl.create({ message: '请输入有效的11位手机号', duration: 3000 });
+      const t = await this.toastCtrl.create({
+        message: '请输入有效的11位手机号',
+        duration: 3000,
+      });
       await t.present();
       return;
     }
@@ -36,7 +49,7 @@ export class LoginPage {
     // 模拟发送
     const toast = await this.toastCtrl.create({
       message: '验证码已发送，验证码为1234',
-      duration: 3000
+      duration: 3000,
     });
     await toast.present();
 
@@ -54,7 +67,10 @@ export class LoginPage {
 
   async submit() {
     if (this.form.invalid) {
-      const t = await this.toastCtrl.create({ message: '请完善手机号和验证码', duration: 3000 });
+      const t = await this.toastCtrl.create({
+        message: '请完善手机号和验证码',
+        duration: 3000,
+      });
       await t.present();
       return;
     }
@@ -64,7 +80,10 @@ export class LoginPage {
 
     const ok = await this.auth.loginWithPhone(phone, code);
     if (!ok) {
-      const t = await this.toastCtrl.create({ message: '手机号或验证码错误', duration: 3000 });
+      const t = await this.toastCtrl.create({
+        message: '手机号或验证码错误',
+        duration: 3000,
+      });
       await t.present();
       return;
     }
@@ -75,12 +94,10 @@ export class LoginPage {
       if (raw) {
         name = JSON.parse(raw).UserName || '';
       }
-    } catch (e) {
-    }
+    } catch (e) {}
     const message = name ? `登录成功，${name}，欢迎您！` : '登录成功，欢迎您！';
     const t = await this.toastCtrl.create({ message, duration: 3000 });
-    
+
     await t.present();
-    // 登录成功后 AuthService 已更新，Tab4 会订阅到变化并显示个人中心
   }
 }
