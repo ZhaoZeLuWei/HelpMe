@@ -7,7 +7,14 @@ import {
   IonLabel,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { triangle, ellipse, square, add } from 'ionicons/icons';
+//here import icons from ionic official!
+import {
+  homeOutline,
+  searchOutline,
+  chatbubblesOutline,
+  personOutline,
+  add,
+} from 'ionicons/icons';
 
 @Component({
   selector: 'app-tabs',
@@ -19,6 +26,13 @@ export class TabsPage {
   public environmentInjector = inject(EnvironmentInjector);
 
   constructor() {
-    addIcons({ triangle, ellipse, square, add });
+    //use these icons, need name here and then use the name in HTML
+    addIcons({
+      'home-outline': homeOutline,
+      'search-outline': searchOutline,
+      'chatbubbles-outline': chatbubblesOutline,
+      'person-outline': personOutline,
+      'add': add,
+    });
   }
 }

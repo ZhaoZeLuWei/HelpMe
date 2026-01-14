@@ -41,6 +41,22 @@
       "files": ["*.html"],
       "extends": ["plugin:@angular-eslint/template/recommended"],
       "rules": {}
+    },
+    //修复es2021 注释问题
+    {
+      "files": [
+        "*.js"
+      ],
+      "env": {
+        "node": true,
+        "es2021": true
+      },
+      "extends": [
+        "eslint:recommended"
+      ],
+      "rules": {
+        "no-console": "off"
+      }
     }
   ]
 }

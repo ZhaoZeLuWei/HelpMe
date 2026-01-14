@@ -8,8 +8,13 @@ const { Server } = require('socket.io');
 const pool = require('./help_me_db.js');
 const registerChatHandler = require('./chatHandler.js');
 
+//all routes imports here 这里引用路由
+const testRoutes = require('./routes/test.js');
+
+//use all routes here 这里使用路由，定义URL路径
 const app = express();
 app.use(express.json());
+app.use('/test', testRoutes);
 
 // simple CORS for the ionic dev server
 app.use((req, res, next) => {
@@ -21,6 +26,7 @@ app.use((req, res, next) => {
 });
 
 // 将数据库当中的 /img/* 映射到本地 upload/img 文件夹
+//1-14 修改建议： img放到src目录下
 app.use('/img', express.static(join(__dirname, '..', 'upload', 'img')));
 const server = createServer(app);
 const io = new Server(server, {
@@ -45,21 +51,6 @@ app.post('/login', async (req, res) => {
     console.error('DB query error (login):', err);
     return res.status(500).json({ error: 'Database query failed' });
   }
-});
-
-/*
-//read the database (messages table)
-app.get('/', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM Users');
-  console.log("Reading...");
-  res.json(rows); // 关键：返回纯 JSON 数据
-  console.log(rows);
-});
-*/
-
-//this is a test html for simple chat
-app.get('/test', (req, res) => {
-    res.sendFile(join(__dirname + '/test.html'));
 });
 
 //测试数据库连接
@@ -114,15 +105,15 @@ app.get('/users/:id/profile', async (req, res) => {
 app.get('/api/cards', async (req, res) => {
   try {
     const { type } = req.query;
-    let eventType = null; 
-    let sqlWhere = '';    
-    let sqlParams = [];   
+    let eventType = null;
+    let sqlWhere = '';
+    let sqlParams = [];
 
     if (type) {
       if (type === 'help') {
-        eventType = 1; 
+        eventType = 1;
       } else if (type === 'request') {
-        eventType = 0; 
+        eventType = 0;
       } else {
         return res.status(400).json({ msg: '参数错误，type需为 request 或 help' });
       }
@@ -132,7 +123,7 @@ app.get('/api/cards', async (req, res) => {
 
     // 2. 执行SQL查询
     const [rows] = await pool.query(`
-      SELECT 
+      SELECT
         e.Eventid AS id,
         e.Photos AS cardImage,
         e.Location AS address,
@@ -142,7 +133,7 @@ app.get('/api/cards', async (req, res) => {
         u.UserAvatar AS avatar
       FROM Events e
       JOIN Users u ON e.CreatorId = u.UserId
-      ${sqlWhere}  
+      ${sqlWhere}
     `, sqlParams);
 
     // 3. 补充固定字段
