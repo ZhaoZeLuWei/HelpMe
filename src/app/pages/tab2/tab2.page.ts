@@ -3,10 +3,10 @@ import { CommonModule } from '@angular/common';
 import { IonHeader, IonToolbar, IonTitle, IonContent } from '@ionic/angular/standalone';
 
 // 引入搜索组件 (不再依赖 UI)
-import { UniversalSearchComponent, EventCardData } from '../components/universal-search/universal-search.component';
+import { UniversalSearchComponent, EventCardData } from '../../components/universal-search/universal-search.component';
 
 // 引入展示组件 (在这里由 Tab2 接管)
-import { ShowEventComponent } from '../show-event/show-event.component';
+import { ShowEventComponent } from '../../components/show-event/show-event.component';
 
 @Component({
   selector: 'app-tab2',

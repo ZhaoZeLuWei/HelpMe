@@ -36,7 +36,7 @@ import {
 
 import { ToastController } from '@ionic/angular';
 import { LoginPage } from '../login/login.page';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-tab4',

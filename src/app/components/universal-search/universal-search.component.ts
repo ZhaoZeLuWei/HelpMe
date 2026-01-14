@@ -28,7 +28,7 @@ import { addIcons } from 'ionicons';
 import { pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search } from 'ionicons/icons';
 
 // 只保留这一个 import，删除了重复的引入
-import { EventCardData } from '../../show-event/show-event.component';
+import { EventCardData } from '../show-event/show-event.component';
 
 @Component({
   selector: 'app-universal-search',

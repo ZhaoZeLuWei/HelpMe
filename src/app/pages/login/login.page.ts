@@ -7,7 +7,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { IonicModule, ToastController } from '@ionic/angular';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',

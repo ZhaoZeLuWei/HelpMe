@@ -3,8 +3,8 @@ import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { map } from 'rxjs/operators';
-import { ShowEventComponent } from '../show-event/show-event.component';
-import { UniversalSearchComponent } from '../components/universal-search/universal-search.component';
+import { ShowEventComponent } from '../../components/show-event/show-event.component';
+import { UniversalSearchComponent } from '../../components/universal-search/universal-search.component';
 
 // 卡片数据接口
 interface CardItem {
@@ -34,12 +34,12 @@ interface CardItem {
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class Tab1Page implements OnInit {
-  requestList: CardItem[] = []; 
-  helpList: CardItem[] = [];    
-  
+  requestList: CardItem[] = [];
+  helpList: CardItem[] = [];
+
   // 【修复2】在类中定义了缺失的 eventData 属性
   // 初始化为空数组，类型为 CardItem[]
-  eventData: CardItem[] = []; 
+  eventData: CardItem[] = [];
 
   private searchKeyword = '';
   currentLang = '中文';
@@ -72,7 +72,7 @@ export class Tab1Page implements OnInit {
           ...item,
           icon: 'navigate-outline',
           distance: '距500m',
-          price: item.price ? item.price.toString() : '0.00元' 
+          price: item.price ? item.price.toString() : '0.00元'
         }));
 
         let finalData = processedData;
@@ -91,7 +91,7 @@ export class Tab1Page implements OnInit {
   shuffleArray(array: any[]): any[] {
     let currentIndex = array.length;
     let randomIndex;
-  
+
     const newArray = [...array];
 
     // 当还剩有元素未洗牌时
@@ -99,7 +99,7 @@ export class Tab1Page implements OnInit {
       // 选取一个剩余元素
       randomIndex = Math.floor(Math.random() * currentIndex);
       currentIndex--;
-      
+
       // 交换它与当前元素
       [newArray[currentIndex], newArray[randomIndex]] = [
         newArray[randomIndex], newArray[currentIndex]];

@@ -13,7 +13,7 @@ import {
   IonInput,
   IonButton,
 } from '@ionic/angular/standalone';
-import {ChatModel} from "../models/chat.model";
+import {ChatModel} from "../../models/chat.model";
 import { DatePipe } from "@angular/common";
 import {ActivatedRoute, Router} from "@angular/router";
 
