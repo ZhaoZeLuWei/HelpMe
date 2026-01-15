@@ -1,50 +1,52 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  ElementRef,
   OnInit,
   ViewChild,
-  ElementRef,
   inject,
 } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
-  Validators,
   ReactiveFormsModule,
+  Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { NavController } from '@ionic/angular';
+import { NavController, ToastController } from '@ionic/angular';
 import {
+  IonButton,
+  IonButtons,
   IonContent,
   IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonButton,
   IonIcon,
-  IonText,
-  IonModal,
-  IonList,
+  IonInput,
   IonItem,
   IonLabel,
-  IonInput,
+  IonList,
+  IonModal,
+  IonText,
   IonTextarea,
+  IonTitle,
+  IonToolbar,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
+  addCircleOutline,
   close,
+  closeCircle,
   handLeftOutline,
   heartOutline,
-  shieldCheckmarkOutline,
   imageOutline,
-  addCircleOutline,
-  closeCircle,
+  shieldCheckmarkOutline,
 } from 'ionicons/icons';
+
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-tab5',
-  templateUrl: './tab5.page.html',
-  styleUrls: ['./tab5.page.scss'],
+  templateUrl: 'tab5.page.html',
+  styleUrls: ['tab5.page.scss'],
   standalone: true,
   imports: [
     CommonModule,
@@ -70,10 +72,17 @@ export class Tab5Page implements OnInit {
   showHelpModal = false;
   showIdentityModal = false;
 
+  // 预览用（ObjectURL），不会入库
   requestPhotos: string[] = [];
   helpPhotos: string[] = [];
   idCardPhotos: string[] = [];
   certPhotos: string[] = [];
+
+  // 真正上传用（File）
+  requestFiles: File[] = [];
+  helpFiles: File[] = [];
+  idCardFiles: File[] = [];
+  certFiles: File[] = [];
 
   requestForm!: FormGroup;
   helpForm!: FormGroup;
@@ -85,27 +94,31 @@ export class Tab5Page implements OnInit {
   @ViewChild('idCardFileInput') idCardFileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('certFileInput') certFileInput!: ElementRef<HTMLInputElement>;
 
-  readonly IDCARD_MAX = 2;
-  readonly CERT_MAX = 3;
+  readonly REQUEST_MAX = 5;
+  readonly HELP_MAX = 5;
+  readonly IDCARD_MAX = 1;
+  readonly CERT_MAX = 5;
 
-  private readonly formBuilder = inject(FormBuilder);
-  private readonly router = inject(Router);
-  private readonly navCtrl = inject(NavController);
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private navCtrl = inject(NavController);
+  private toastCtrl = inject(ToastController);
+  private auth = inject(AuthService);
 
   constructor() {
     addIcons({
+      close,
       handLeftOutline,
       heartOutline,
       shieldCheckmarkOutline,
-      close,
       imageOutline,
       addCircleOutline,
       closeCircle,
     });
   }
 
-  ngOnInit() {
-    this.requestForm = this.formBuilder.group({
+  ngOnInit(): void {
+    this.requestForm = this.fb.group({
       EventTitle: ['', Validators.required],
       EventType: [0],
       EventCategory: ['', Validators.required],
@@ -114,7 +127,7 @@ export class Tab5Page implements OnInit {
       EventDetails: ['', Validators.required],
     });
 
-    this.helpForm = this.formBuilder.group({
+    this.helpForm = this.fb.group({
       EventTitle: ['', Validators.required],
       EventType: [1],
       EventCategory: ['', Validators.required],
@@ -123,7 +136,7 @@ export class Tab5Page implements OnInit {
       EventDetails: ['', Validators.required],
     });
 
-    this.identityForm = this.formBuilder.group({
+    this.identityForm = this.fb.group({
       RealName: ['', Validators.required],
       PhoneNumber: [
         '',
@@ -136,46 +149,125 @@ export class Tab5Page implements OnInit {
       Location: ['', Validators.required],
       ProviderRole: ['', [Validators.required, Validators.pattern(/^[123]$/)]],
       Introduction: [''],
-      IdCardPhotosPresent: [false, Validators.requiredTrue],
-      CertPhotosPresent: [false, Validators.requiredTrue],
     });
   }
 
-  navigateToRequest() {
+  private async requireLogin(): Promise<number | null> {
+    const uid = this.auth.currentUserId;
+    if (uid) return uid;
+
+    const t = await this.toastCtrl.create({
+      message: '请先登录后再发布',
+      duration: 2000,
+      position: 'bottom',
+    });
+    await t.present();
+
+    this.router.navigate(['/tabs/tab4']);
+    return null;
+  }
+
+  private async uploadImages(files: File[]): Promise<string[]> {
+    if (!files || files.length === 0) return [];
+
+    const fd = new FormData();
+    for (const f of files) fd.append('images', f);
+
+    const resp = await fetch('http://localhost:3000/upload/images', {
+      method: 'POST',
+      body: fd,
+    });
+
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.success) {
+      throw new Error(data?.error || data?.msg || 'upload failed');
+    }
+    return data.paths as string[];
+  }
+
+  private async createEvent(payload: any): Promise<boolean> {
+    try {
+      const resp = await fetch('http://localhost:3000/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await resp.json().catch(() => null);
+
+      if (!resp.ok || !data?.success) {
+        const msg = data?.error || data?.msg || '发布失败';
+        const t = await this.toastCtrl.create({
+          message: msg,
+          duration: 2500,
+          position: 'bottom',
+        });
+        await t.present();
+        return false;
+      }
+
+      const t = await this.toastCtrl.create({
+        message: '发布成功',
+        duration: 1800,
+        position: 'bottom',
+      });
+      await t.present();
+      return true;
+    } catch (e) {
+      console.error(e);
+      const t = await this.toastCtrl.create({
+        message: '网络错误，发布失败',
+        duration: 2500,
+        position: 'bottom',
+      });
+      await t.present();
+      return false;
+    }
+  }
+
+  async navigateToRequest(): Promise<void> {
+    const uid = await this.requireLogin();
+    if (!uid) return;
     this.showRequestModal = true;
   }
 
-  navigateToSupport() {
+  async navigateToSupport(): Promise<void> {
+    const uid = await this.requireLogin();
+    if (!uid) return;
     this.showHelpModal = true;
   }
 
-  navigateToIdentitySelection() {
+  async navigateToIdentitySelection(): Promise<void> {
+    const uid = await this.requireLogin();
+    if (!uid) return;
     this.showIdentityModal = true;
   }
 
   triggerFileInput(type: 'request' | 'help' | 'idcard' | 'cert'): void {
-    let photos: string[];
-    let input: ElementRef<HTMLInputElement>;
+    let photos: string[] = [];
     let max = 5;
+    let input: ElementRef<HTMLInputElement>;
 
     if (type === 'request') {
       photos = this.requestPhotos;
+      max = this.REQUEST_MAX;
       input = this.requestFileInput;
     } else if (type === 'help') {
       photos = this.helpPhotos;
+      max = this.HELP_MAX;
       input = this.helpFileInput;
     } else if (type === 'idcard') {
       photos = this.idCardPhotos;
-      input = this.idCardFileInput;
       max = this.IDCARD_MAX;
+      input = this.idCardFileInput;
     } else {
       photos = this.certPhotos;
-      input = this.certFileInput;
       max = this.CERT_MAX;
+      input = this.certFileInput;
     }
 
     if (photos.length >= max) return;
-    input.nativeElement.click();
+    input?.nativeElement.click();
   }
 
   onFileSelected(
@@ -186,52 +278,36 @@ export class Tab5Page implements OnInit {
     const files = input.files;
     if (!files || files.length === 0) return;
 
-    let photos: string[];
+    let photos: string[] = [];
+    let fileList: File[] = [];
     let max = 5;
 
     if (type === 'request') {
       photos = this.requestPhotos;
+      fileList = this.requestFiles;
+      max = this.REQUEST_MAX;
     } else if (type === 'help') {
       photos = this.helpPhotos;
+      fileList = this.helpFiles;
+      max = this.HELP_MAX;
     } else if (type === 'idcard') {
       photos = this.idCardPhotos;
+      fileList = this.idCardFiles;
       max = this.IDCARD_MAX;
     } else {
       photos = this.certPhotos;
+      fileList = this.certFiles;
       max = this.CERT_MAX;
     }
 
     const remaining = max - photos.length;
-    const filesToProcess = Array.from(files).slice(0, remaining);
+    const pick = Array.from(files)
+      .filter((f) => f.type.startsWith('image/'))
+      .slice(0, remaining);
 
-    for (const file of filesToProcess) {
-      if (!file.type.startsWith('image/')) continue;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-
-        if (type === 'request') {
-          this.requestPhotos.push(result);
-        } else if (type === 'help') {
-          this.helpPhotos.push(result);
-        } else if (type === 'idcard') {
-          this.idCardPhotos.push(result);
-          if (this.identityForm) {
-            this.identityForm.patchValue({
-              IdCardPhotosPresent: this.idCardPhotos.length > 0,
-            });
-          }
-        } else {
-          this.certPhotos.push(result);
-          if (this.identityForm) {
-            this.identityForm.patchValue({
-              CertPhotosPresent: this.certPhotos.length > 0,
-            });
-          }
-        }
-      };
-      reader.readAsDataURL(file);
+    for (const f of pick) {
+      fileList.push(f);
+      photos.push(URL.createObjectURL(f)); // 仅预览，不入库
     }
 
     input.value = '';
@@ -242,62 +318,99 @@ export class Tab5Page implements OnInit {
     type: 'request' | 'help' | 'idcard' | 'cert',
   ): void {
     if (type === 'request') {
+      URL.revokeObjectURL(this.requestPhotos[index]);
       this.requestPhotos.splice(index, 1);
+      this.requestFiles.splice(index, 1);
     } else if (type === 'help') {
+      URL.revokeObjectURL(this.helpPhotos[index]);
       this.helpPhotos.splice(index, 1);
+      this.helpFiles.splice(index, 1);
     } else if (type === 'idcard') {
+      URL.revokeObjectURL(this.idCardPhotos[index]);
       this.idCardPhotos.splice(index, 1);
-      if (this.identityForm) {
-        this.identityForm.patchValue({
-          IdCardPhotosPresent: this.idCardPhotos.length > 0,
-        });
-      }
+      this.idCardFiles.splice(index, 1);
     } else {
+      URL.revokeObjectURL(this.certPhotos[index]);
       this.certPhotos.splice(index, 1);
-      if (this.identityForm) {
-        this.identityForm.patchValue({
-          CertPhotosPresent: this.certPhotos.length > 0,
-        });
-      }
+      this.certFiles.splice(index, 1);
     }
   }
 
-  submitRequest(): void {
-    if (this.requestForm.valid) {
-      const data = { ...this.requestForm.value };
-      data.Photos =
-        this.requestPhotos.length > 0
-          ? JSON.stringify(this.requestPhotos)
-          : null;
+  async submitRequest(): Promise<void> {
+    if (!this.requestForm.valid) return;
 
-      console.log('提交求助:', data);
-      this.showRequestModal = false;
-      this.requestPhotos = [];
+    const uid = await this.requireLogin();
+    if (!uid) return;
+
+    // 1) 上传图片拿路径
+    let paths: string[] = [];
+    try {
+      paths = await this.uploadImages(this.requestFiles);
+    } catch (e) {
+      console.error(e);
+      const t = await this.toastCtrl.create({
+        message: '图片上传失败',
+        duration: 2000,
+        position: 'bottom',
+      });
+      await t.present();
+      return;
     }
+
+    // 2) 发布只存路径
+    const data: any = { ...this.requestForm.value };
+    data.CreatorId = uid;
+    data.Photos = paths.length > 0 ? JSON.stringify(paths) : null;
+
+    const ok = await this.createEvent(data);
+    if (!ok) return;
+
+    // 清理预览 URL
+    for (const u of this.requestPhotos) URL.revokeObjectURL(u);
+    this.requestPhotos = [];
+    this.requestFiles = [];
+    this.showRequestModal = false;
   }
 
-  submitHelp(): void {
-    if (this.helpForm.valid) {
-      const data = { ...this.helpForm.value };
-      data.Photos =
-        this.helpPhotos.length > 0 ? JSON.stringify(this.helpPhotos) : null;
+  async submitHelp(): Promise<void> {
+    if (!this.helpForm.valid) return;
 
-      console.log('提交帮助:', data);
-      this.showHelpModal = false;
-      this.helpPhotos = [];
+    const uid = await this.requireLogin();
+    if (!uid) return;
+
+    let paths: string[] = [];
+    try {
+      paths = await this.uploadImages(this.helpFiles);
+    } catch (e) {
+      console.error(e);
+      const t = await this.toastCtrl.create({
+        message: '图片上传失败',
+        duration: 2000,
+        position: 'bottom',
+      });
+      await t.present();
+      return;
     }
+
+    const data: any = { ...this.helpForm.value };
+    data.CreatorId = uid;
+    data.Photos = paths.length > 0 ? JSON.stringify(paths) : null;
+
+    const ok = await this.createEvent(data);
+    if (!ok) return;
+
+    for (const u of this.helpPhotos) URL.revokeObjectURL(u);
+    this.helpPhotos = [];
+    this.helpFiles = [];
+    this.showHelpModal = false;
   }
 
+  // 认证提交流程      后端还没写（Verifications 插入等）
   submitIdentity(): void {
     if (this.identityForm.valid) {
       const data = { ...this.identityForm.value };
       data.ProviderRole = Number(data.ProviderRole);
-      data.IdCardPhotos =
-        this.idCardPhotos.length > 0 ? JSON.stringify(this.idCardPhotos) : null;
-      data.CertPhotos =
-        this.certPhotos.length > 0 ? JSON.stringify(this.certPhotos) : null;
-
-      console.log('提交认证:', data);
+      console.log('提交认证(待后端接口):', data);
       this.showIdentityModal = false;
     }
   }
