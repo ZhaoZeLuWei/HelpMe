@@ -16,6 +16,25 @@ const app = express();
 app.use(express.json());
 app.use('/test', testRoutes);
 
+// 芒果引入数据库连接函数
+const connectDB = require('./help_me_chat_db');
+
+// 启动服务器前先连接数据库
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log('数据库连接成功');
+    
+  } catch (err) {
+    console.error('服务器启动失败：', err.message);
+    process.exit(1);
+  }
+  
+};
+
+// 调用启动函数
+startServer();
+
 // simple CORS for the ionic dev server
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'http://localhost:8100');
