@@ -1,4 +1,10 @@
-import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 
@@ -6,7 +12,7 @@ import { IonicModule } from '@ionic/angular';
 export interface EventCardData {
   id: string;
   cardImage: string;
-  icon: string; 
+  icon: string;
   distance: string;
   name: string;
   address: string;
@@ -21,7 +27,7 @@ export interface EventCardData {
   styleUrls: ['./show-event.component.scss'],
   standalone: true,
   imports: [IonicModule, CommonModule],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA]
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class ShowEventComponent {
   // 接收父组件传递进来的数据
@@ -30,6 +36,18 @@ export class ShowEventComponent {
   // 向父组件发送点击事件
   @Output() cardClick = new EventEmitter<EventCardData>();
 
+  private readonly API_BASE = 'http://localhost:3000';
+  private readonly PLACEHOLDER_IMG =
+    'https://picsum.photos/seed/default/600/400'; //展示默认图片
+
+  // 后端路径 /img/...
+  imgUrl(p: any): string {
+    if (!p) return this.PLACEHOLDER_IMG;
+    const s = String(p).trim();
+    if (!s) return this.PLACEHOLDER_IMG;
+    if (s.startsWith('/img/')) return this.API_BASE + s;
+    return this.PLACEHOLDER_IMG;
+  }
   // 处理点击逻辑
   onCardClick() {
     this.cardClick.emit(this.event);
