@@ -10,14 +10,18 @@ module.exports = (io, socket) => {
 
   //join the room
   const joinRoom = (roomId) => {
-    //🚨需要JWT验证确认身份再真正对接后端？
+    //🚨需要JWT验证确认身份再真正对接后端？(1-16 Node穿入Fake身份）
+    //先用Node 写好的身份，告诉客户端（前端）我是谁
+    socket.emit('myself', socket.user);
+
+
     if (!roomId) return;
     socket.join(roomId);
 
     //share the room id to all socket functions!
     socket.currentRoom = roomId;
 
-    const joined = `join room ${roomId} SUCCESS✅`;
+    const joined = `connect to room ${roomId} SUCCESS ✅`;
     console.log(joined);
 
     //send connectSuccess Msg
@@ -43,18 +47,20 @@ module.exports = (io, socket) => {
       }
 
       const messageData = {
+        roomId: roomId,
         text: msg.text,
-        senderId: msg.senderId,
-        userName: msg.userName,
-        timestamp: new Date().toISOString(),
+        senderId: socket.user.id,
+        userName: socket.user.name,
+        timestamp: new Date(),
       }
-      //before that we need to store the msg into our database
-      console.log("wait to store this msg into db");
 
       //a simple console to check the node actually get the msg details
       console.log(`[${messageData.timestamp}] ${messageData.userName}: ${messageData.text}`);
-      //转发给所有连接的客户端
-      // 1-1 + to roomId
+
+      //📃write into MongoDB 1-16
+      await Message.create(messageData);
+
+      //转发给对应房间号的客户端1-16
       io.to(roomId).emit('chat message', messageData);
     }
     catch (error) {

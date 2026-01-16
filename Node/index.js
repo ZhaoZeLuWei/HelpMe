@@ -24,12 +24,12 @@ const startServer = async () => {
   try {
     await connectDB();
     console.log('数据库连接成功');
-    
+
   } catch (err) {
     console.error('服务器启动失败：', err.message);
     process.exit(1);
   }
-  
+
 };
 
 // 调用启动函数
@@ -167,6 +167,17 @@ app.get('/api/cards', async (req, res) => {
     console.error('数据库查询错误：', error);
     res.status(500).json({ msg: '读取卡片数据失败' });
   }
+});
+
+//FAKE USER🚨
+io.use((socket, next) => {
+  // Mock user identity for now (server-side)
+  const jwtUser = {
+    id: 100001,
+    name: '雨墨'
+  };
+  socket.user = jwtUser;
+  next();
 });
 
 //this part for socketIO
