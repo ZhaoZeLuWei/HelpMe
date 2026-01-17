@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
+import { environment } from '../../../environments/environment';
 
 // 定义小卡片的数据接口
 export interface EventCardData {
@@ -36,7 +37,7 @@ export class ShowEventComponent {
   // 向父组件发送点击事件
   @Output() cardClick = new EventEmitter<EventCardData>();
 
-  private readonly API_BASE = 'http://localhost:3000';
+  private readonly API_BASE = environment.apiBase;
   private readonly PLACEHOLDER_IMG =
     'https://picsum.photos/seed/default/600/400'; //展示默认图片
 

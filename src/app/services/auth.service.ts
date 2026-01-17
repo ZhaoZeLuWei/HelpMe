@@ -1,20 +1,20 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+  private readonly API_BASE = environment.apiBase;
+
+  // 登录状态流
   private _isLoggedIn$ = new BehaviorSubject<boolean>(
     !!localStorage.getItem('isLoggedIn'),
   );
   public isLoggedIn$ = this._isLoggedIn$.asObservable();
 
   constructor() {}
-
-  get isLoggedInValue(): boolean {
-    return this._isLoggedIn$.value;
-  }
 
   get currentUser(): any | null {
     try {
@@ -27,32 +27,28 @@ export class AuthService {
 
   get currentUserId(): number | null {
     const u = this.currentUser;
-    if (!u) return null;
-    const id = Number(u.UserId ?? u.userId ?? u.id);
-    return Number.isFinite(id) ? id : null;
+    const id = u?.UserId ?? u?.userId ?? u?.id ?? null;
+    return typeof id === 'number' ? id : id ? Number(id) : null;
   }
 
+  // 使用后端 API 登录
   async loginWithPhone(phone: string, code: string): Promise<boolean> {
     if (!phone || !code) return false;
-
     try {
-      const resp = await fetch('http://localhost:3000/login', {
+      const resp = await fetch(`${this.API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, code }),
       });
-
       if (!resp.ok) return false;
 
       const data = await resp.json();
-
-      if (data?.success && data.user) {
+      if (data && data.success && data.user) {
         localStorage.setItem('isLoggedIn', '1');
         localStorage.setItem('user', JSON.stringify(data.user));
         this._isLoggedIn$.next(true);
         return true;
       }
-
       return false;
     } catch (err) {
       console.error('Login error:', err);

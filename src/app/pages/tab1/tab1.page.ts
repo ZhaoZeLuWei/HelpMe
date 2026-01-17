@@ -5,6 +5,7 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { map } from 'rxjs/operators';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { UniversalSearchComponent } from '../../components/universal-search/universal-search.component';
+import { environment } from '../../../environments/environment';
 
 // 卡片数据接口
 interface CardItem {
@@ -29,11 +30,13 @@ interface CardItem {
     CommonModule,
     ShowEventComponent,
     HttpClientModule, // 【修复1】这里加上了逗号
-    UniversalSearchComponent
+    UniversalSearchComponent,
   ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA]
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class Tab1Page implements OnInit {
+  private readonly API_BASE = environment.apiBase;
+
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
 
@@ -48,11 +51,11 @@ export class Tab1Page implements OnInit {
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.getCardData('request').subscribe(data => {
+    this.getCardData('request').subscribe((data) => {
       this.requestList = data;
       this.updateEventData(); // 更新总数据
     });
-    this.getCardData('help').subscribe(data => {
+    this.getCardData('help').subscribe((data) => {
       this.helpList = data;
       this.updateEventData(); // 更新总数据
     });
@@ -65,14 +68,14 @@ export class Tab1Page implements OnInit {
 
   // 封装：请求卡片数据 + 随机显示4个逻辑
   private getCardData(type: 'request' | 'help') {
-    return this.http.get<any[]>(`http://localhost:3000/api/cards?type=${type}`).pipe(
-      map(rawData => {
+    return this.http.get<any[]>(`${this.API_BASE}/api/cards?type=${type}`).pipe(
+      map((rawData) => {
         // 1. 基础数据处理：格式化字段
-        const processedData = rawData.map(item => ({
+        const processedData = rawData.map((item) => ({
           ...item,
           icon: 'navigate-outline',
           distance: '距500m',
-          price: item.price ? item.price.toString() : '0.00元'
+          price: item.price ? item.price.toString() : '0.00元',
         }));
 
         let finalData = processedData;
@@ -83,7 +86,7 @@ export class Tab1Page implements OnInit {
         }
 
         return finalData;
-      })
+      }),
     );
   }
 
@@ -102,7 +105,9 @@ export class Tab1Page implements OnInit {
 
       // 交换它与当前元素
       [newArray[currentIndex], newArray[randomIndex]] = [
-        newArray[randomIndex], newArray[currentIndex]];
+        newArray[randomIndex],
+        newArray[currentIndex],
+      ];
     }
     return newArray;
   }
@@ -144,12 +149,11 @@ export class Tab1Page implements OnInit {
   // 执行搜索逻辑
   private executeSearch() {
     if (!this.searchKeyword) {
-
-      this.getCardData('request').subscribe(data => {
+      this.getCardData('request').subscribe((data) => {
         this.requestList = data;
         this.updateEventData();
       });
-      this.getCardData('help').subscribe(data => {
+      this.getCardData('help').subscribe((data) => {
         this.helpList = data;
         this.updateEventData();
       });
@@ -158,15 +162,17 @@ export class Tab1Page implements OnInit {
     }
 
     // 过滤现有数据
-    this.requestList = this.requestList.filter(item =>
-      item.name.toLowerCase().includes(this.searchKeyword) ||
-      item.address.toLowerCase().includes(this.searchKeyword) ||
-      item.demand.toLowerCase().includes(this.searchKeyword)
+    this.requestList = this.requestList.filter(
+      (item) =>
+        item.name.toLowerCase().includes(this.searchKeyword) ||
+        item.address.toLowerCase().includes(this.searchKeyword) ||
+        item.demand.toLowerCase().includes(this.searchKeyword),
     );
-    this.helpList = this.helpList.filter(item =>
-      item.name.toLowerCase().includes(this.searchKeyword) ||
-      item.address.toLowerCase().includes(this.searchKeyword) ||
-      item.demand.toLowerCase().includes(this.searchKeyword)
+    this.helpList = this.helpList.filter(
+      (item) =>
+        item.name.toLowerCase().includes(this.searchKeyword) ||
+        item.address.toLowerCase().includes(this.searchKeyword) ||
+        item.demand.toLowerCase().includes(this.searchKeyword),
     );
   }
 
@@ -177,7 +183,9 @@ export class Tab1Page implements OnInit {
 
   // 更多按钮点击
   onBigCardMoreClick(type: 'request' | 'help') {
-    console.log(`点击了【${type === 'request' ? '求助' : '帮助'}】大卡片的更多按钮`);
+    console.log(
+      `点击了【${type === 'request' ? '求助' : '帮助'}】大卡片的更多按钮`,
+    );
   }
 
   // 列表跟踪标识

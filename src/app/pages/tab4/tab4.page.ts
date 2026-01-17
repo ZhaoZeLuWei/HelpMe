@@ -37,6 +37,7 @@ import {
 import { ToastController } from '@ionic/angular';
 import { LoginPage } from '../login/login.page';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-tab4',
@@ -64,6 +65,8 @@ import { AuthService } from '../../services/auth.service';
   ],
 })
 export class Tab4Page implements OnDestroy {
+  private readonly API_BASE = environment.apiBase;
+
   private readonly auth = inject(AuthService);
   private readonly toastController = inject(ToastController);
 
@@ -280,7 +283,7 @@ export class Tab4Page implements OnDestroy {
 
       if (id) {
         try {
-          const resp = await fetch(`http://localhost:3000/users/${id}/profile`);
+          const resp = await fetch(`${this.API_BASE}/users/${id}/profile`);
           if (resp.ok) {
             const data = await resp.json();
             if (data?.success && data.user) {
@@ -307,7 +310,7 @@ export class Tab4Page implements OnDestroy {
 
   async loadUserEvents(userId: number): Promise<void> {
     try {
-      const resp = await fetch(`http://localhost:3000/users/${userId}/events`);
+      const resp = await fetch(`${this.API_BASE}/users/${userId}/events`);
       if (!resp.ok) return;
 
       const data = await resp.json();
@@ -327,6 +330,6 @@ export class Tab4Page implements OnDestroy {
 
   getAssetUrl(path: string): string {
     if (!path) return '';
-    return path.startsWith('http') ? path : `http://localhost:3000${path}`;
+    return path.startsWith('http') ? path : `${this.API_BASE}${path}`;
   }
 }

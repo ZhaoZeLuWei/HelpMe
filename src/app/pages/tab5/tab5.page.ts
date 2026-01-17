@@ -42,6 +42,7 @@ import {
 } from 'ionicons/icons';
 
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-tab5',
@@ -71,6 +72,8 @@ export class Tab5Page implements OnInit {
   showRequestModal = false;
   showHelpModal = false;
   showIdentityModal = false;
+
+  private readonly API_BASE = environment.apiBase;
 
   // 预览用（ObjectURL），不会入库
   requestPhotos: string[] = [];
@@ -173,7 +176,7 @@ export class Tab5Page implements OnInit {
     const fd = new FormData();
     for (const f of files) fd.append('images', f);
 
-    const resp = await fetch('http://localhost:3000/upload/images', {
+    const resp = await fetch(`${this.API_BASE}/upload/images`, {
       method: 'POST',
       body: fd,
     });
@@ -187,7 +190,7 @@ export class Tab5Page implements OnInit {
 
   private async createEvent(payload: any): Promise<boolean> {
     try {
-      const resp = await fetch('http://localhost:3000/events', {
+      const resp = await fetch(`${this.API_BASE}/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
