@@ -1,4 +1,11 @@
-import { Component, OnInit, inject, signal, ViewChild, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  ViewChild,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonHeader,
@@ -8,7 +15,7 @@ import {
   IonSearchbar,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
-import { ActivatedRoute } from '@angular/router';  // 添加 ActivatedRoute 导入
+import { ActivatedRoute } from '@angular/router'; // 添加 ActivatedRoute 导入
 
 // 引入搜索组件 (不再依赖 UI)
 import {
@@ -32,13 +39,11 @@ import { ShowEventComponent } from '../../components/show-event/show-event.compo
     IonContent,
     UniversalSearchComponent,
     ShowEventComponent,
-
   ],
 })
 export class Tab2Page implements OnInit, AfterViewInit {
   private readonly API_BASE = environment.apiBase;
   private route = inject(ActivatedRoute);
-
 
   // 数据容器
   eventsData = signal<EventCardData[]>([]);
@@ -48,13 +53,16 @@ export class Tab2Page implements OnInit, AfterViewInit {
 
   //constructor(private route: ActivatedRoute) {}
 
-  ngOnInit() {
+  ngOnInit() {}
+
+  // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
+  ionViewWillEnter() {
     this.loadEvents();
   }
 
   ngAfterViewInit() {
     // 如果 URL 带 focusSearch=true，则自动聚焦搜索框
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       if (params['focusSearch']) {
         setTimeout(() => this.searchBar?.setFocus(), 300);
       }
@@ -83,9 +91,6 @@ export class Tab2Page implements OnInit, AfterViewInit {
 
         // 在 tab2.page.ts 的 loadEvents 方法里
         const transformedData = allData.map((item: any) => {
-          // 【新增】把后端返回的每一项打印出来，看控制台
-          console.log('正在处理的数据项：', item);
-
           const priceStr = item.price ? String(item.price) : '0.00';
 
           // 后端直接给 "/img/xxx.png"，不需要 JSON.parse
@@ -107,7 +112,6 @@ export class Tab2Page implements OnInit, AfterViewInit {
         });
 
         // 6. 更新 Signal
-        console.log('从后端加载的数据（求助+帮助）：', transformedData);
         this.eventsData.set(transformedData);
       })
       .catch((err) => {

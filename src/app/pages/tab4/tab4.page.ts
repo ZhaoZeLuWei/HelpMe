@@ -129,6 +129,13 @@ export class Tab4Page implements OnDestroy {
     });
   }
 
+  // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
+  async ionViewWillEnter() {
+    if (this.isLoggedIn) {
+      await this.loadUserFromStorage();
+    }
+  }
+
   // Segment 切换事件
   onTabChange(event: CustomEvent) {
     this.activeTab = event.detail.value;
