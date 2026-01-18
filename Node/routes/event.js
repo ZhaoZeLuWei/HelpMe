@@ -191,12 +191,73 @@ router.post(
       if (conn) {
         await conn.rollback().catch(console.error);
       }
-      cleanupUploadedFiles(req.files); // 事务失败，清理已上传文件
+      cleanupUploadedFiles(req.files); // 事件发布失败，清理已上传文件
       return res.status(500).json({ success: false, error: "服务器内部错误" });
     } finally {
       if (conn) conn.release();
     }
   },
 );
+
+// 删除事件（级联删除关联订单）
+router.delete("/events/:id", async (req, res) => {
+  const eventId = Number(req.params.id);
+  const creatorIdRaw = req.query.creatorId;
+  const creatorId = creatorIdRaw === undefined ? null : Number(creatorIdRaw);
+
+  if (!Number.isInteger(eventId) || eventId <= 0) {
+    return res.status(400).json({ success: false, error: "无效的事件ID" });
+  }
+  if (
+    creatorIdRaw !== undefined &&
+    (!Number.isInteger(creatorId) || creatorId <= 0)
+  ) {
+    return res.status(400).json({ success: false, error: "无效的用户ID" });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // 1. 检查事件是否存在且验证创建者（如需要）
+    const checkSql = creatorId
+      ? "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1"
+      : "SELECT EventId FROM Events WHERE EventId = ? LIMIT 1";
+    const checkParams = creatorId ? [eventId, creatorId] : [eventId];
+    const [checkRows] = await conn.query(checkSql, checkParams);
+
+    if (!checkRows || checkRows.length === 0) {
+      await conn.rollback();
+      return res
+        .status(404)
+        .json({ success: false, error: "事件不存在或无权删除" });
+    }
+
+    // 2. 删除关联的订单
+    await conn.query("DELETE FROM Orders WHERE EventId = ?", [eventId]);
+
+    // 3. 删除事件本身
+    const [delResult] = await conn.query(
+      "DELETE FROM Events WHERE EventId = ?",
+      [eventId],
+    );
+
+    await conn.commit();
+    return res.json({
+      success: true,
+      deleted: true,
+      ordersDeleted: delResult.affectedRows,
+    });
+  } catch (err) {
+    if (conn) {
+      await conn.rollback().catch(console.error);
+    }
+    console.error("删除事件数据库错误:", err);
+    return res.status(500).json({ success: false, error: "服务器内部错误" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 
 module.exports = router;
