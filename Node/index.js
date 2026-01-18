@@ -60,12 +60,55 @@ const upload = multer({
   },
 });
 
+// upload  (出错/业务失败时清理已上传的文件)
+function flattenMulterFiles(files) {
+  if (!files) return [];
+  if (Array.isArray(files)) return files;
+  const all = [];
+  for (const k of Object.keys(files)) {
+    const arr = files[k];
+    if (Array.isArray(arr)) all.push(...arr);
+  }
+  return all;
+}
+
+function safeUnlink(p) {
+  try {
+    fs.unlinkSync(p);
+  } catch (_) {}
+}
+
+function cleanupUploadedFiles(files) {
+  const all = flattenMulterFiles(files);
+  for (const f of all) {
+    if (f && f.path) safeUnlink(f.path);
+  }
+}
+
+function withMulter(mw) {
+  return (req, res, next) => {
+    mw(req, res, (err) => {
+      if (err) {
+        cleanupUploadedFiles(req.files);
+        return res
+          .status(400)
+          .json({ success: false, error: err.message || "upload failed" });
+      }
+      return next();
+    });
+  };
+}
+
 // 上传接口：返回路径数组 ['/img/xxx.jpg', ...]
-app.post("/upload/images", upload.array("images", 10), (req, res) => {
-  const files = req.files || [];
-  const paths = files.map((f) => `/img/${f.filename}`);
-  res.json({ success: true, paths });
-});
+app.post(
+  "/upload/images",
+  withMulter(upload.array("images", 10)),
+  (req, res) => {
+    const files = req.files || [];
+    const paths = files.map((f) => `/img/${f.filename}`);
+    res.json({ success: true, paths });
+  },
+);
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -218,61 +261,319 @@ app.get("/api/cards", async (req, res) => {
   }
 });
 
-// 发布：只写路径（Photos 是 JSON 字符串或 null）
-app.post("/events", async (req, res) => {
-  const {
-    EventTitle,
-    EventType,
-    EventCategory,
-    Location,
-    Price,
-    EventDetails,
-    Photos, // JSON string: '["/img/a.jpg",...]'
-    CreatorId,
-  } = req.body || {};
-
-  if (!CreatorId)
-    return res.status(401).json({ success: false, error: "未登录" });
-  if (!EventTitle || !EventCategory || !Location || !EventDetails) {
-    return res.status(400).json({ success: false, error: "缺少必填字段" });
-  }
-
-  const eventType = Number(EventType);
-  if (![0, 1].includes(eventType)) {
+// 发布事件
+// 文本：CreatorId, EventTitle, EventType(0/1), EventCategory, Location, Price, EventDetails
+// 图片：images (0~10张)
+const eventUpload = withMulter(upload.array("images", 10));
+app.post("/events", (req, res) => {
+  const ct = String(req.headers["content-type"] || "");
+  if (!ct.includes("multipart/form-data")) {
     return res
-      .status(400)
-      .json({ success: false, error: "EventType 必须为 0(求助) 或 1(帮助)" });
+      .status(415)
+      .json({ success: false, error: "请使用 multipart/form-data 提交" });
   }
 
-  const price = Price == null ? 0 : Number(Price);
-  if (!Number.isFinite(price) || price < 0) {
-    return res.status(400).json({ success: false, error: "Price 不合法" });
-  }
+  eventUpload(req, res, async () => {
+    const {
+      EventTitle,
+      EventType,
+      EventCategory,
+      Location,
+      Price,
+      EventDetails,
+      CreatorId,
+    } = req.body || {};
 
-  try {
-    const [result] = await pool.query(
-      `INSERT INTO Events
-        (CreatorId, EventTitle, EventType, EventCategory, Photos, Location, Price, EventDetails)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        Number(CreatorId),
-        String(EventTitle),
-        eventType,
-        String(EventCategory),
-        Photos ?? null,
-        String(Location),
-        price,
-        String(EventDetails),
-      ],
-    );
+    if (!CreatorId)
+      return res.status(401).json({ success: false, error: "未登录" });
+    if (!EventTitle || !EventCategory || !Location || !EventDetails) {
+      cleanupUploadedFiles(req.files);
+      return res.status(400).json({ success: false, error: "缺少必填字段" });
+    }
 
-    return res.json({ success: true, EventId: result.insertId });
-  } catch (err) {
-    console.error("DB insert error (events):", err);
+    const eventType = Number(EventType);
+    if (![0, 1].includes(eventType)) {
+      cleanupUploadedFiles(req.files);
+      return res
+        .status(400)
+        .json({ success: false, error: "EventType 必须为 0(求助) 或 1(帮助)" });
+    }
+
+    const price =
+      Price == null || String(Price).trim() === "" ? 0 : Number(Price);
+    if (!Number.isFinite(price) || price < 0) {
+      cleanupUploadedFiles(req.files);
+      return res.status(400).json({ success: false, error: "Price 不合法" });
+    }
+
+    const files = req.files || [];
+    const photoPaths = files.map((f) => `/img/${f.filename}`);
+    const photosJson =
+      photoPaths.length > 0 ? JSON.stringify(photoPaths) : null;
+
+    let conn;
+    try {
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
+
+      const [result] = await conn.query(
+        `INSERT INTO Events
+          (CreatorId, EventTitle, EventType, EventCategory, Photos, Location, Price, EventDetails)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          Number(CreatorId),
+          String(EventTitle),
+          eventType,
+          String(EventCategory),
+          photosJson,
+          String(Location),
+          price,
+          String(EventDetails),
+        ],
+      );
+
+      await conn.commit();
+      return res.json({
+        success: true,
+        EventId: result.insertId,
+        paths: photoPaths,
+      });
+    } catch (err) {
+      console.error("DB insert error (events):", err);
+      try {
+        if (conn) await conn.rollback();
+      } catch (_) {}
+      cleanupUploadedFiles(req.files);
+      return res
+        .status(500)
+        .json({ success: false, error: "Database insert failed" });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
+});
+
+// 认证提交
+// 文本：ProviderId, ServiceCategory(1/2/3), RealName, IdCardNumber, Location, Introduction
+// 图片：idCard(1~2张), cert(1~5张)
+// 逻辑：
+//    1) 首次提交必须上传 idCard + cert
+//    2) 重复提交：未上传的新图不会覆盖旧图（空值不覆盖），但状态强制改回待审核(0)
+//    3) 手机号是登录账号，Users.PhoneNumber不进行修改
+const verificationUpload = withMulter(
+  upload.fields([
+    { name: "idCard", maxCount: 2 },
+    { name: "cert", maxCount: 5 },
+  ]),
+);
+
+app.post("/verifications", (req, res) => {
+  const ct = String(req.headers["content-type"] || "");
+  if (!ct.includes("multipart/form-data")) {
     return res
-      .status(500)
-      .json({ success: false, error: "Database insert failed" });
+      .status(415)
+      .json({ success: false, error: "请使用 multipart/form-data 提交" });
   }
+
+  verificationUpload(req, res, async () => {
+    const {
+      ProviderId,
+      ServiceCategory,
+      RealName,
+      IdCardNumber,
+      Location,
+      Introduction,
+    } = req.body || {};
+
+    if (!ProviderId) {
+      return res.status(401).json({ success: false, error: "未登录" });
+    }
+
+    if (
+      ServiceCategory === undefined ||
+      ServiceCategory === null ||
+      String(ServiceCategory).trim() === ""
+    ) {
+      cleanupUploadedFiles(req.files);
+      return res.status(400).json({ success: false, error: "请填写身份类型" });
+    }
+
+    const providerId = Number(ProviderId);
+    const serviceCategory = Number(ServiceCategory);
+
+    if (![1, 2, 3].includes(serviceCategory)) {
+      cleanupUploadedFiles(req.files);
+      return res
+        .status(400)
+        .json({ success: false, error: "ServiceCategory 必须为 1、2 或 3" });
+    }
+
+    const hasValue = (v) =>
+      v !== undefined && v !== null && String(v).trim() !== "";
+
+    const idCardFiles = (req.files && req.files.idCard) || [];
+    const certFiles = (req.files && req.files.cert) || [];
+
+    const idCardPaths = idCardFiles.map((f) => `/img/${f.filename}`);
+    const certPaths = certFiles.map((f) => `/img/${f.filename}`);
+
+    let conn;
+    try {
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
+
+      // 0) 先确保 Providers 存在
+      await conn.query(
+        `INSERT INTO Providers (ProviderId, ProviderRole, OrderCount, ServiceRanking)
+         VALUES (?, ?, 0, 0)
+         ON DUPLICATE KEY UPDATE ProviderRole = ?`,
+        [providerId, serviceCategory, serviceCategory],
+      );
+
+      // 1) Users：只更新“非空字段”（空值不覆盖，不包含手机号）
+      const uSets = [];
+      const uParams = [];
+
+      if (hasValue(RealName)) {
+        uSets.push("RealName = ?");
+        uParams.push(String(RealName).trim());
+      }
+
+      if (hasValue(IdCardNumber)) {
+        const idc = String(IdCardNumber).trim();
+        const [dup] = await conn.query(
+          "SELECT UserId FROM Users WHERE IdCardNumber = ? AND UserId <> ? LIMIT 1",
+          [idc, providerId],
+        );
+        if (dup && dup.length > 0) {
+          throw new Error("该身份证号已被其他账号使用");
+        }
+        uSets.push("IdCardNumber = ?");
+        uParams.push(idc);
+      }
+
+      if (hasValue(Location)) {
+        uSets.push("Location = ?");
+        uParams.push(String(Location).trim());
+      }
+      if (hasValue(Introduction)) {
+        uSets.push("Introduction = ?");
+        uParams.push(String(Introduction));
+      }
+
+      if (uSets.length > 0) {
+        uParams.push(providerId);
+        await conn.query(
+          `UPDATE Users SET ${uSets.join(", ")} WHERE UserId = ?`,
+          uParams,
+        );
+      }
+
+      // 2) 找最近一条认证记录（不管状态）
+      const [rows] = await conn.query(
+        `SELECT VerificationId, IdCardPhoto, ProfessionPhoto
+         FROM Verifications
+         WHERE ProviderId = ?
+         ORDER BY SubmissionTime DESC
+         LIMIT 1`,
+        [providerId],
+      );
+
+      const hasPrev = rows && rows.length > 0;
+      const prev = hasPrev ? rows[0] : null;
+
+      // 3) 首次提交：必须上传 idCard + cert
+      if (!hasPrev) {
+        if (idCardPaths.length === 0) throw new Error("请上传身份证照片");
+        if (certPaths.length === 0) throw new Error("请上传职业证书照片");
+      }
+
+      if (hasPrev) {
+        const verificationId = prev.VerificationId;
+
+        const vSets = [
+          "ServiceCategory = ?",
+          "VerificationStatus = 0",
+          "SubmissionTime = NOW()",
+          "PassingTime = NULL",
+          "Results = NULL",
+        ];
+        const vParams = [serviceCategory];
+
+        // 只在有新图时覆盖
+        if (idCardPaths.length > 0) {
+          vSets.push("IdCardPhoto = ?");
+          vParams.push(JSON.stringify(idCardPaths));
+        }
+        if (certPaths.length > 0) {
+          vSets.push("ProfessionPhoto = ?");
+          vParams.push(JSON.stringify(certPaths));
+        }
+
+        vParams.push(verificationId);
+
+        await conn.query(
+          `UPDATE Verifications SET ${vSets.join(", ")} WHERE VerificationId = ?`,
+          vParams,
+        );
+
+        await conn.commit();
+        return res.json({
+          success: true,
+          VerificationId: verificationId,
+          message: "认证信息已更新，状态已改为待审核",
+          idCardPaths,
+          certPaths,
+        });
+      }
+
+      // 没有历史记录：插入新认证
+      const [result] = await conn.query(
+        `INSERT INTO Verifications
+          (ProviderId, ServiceCategory, VerificationStatus, IdCardPhoto, ProfessionPhoto, SubmissionTime)
+         VALUES (?, ?, 0, ?, ?, NOW())`,
+        [
+          providerId,
+          serviceCategory,
+          JSON.stringify(idCardPaths),
+          JSON.stringify(certPaths),
+        ],
+      );
+
+      await conn.commit();
+      return res.json({
+        success: true,
+        VerificationId: result.insertId,
+        message: "认证提交成功，请等待审核",
+        idCardPaths,
+        certPaths,
+      });
+    } catch (err) {
+      console.error("DB insert/update error (verifications):", err);
+      try {
+        if (conn) await conn.rollback();
+      } catch (_) {}
+
+      cleanupUploadedFiles(req.files);
+
+      const msg = err && err.message ? err.message : "Database insert failed";
+      if (
+        msg.includes("请上传身份证") ||
+        msg.includes("请上传职业") ||
+        msg.includes("身份类型") ||
+        msg.includes("ServiceCategory") ||
+        msg.includes("身份证号已被")
+      ) {
+        return res.status(400).json({ success: false, error: msg });
+      }
+
+      return res
+        .status(500)
+        .json({ success: false, error: "Database insert failed" });
+    } finally {
+      if (conn) conn.release();
+    }
+  });
 });
 
 //this part for socketIO

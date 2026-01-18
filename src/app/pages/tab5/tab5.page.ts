@@ -99,7 +99,7 @@ export class Tab5Page implements OnInit {
 
   readonly REQUEST_MAX = 5;
   readonly HELP_MAX = 5;
-  readonly IDCARD_MAX = 1;
+  readonly IDCARD_MAX = 2;
   readonly CERT_MAX = 5;
 
   private fb = inject(FormBuilder);
@@ -141,10 +141,9 @@ export class Tab5Page implements OnInit {
 
     this.identityForm = this.fb.group({
       RealName: ['', Validators.required],
-      PhoneNumber: [
-        '',
-        [Validators.required, Validators.pattern(/^1[3-9]\d{9}$/)],
-      ],
+
+      PhoneNumber: this.fb.control({ value: '', disabled: true }),
+
       IdCardNumber: [
         '',
         [Validators.required, Validators.pattern(/^(\d{18}|\d{17}[\dXx])$/)],
@@ -168,6 +167,30 @@ export class Tab5Page implements OnInit {
 
     this.router.navigate(['/tabs/tab4']);
     return null;
+  }
+
+  private async postFormData(
+    endpoint: string,
+    fd: FormData,
+  ): Promise<any | null> {
+    const resp = await fetch(`${this.API_BASE}${endpoint}`, {
+      method: 'POST',
+      body: fd,
+    });
+
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data?.success) {
+      const msg = data?.error || data?.msg || '请求失败';
+      const t = await this.toastCtrl.create({
+        message: msg,
+        duration: 2500,
+        position: 'bottom',
+      });
+      await t.present();
+      return null;
+    }
+
+    return data;
   }
 
   private async uploadImages(files: File[]): Promise<string[]> {
@@ -243,6 +266,21 @@ export class Tab5Page implements OnInit {
   async navigateToIdentitySelection(): Promise<void> {
     const uid = await this.requireLogin();
     if (!uid) return;
+
+    // 手机号是登录账号：自动读取并禁用编辑
+    const authAny: any = this.auth as any;
+    const phone: string | null =
+      authAny?.currentPhoneNumber ??
+      authAny?.currentUser?.PhoneNumber ??
+      authAny?.currentUser?.phoneNumber ??
+      authAny?.user?.PhoneNumber ??
+      authAny?.user?.phoneNumber ??
+      null;
+
+    if (phone) {
+      this.identityForm.patchValue({ PhoneNumber: phone });
+    }
+
     this.showIdentityModal = true;
   }
 
@@ -345,33 +383,38 @@ export class Tab5Page implements OnInit {
     const uid = await this.requireLogin();
     if (!uid) return;
 
-    // 1) 上传图片拿路径
-    let paths: string[] = [];
-    try {
-      paths = await this.uploadImages(this.requestFiles);
-    } catch (e) {
-      console.error(e);
-      const t = await this.toastCtrl.create({
-        message: '图片上传失败',
-        duration: 2000,
-        position: 'bottom',
-      });
-      await t.present();
-      return;
-    }
+    const v: any = this.requestForm.value || {};
+    const fd = new FormData();
+    fd.append('CreatorId', String(uid));
+    fd.append('EventTitle', String(v.EventTitle ?? ''));
+    fd.append('EventType', String(v.EventType ?? 0));
+    fd.append('EventCategory', String(v.EventCategory ?? ''));
+    fd.append('Location', String(v.Location ?? ''));
+    fd.append('Price', String(v.Price ?? 0));
+    fd.append('EventDetails', String(v.EventDetails ?? ''));
+    for (const f of this.requestFiles) fd.append('images', f);
 
-    // 2) 发布只存路径
-    const data: any = { ...this.requestForm.value };
-    data.CreatorId = uid;
-    data.Photos = paths.length > 0 ? JSON.stringify(paths) : null;
+    const data = await this.postFormData('/events', fd);
+    if (!data) return;
 
-    const ok = await this.createEvent(data);
-    if (!ok) return;
+    const t = await this.toastCtrl.create({
+      message: '发布成功',
+      duration: 1800,
+      position: 'bottom',
+    });
+    await t.present();
 
-    // 清理预览 URL
     for (const u of this.requestPhotos) URL.revokeObjectURL(u);
     this.requestPhotos = [];
     this.requestFiles = [];
+    this.requestForm.reset({
+      EventTitle: '',
+      EventType: 0,
+      EventCategory: '',
+      Location: '',
+      Price: 0,
+      EventDetails: '',
+    });
     this.showRequestModal = false;
   }
 
@@ -381,41 +424,100 @@ export class Tab5Page implements OnInit {
     const uid = await this.requireLogin();
     if (!uid) return;
 
-    let paths: string[] = [];
-    try {
-      paths = await this.uploadImages(this.helpFiles);
-    } catch (e) {
-      console.error(e);
-      const t = await this.toastCtrl.create({
-        message: '图片上传失败',
-        duration: 2000,
-        position: 'bottom',
-      });
-      await t.present();
-      return;
-    }
+    const v: any = this.helpForm.value || {};
+    const fd = new FormData();
+    fd.append('CreatorId', String(uid));
+    fd.append('EventTitle', String(v.EventTitle ?? ''));
+    fd.append('EventType', String(v.EventType ?? 1));
+    fd.append('EventCategory', String(v.EventCategory ?? ''));
+    fd.append('Location', String(v.Location ?? ''));
+    fd.append('Price', String(v.Price ?? 0));
+    fd.append('EventDetails', String(v.EventDetails ?? ''));
+    for (const f of this.helpFiles) fd.append('images', f);
 
-    const data: any = { ...this.helpForm.value };
-    data.CreatorId = uid;
-    data.Photos = paths.length > 0 ? JSON.stringify(paths) : null;
+    const data = await this.postFormData('/events', fd);
+    if (!data) return;
 
-    const ok = await this.createEvent(data);
-    if (!ok) return;
+    const t = await this.toastCtrl.create({
+      message: '发布成功',
+      duration: 1800,
+      position: 'bottom',
+    });
+    await t.present();
 
     for (const u of this.helpPhotos) URL.revokeObjectURL(u);
     this.helpPhotos = [];
     this.helpFiles = [];
+    this.helpForm.reset({
+      EventTitle: '',
+      EventType: 1,
+      EventCategory: '',
+      Location: '',
+      Price: 0,
+      EventDetails: '',
+    });
     this.showHelpModal = false;
   }
 
-  // 认证提交流程      后端还没写（Verifications 插入等）
-  submitIdentity(): void {
-    if (this.identityForm.valid) {
-      const data = { ...this.identityForm.value };
-      data.ProviderRole = Number(data.ProviderRole);
-      console.log('提交认证(待后端接口):', data);
-      this.showIdentityModal = false;
+  async submitIdentity(): Promise<void> {
+    if (!this.identityForm.valid) return;
+
+    const uid = await this.requireLogin();
+    if (!uid) return;
+
+    // PhoneNumber 是 disabled：identityForm.value 里不会包含手机号；也不需要发送给后端
+    const v: any = this.identityForm.getRawValue();
+
+    const fd = new FormData();
+    fd.append('ProviderId', String(uid));
+    fd.append('ServiceCategory', String(v.ProviderRole ?? ''));
+    fd.append('RealName', String(v.RealName ?? ''));
+    fd.append('IdCardNumber', String(v.IdCardNumber ?? ''));
+    fd.append('Location', String(v.Location ?? ''));
+    if (v.Introduction != null && String(v.Introduction).trim() !== '') {
+      fd.append('Introduction', String(v.Introduction));
     }
+
+    for (const f of this.idCardFiles) fd.append('idCard', f);
+    for (const f of this.certFiles) fd.append('cert', f);
+
+    const data = await this.postFormData('/verifications', fd);
+    if (!data) return;
+
+    const t = await this.toastCtrl.create({
+      message: '认证提交成功，等待审核',
+      duration: 1800,
+      position: 'bottom',
+    });
+    await t.present();
+
+    for (const u of this.idCardPhotos) URL.revokeObjectURL(u);
+    for (const u of this.certPhotos) URL.revokeObjectURL(u);
+    this.idCardPhotos = [];
+    this.idCardFiles = [];
+    this.certPhotos = [];
+    this.certFiles = [];
+
+    // reset 后再把手机号补回去（保持不可编辑）
+    const authAny: any = this.auth as any;
+    const phone: string | null =
+      authAny?.currentPhoneNumber ??
+      authAny?.currentUser?.PhoneNumber ??
+      authAny?.currentUser?.phoneNumber ??
+      authAny?.user?.PhoneNumber ??
+      authAny?.user?.phoneNumber ??
+      null;
+
+    this.identityForm.reset({
+      RealName: '',
+      PhoneNumber: phone ?? '',
+      IdCardNumber: '',
+      Location: '',
+      ProviderRole: '',
+      Introduction: '',
+    });
+
+    this.showIdentityModal = false;
   }
 
   closeGuide(): void {
