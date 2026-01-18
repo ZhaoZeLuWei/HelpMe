@@ -1,31 +1,35 @@
 <div class="page-container">
-  
+
   <!-- 右上角语言切换按钮 -->
   <button class="lang-switch-btn" (click)="toggleLanguage()">
     <span class="material-icons">public</span>
     <span>{{ currentLang }}</span>
   </button>
 
-  <!-- 顶部搜索框 -->
-   <app-universal-search 
-  [dataSource]="eventData"  
-  [detailRoute]="'/event-detail'"  
-></app-universal-search>
-  
+  <!-- 1. 假搜索条：外观与 UniversalSearch 一致，但不可输入 -->
+  <div class="search-bar-wrapper" (click)="goToSearchPage()"><!-- 去到搜索页面，并自动聚焦到搜索框 -->
+    <ion-searchbar
+      [disabled]="true"
+      placeholder="点击搜索"
+      [animated]="true"
+      show-clear-button="never">
+    </ion-searchbar>
+  </div>
+
 
   <!-- 内容区域 -->
   <div class="content-area ion-padding">
-    
+
     <!-- 求助大卡片 -->
     <div class="big-card request-card">
       <h3 class="big-card-title">求助</h3>
-      
+
       <div class="small-card-grid">
         <!-- === 修改开始：添加空状态判断 === -->
-        
+
         <!-- 情况1：有数据时，显示列表 -->
         <ng-container *ngIf="requestList.length > 0">
-          <app-show-event 
+          <app-show-event
             *ngFor="let req of requestList; trackBy: trackById"
             [event]="req"
             (cardClick)="cardClickFeedback($event)">
@@ -37,12 +41,12 @@
           <span class="material-icons">search_off</span>
           <p>还没有求助事件</p>
         </div>
-        
+
         <!-- === 修改结束 === -->
       </div>
 
       <!-- 更多按钮 -->
-      <button class="big-card-more-btn" (click)="onBigCardMoreClick('request')">
+      <button class="big-card-more-btn" (click)="goToTab2Search()"><!-- 只去到搜索页面-->
         <div class="css-triangle"></div>
         更多
       </button>
@@ -53,10 +57,10 @@
       <h3 class="big-card-title">帮助</h3>
 
       <div class="small-card-grid">
-        
+
         <!-- 有数据时，显示列表 -->
         <ng-container *ngIf="helpList.length > 0">
-          <app-show-event 
+          <app-show-event
             *ngFor="let help of helpList; trackBy: trackById"
             [event]="help"
             (cardClick)="cardClickFeedback($event)">
@@ -68,11 +72,11 @@
           <span class="material-icons">search_off</span>
           <p>还没有帮助事件</p>
         </div>
-        
+
         <!-- === 修改结束 === -->
       </div>
 
-      <button class="big-card-more-btn" (click)="onBigCardMoreClick('help')">
+      <button class="big-card-more-btn" (click)="goToTab2Search()"><!-- 只去到搜索页面-->
         <div class="css-triangle"></div>
         更多
       </button>

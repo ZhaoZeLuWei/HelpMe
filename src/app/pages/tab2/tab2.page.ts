@@ -1,12 +1,14 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonHeader,
   IonToolbar,
   IonTitle,
   IonContent,
+  IonSearchbar,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
+import { ActivatedRoute } from '@angular/router';  // 添加 ActivatedRoute 导入
 
 // 引入搜索组件 (不再依赖 UI)
 import {
@@ -30,16 +32,33 @@ import { ShowEventComponent } from '../../components/show-event/show-event.compo
     IonContent,
     UniversalSearchComponent,
     ShowEventComponent,
+
   ],
 })
-export class Tab2Page implements OnInit {
+export class Tab2Page implements OnInit, AfterViewInit {
   private readonly API_BASE = environment.apiBase;
+  private route = inject(ActivatedRoute);
+
 
   // 数据容器
   eventsData = signal<EventCardData[]>([]);
 
+  // 拿到搜索框实例
+  @ViewChild('searchBar') searchBar!: IonSearchbar;
+
+  //constructor(private route: ActivatedRoute) {}
+
   ngOnInit() {
     this.loadEvents();
+  }
+
+  ngAfterViewInit() {
+    // 如果 URL 带 focusSearch=true，则自动聚焦搜索框
+    this.route.queryParams.subscribe(params => {
+      if (params['focusSearch']) {
+        setTimeout(() => this.searchBar?.setFocus(), 300);
+      }
+    });
   }
 
   loadEvents() {

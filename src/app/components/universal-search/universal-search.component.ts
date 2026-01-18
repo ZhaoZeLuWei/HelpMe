@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal, ContentChild, TemplateRef } from '@angular/core'; // <--- 引入 ContentChild 和 TemplateRef
+import { Component, AfterViewInit,Output, EventEmitter,computed, inject, input, signal, ContentChild, TemplateRef, ViewChild } from '@angular/core'; // <--- 引入 ContentChild 和 TemplateRef
 import { CommonModule } from '@angular/common';
 // 修改后 (确保 IonList 和 IonItem 都在)
 import {
@@ -24,6 +24,7 @@ import {
 } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';          // ← 新增
 import { addIcons } from 'ionicons';
 import { pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search } from 'ionicons/icons';
 
@@ -47,14 +48,16 @@ import { EventCardData } from '../show-event/show-event.component';
     IonInput,
   ]
 })
-export class UniversalSearchComponent {
+export class UniversalSearchComponent implements AfterViewInit{
 
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   // --- 数据输入 ---
   dataSource = input<EventCardData[]>([]);
   detailRoute = input<string>('/');
+  @Output() searchEvent = new EventEmitter<string>();
 
   // --- 状态管理 ---
   modals = signal({
@@ -84,6 +87,7 @@ export class UniversalSearchComponent {
     { initialValue: this.filterForm.value }
   );
   @ContentChild('cardTemplate', { static: true }) cardTemplate!: TemplateRef<any>;
+  @ViewChild('searchBar') searchBar!: IonSearchbar;          // ← 拿到搜索框
 
   // --- 核心筛选逻辑 ---
   filteredEvents = computed(() => {
@@ -118,6 +122,48 @@ export class UniversalSearchComponent {
     addIcons({ pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search });
   }
 
+  ngAfterViewInit() {
+    // 自动聚焦功能 - 生产环境版本
+    this.route.queryParams.subscribe((params: any) => {
+      if (params['focusSearch']) {
+        // 延迟执行以确保组件已完全渲染
+        setTimeout(() => {
+          if (this.searchBar) {
+            // 调用 Ionic 的焦点设置方法
+            this.searchBar.setFocus();
+
+            // 移动设备优化：确保输入法弹出
+            if (this.isMobileDevice()) {
+              setTimeout(() => {
+                // 获取搜索框内部的 input 元素
+                const input = this.getSearchBarInput();
+                if (input) {
+                  // 对于某些移动浏览器，需要触发 click 事件
+                  input.click();
+                  // 确保输入框有内容时，光标在末尾
+                  if (input.value) {
+                    input.setSelectionRange(input.value.length, input.value.length);
+                  }
+                }
+              }, 50);
+            }
+          }
+        }, 300);
+      }
+    });
+  }
+
+  // 检查是否为移动设备
+  private isMobileDevice(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  // 获取搜索框内部的 input 元素
+  private getSearchBarInput(): HTMLInputElement | null {
+    const searchBarElement = document.querySelector('ion-searchbar');
+    return searchBarElement?.querySelector('input') || null;
+  }
+
   // --- 方法 ---
 
   setModal(key: string, isOpen: boolean) {
@@ -136,6 +182,7 @@ export class UniversalSearchComponent {
   onSearch() {
     const currentVal = this.searchControl.value || '';
     this.confirmedSearchText.set(currentVal);
+    this.searchEvent.emit(currentVal);          // 父组件可监听
   }
   // 修改一下 goToDetail，让它接收完整的 event 对象，方便模板调用
   handleCardClick(event: EventCardData) {

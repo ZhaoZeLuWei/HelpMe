@@ -1,11 +1,11 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, inject } from '@angular/core';import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { map } from 'rxjs/operators';
+import { map, Observable, forkJoin } from 'rxjs';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { UniversalSearchComponent } from '../../components/universal-search/universal-search.component';
 import { environment } from '../../../environments/environment';
+import { Router } from '@angular/router';
 
 // 卡片数据接口
 interface CardItem {
@@ -30,12 +30,14 @@ interface CardItem {
     CommonModule,
     ShowEventComponent,
     HttpClientModule, // 【修复1】这里加上了逗号
-    UniversalSearchComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class Tab1Page implements OnInit {
   private readonly API_BASE = environment.apiBase;
+  // 使用 inject() 函数替代构造函数注入
+  private http = inject(HttpClient);
+  private router = inject(Router);
 
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
@@ -48,7 +50,7 @@ export class Tab1Page implements OnInit {
   currentLang = '中文';
   showLangConfirmModal = false;
 
-  constructor(private http: HttpClient) {}
+  //constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
     this.getCardData('request').subscribe((data) => {
@@ -112,22 +114,13 @@ export class Tab1Page implements OnInit {
     return newArray;
   }
 
-  // 搜索输入事件
-  onSearchInput(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.searchKeyword = input.value.trim().toLowerCase();
+  //去到搜索页面,并且搜索框自动聚焦
+  goToSearchPage() {
+    this.router.navigate(['/tabs/tab2'], { queryParams: { focusSearch: true } });
   }
-
-  // 回车触发搜索
-  onSearchKeyPress(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      this.executeSearch();
-    }
-  }
-
-  // 点击搜索按钮
-  onSearchClick() {
-    this.executeSearch();
+  //只去到搜索页面
+  goToTab2Search() {
+    this.router.navigate(['/tabs/tab2']);
   }
 
   // 切换语言
@@ -144,36 +137,6 @@ export class Tab1Page implements OnInit {
   // 取消切换语言
   cancelSwitchLanguage() {
     this.showLangConfirmModal = false;
-  }
-
-  // 执行搜索逻辑
-  private executeSearch() {
-    if (!this.searchKeyword) {
-      this.getCardData('request').subscribe((data) => {
-        this.requestList = data;
-        this.updateEventData();
-      });
-      this.getCardData('help').subscribe((data) => {
-        this.helpList = data;
-        this.updateEventData();
-      });
-
-      return;
-    }
-
-    // 过滤现有数据
-    this.requestList = this.requestList.filter(
-      (item) =>
-        item.name.toLowerCase().includes(this.searchKeyword) ||
-        item.address.toLowerCase().includes(this.searchKeyword) ||
-        item.demand.toLowerCase().includes(this.searchKeyword),
-    );
-    this.helpList = this.helpList.filter(
-      (item) =>
-        item.name.toLowerCase().includes(this.searchKeyword) ||
-        item.address.toLowerCase().includes(this.searchKeyword) ||
-        item.demand.toLowerCase().includes(this.searchKeyword),
-    );
   }
 
   // 卡片点击反馈
