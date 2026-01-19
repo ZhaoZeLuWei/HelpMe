@@ -1,4 +1,10 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, inject } from '@angular/core';import { IonicModule } from '@ionic/angular';
+import {
+  Component,
+  CUSTOM_ELEMENTS_SCHEMA,
+  OnInit,
+  inject,
+} from '@angular/core';
+import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { map, Observable, forkJoin } from 'rxjs';
@@ -52,7 +58,14 @@ export class Tab1Page implements OnInit {
 
   //constructor(private http: HttpClient, private router: Router) {}
 
-  ngOnInit() {
+  ngOnInit() {}
+
+  // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
+  ionViewWillEnter() {
+    this.loadCardLists();
+  }
+
+  private loadCardLists() {
     this.getCardData('request').subscribe((data) => {
       this.requestList = data;
       this.updateEventData(); // 更新总数据
@@ -115,10 +128,9 @@ export class Tab1Page implements OnInit {
   }
 
   //去到搜索页面,并且搜索框自动聚焦
-// tab1.page.ts  &  tab2.page.ts
   goToSearchPage() {
-    this.router.navigate(['/search'], {
-      queryParams: { returnTo: 'tabs/tab2' }   // 统一回到 Tab2
+    this.router.navigate(['/tabs/tab2'], {
+      queryParams: { focusSearch: true },
     });
   }
   //只去到搜索页面

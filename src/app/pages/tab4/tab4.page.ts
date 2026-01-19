@@ -91,7 +91,7 @@ export class Tab4Page implements OnDestroy {
       role: 'destructive',
       handler: () => {
         if (this.deleteTargetId != null) {
-          this.deleteTask(this.deleteTargetId);
+          void this.deleteTask(this.deleteTargetId);
         }
         this.isDeleteAlertOpen = false;
         this.deleteTargetId = null;
@@ -103,6 +103,7 @@ export class Tab4Page implements OnDestroy {
 
   userInfo: any = this.createDefaultUserInfo();
   tasks: any[] = [];
+  currentUserId: number | null = null;
 
   constructor() {
     // 注册页面用到的 Ionicons 图标
@@ -127,6 +128,13 @@ export class Tab4Page implements OnDestroy {
         this.resetUserInfo();
       }
     });
+  }
+
+  // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
+  async ionViewWillEnter() {
+    if (this.isLoggedIn) {
+      await this.loadUserFromStorage();
+    }
   }
 
   // Segment 切换事件
@@ -161,16 +169,42 @@ export class Tab4Page implements OnDestroy {
     this.isDeleteAlertOpen = true;
   }
 
-  deleteTask(taskId: number) {
-    // 更新任务列表
-    this.tasks = this.tasks.filter((t) => t.id !== taskId);
-    void this.presentDeleteToast();
-    //后续调用删除API
+  async deleteTask(taskId: number) {
+    if (!this.currentUserId) {
+      await this.presentDeleteToast('未登录，无法删除');
+      return;
+    }
+
+    try {
+      const resp = await fetch(
+        `${this.API_BASE}/events/${taskId}?creatorId=${this.currentUserId}`,
+        { method: 'DELETE' },
+      );
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        await this.presentDeleteToast(errText || '删除失败');
+        return;
+      }
+
+      const result = await resp.json();
+      if (!result?.success) {
+        await this.presentDeleteToast(result?.error || '删除失败');
+        return;
+      }
+
+      await this.presentDeleteToast('删除成功');
+      // 删除成功后重新加载列表，确保显示最新数据
+      await this.loadUserFromStorage();
+    } catch (e) {
+      console.error('deleteTask error', e);
+      await this.presentDeleteToast('网络错误，稍后重试');
+    }
   }
 
-  async presentDeleteToast() {
+  async presentDeleteToast(message: string) {
     const toast = await this.toastController.create({
-      message: '删除成功',
+      message,
       duration: 3000,
       position: 'bottom',
     });
@@ -280,6 +314,7 @@ export class Tab4Page implements OnDestroy {
 
       const u = JSON.parse(raw);
       const id = u.UserId || u.userId || u.id;
+      this.currentUserId = id ?? null;
 
       if (id) {
         try {
@@ -301,6 +336,7 @@ export class Tab4Page implements OnDestroy {
       // Fallback: 使用 localStorage 中的数据
       this.updateUserFromData(u);
       const fid = u.UserId || u.userId || u.id;
+      if (fid) this.currentUserId = fid;
 
       if (fid) await this.loadUserEvents(fid);
     } catch (e) {
