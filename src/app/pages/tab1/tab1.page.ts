@@ -58,7 +58,16 @@ export class Tab1Page implements OnInit {
 
   //constructor(private http: HttpClient, private router: Router) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.getCardData('request').subscribe((data) => {
+      this.requestList = data;
+      this.updateEventData(); // 更新总数据
+    });
+    this.getCardData('help').subscribe((data) => {
+      this.helpList = data;
+      this.updateEventData(); // 更新总数据
+    });
+  }
 
   // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
   ionViewWillEnter() {
@@ -129,8 +138,8 @@ export class Tab1Page implements OnInit {
 
   //去到搜索页面,并且搜索框自动聚焦
   goToSearchPage() {
-    this.router.navigate(['/tabs/tab2'], {
-      queryParams: { focusSearch: true },
+    this.router.navigate(['/search'], {
+      queryParams: { returnTo: 'tabs/tab2' }   // 统一回到 Tab2
     });
   }
   //只去到搜索页面
