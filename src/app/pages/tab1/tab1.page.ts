@@ -115,8 +115,11 @@ export class Tab1Page implements OnInit {
   }
 
   //去到搜索页面,并且搜索框自动聚焦
+// tab1.page.ts  &  tab2.page.ts
   goToSearchPage() {
-    this.router.navigate(['/tabs/tab2'], { queryParams: { focusSearch: true } });
+    this.router.navigate(['/search'], {
+      queryParams: { returnTo: 'tabs/tab2' }   // 统一回到 Tab2
+    });
   }
   //只去到搜索页面
   goToTab2Search() {

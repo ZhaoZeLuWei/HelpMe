@@ -1,0 +1,17 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>搜索</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="onSearch()">搜索</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-searchbar
+    [(ngModel)]="keyword"
+    placeholder="输入需求描述"
+    (keyup.enter)="onSearch()"
+  ></ion-searchbar>
+</ion-content>
+

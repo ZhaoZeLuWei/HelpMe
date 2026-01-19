@@ -1,4 +1,4 @@
-import { Component, AfterViewInit,Output, EventEmitter,computed, inject, input, signal, ContentChild, TemplateRef, ViewChild } from '@angular/core'; // <--- 引入 ContentChild 和 TemplateRef
+import { Component,OnInit,Output, EventEmitter,computed, inject, input, signal, ContentChild, TemplateRef, ViewChild } from '@angular/core'; // <--- 引入 ContentChild 和 TemplateRef
 import { CommonModule } from '@angular/common';
 // 修改后 (确保 IonList 和 IonItem 都在)
 import {
@@ -48,7 +48,7 @@ import { EventCardData } from '../show-event/show-event.component';
     IonInput,
   ]
 })
-export class UniversalSearchComponent implements AfterViewInit{
+export class UniversalSearchComponent implements OnInit {
 
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
@@ -121,48 +121,28 @@ export class UniversalSearchComponent implements AfterViewInit{
   constructor() {
     addIcons({ pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search });
   }
+  // 新增方法：初始化时同步路由参数
+  ngOnInit() {
+    // 订阅路由参数的变化
+    this.route.queryParams.subscribe(params => {
+      const keyword = params['search'];
 
-  ngAfterViewInit() {
-    // 自动聚焦功能 - 生产环境版本
-    this.route.queryParams.subscribe((params: any) => {
-      if (params['focusSearch']) {
-        // 延迟执行以确保组件已完全渲染
-        setTimeout(() => {
-          if (this.searchBar) {
-            // 调用 Ionic 的焦点设置方法
-            this.searchBar.setFocus();
+      if (keyword) {
+        // 1. 将关键词填入搜索框 (更新 FormControl)
+        this.searchControl.setValue(keyword);
 
-            // 移动设备优化：确保输入法弹出
-            if (this.isMobileDevice()) {
-              setTimeout(() => {
-                // 获取搜索框内部的 input 元素
-                const input = this.getSearchBarInput();
-                if (input) {
-                  // 对于某些移动浏览器，需要触发 click 事件
-                  input.click();
-                  // 确保输入框有内容时，光标在末尾
-                  if (input.value) {
-                    input.setSelectionRange(input.value.length, input.value.length);
-                  }
-                }
-              }, 50);
-            }
-          }
-        }, 300);
+        // 2. 【关键】更新确认的搜索词 (更新 Signal)
+        // 这会触发 filteredEvents 的重新计算，从而筛选数据
+        this.confirmedSearchText.set(keyword);
+      } else {
+        // 如果 URL 没有关键词，确保清空状态
+        this.searchControl.setValue('');
+        this.confirmedSearchText.set('');
       }
     });
   }
 
-  // 检查是否为移动设备
-  private isMobileDevice(): boolean {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  }
 
-  // 获取搜索框内部的 input 元素
-  private getSearchBarInput(): HTMLInputElement | null {
-    const searchBarElement = document.querySelector('ion-searchbar');
-    return searchBarElement?.querySelector('input') || null;
-  }
 
   // --- 方法 ---
 
