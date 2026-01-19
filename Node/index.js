@@ -1,12 +1,12 @@
 /* eslint-env node, es2021 */
 const express = require('express');
 const { createServer } = require('node:http');
-const { join} = require('node:path');
+const { join } = require('node:path');
 const { Server } = require('socket.io');
 
 //import my js files here
 const pool = require('./help_me_db.js');
-const registerChatHandler = require('./chatHandler.js');
+const { registerChatHandler, getChatHistory } = require('./chatHandler.js');
 
 //all routes imports here 这里引用路由
 const testRoutes = require('./routes/test.js');
@@ -47,6 +47,7 @@ app.use((req, res, next) => {
 // 将数据库当中的 /img/* 映射到本地 upload/img 文件夹
 //1-14 修改建议： img放到src目录下
 app.use('/img', express.static(join(__dirname, '..', 'upload', 'img')));
+
 const server = createServer(app);
 const io = new Server(server, {
   connectionStateRecovery:{},
@@ -182,12 +183,24 @@ io.use((socket, next) => {
 
 //this part for socketIO
 io.on('connection', (socket) => {
+  // 这里调用修正后的函数
   registerChatHandler(io, socket);
 
   socket.on('disconnect', () => {
     console.log('disconnect');
   })
 })
+
+// HTTP API调用读取函数
+app.get('/api/messages/history', async (req, res) => {
+  // 调用chatHandler.js的getChatHistory
+  const result = await getChatHistory(req.query);
+  if (result.success) {
+    res.status(200).json(result);
+  } else {
+    res.status(400).json(result);
+  }
+});
 
 //server listen on port 3000
 server.listen(3000, () => {
