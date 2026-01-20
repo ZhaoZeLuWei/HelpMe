@@ -9,7 +9,7 @@ const { uploadDir } = require("./routes/upload.js");
 
 //import my js files here
 const pool = require("./help_me_db.js");
-const registerChatHandler = require("./chatHandler.js");
+const { registerChatHandler, getChatHistory }= require('./chatHandler.js');
 
 //all routes imports here 这里引用路由
 const testRoutes = require("./routes/test.js");
