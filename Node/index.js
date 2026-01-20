@@ -1,15 +1,47 @@
 /* eslint-env node, es2021 */
-const express = require('express');
-const { createServer } = require('node:http');
-const { join} = require('node:path');
-const { Server } = require('socket.io');
+const express = require("express");
+const { createServer } = require("node:http");
+const { join } = require("node:path");
+const { Server } = require("socket.io");
+
+const corsMiddleware = require("./routes/cors.js");
+const { uploadDir } = require("./routes/upload.js");
 
 //import my js files here
-const pool = require('./help_me_db.js');
-const registerChatHandler = require('./chatHandler.js');
+const pool = require("./help_me_db.js");
+const { registerChatHandler, getChatHistory }= require('./chatHandler.js');
 
+//all routes imports here 这里引用路由
+const testRoutes = require("./routes/test.js");
+const userRoutes = require("./routes/user.js");
+const eventRoutes = require("./routes/event.js");
+const verifyRoutes = require("./routes/verify.js");
+const orderRoutes = require("./routes/order.js");
+const reviewRoutes = require("./routes/review.js");
+
+//use all routes here 这里使用路由，定义URL路径
 const app = express();
 app.use(express.json());
+app.use('/test', testRoutes);
+
+// 芒果引入数据库连接函数
+const connectDB = require('./help_me_chat_db');
+
+// 启动服务器前先连接数据库
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log('数据库连接成功');
+
+  } catch (err) {
+    console.error('服务器启动失败：', err.message);
+    process.exit(1);
+  }
+
+};
+
+// 调用启动函数
+startServer();
 
 // simple CORS for the ionic dev server
 app.use((req, res, next) => {
@@ -21,7 +53,9 @@ app.use((req, res, next) => {
 });
 
 // 将数据库当中的 /img/* 映射到本地 upload/img 文件夹
+//1-14 修改建议： img放到src目录下
 app.use('/img', express.static(join(__dirname, '..', 'upload', 'img')));
+
 const server = createServer(app);
 const io = new Server(server, {
   connectionStateRecovery:{},
@@ -47,79 +81,52 @@ app.post('/login', async (req, res) => {
   }
 });
 
-/*
-//read the database (messages table)
-app.get('/', async (req, res) => {
-  const [rows] = await pool.query('SELECT * FROM Users');
-  console.log("Reading...");
-  res.json(rows); // 关键：返回纯 JSON 数据
-  console.log(rows);
-});
-*/
+app.use(express.json());
+app.use(corsMiddleware);
 
-//this is a test html for simple chat
-app.get('/test', (req, res) => {
-    res.sendFile(join(__dirname + '/test.html'));
-});
+app.use("/img", express.static(uploadDir));
 
-//测试数据库连接
-app.get('/users', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT UserId, UserName, PhoneNumber, Location FROM Users LIMIT 10');
-    res.json(rows);
-  } catch (err) {
-    console.error('DB query error:', err);
-    res.status(500).json({ error: 'Database query failed' });
-  }
-});
+app.use("/test", testRoutes);
 
-// 测试获取用户发布的事件列表
-app.get('/users/:id/events', async (req, res) => {
-  const userId = req.params.id;
-  try {
-    const [rows] = await pool.query(
-      'SELECT EventId, EventTitle, EventCategory, Location, Price, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50',
-      [userId]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('DB query error (events):', err);
-    res.status(500).json({ error: 'Database query failed' });
-  }
-});
+app.use(userRoutes);
+app.use(eventRoutes);
+app.use(verifyRoutes);
+app.use(orderRoutes);
+app.use(reviewRoutes);
 
-// 获取用户完整资料（包含 Consumers/Providers 信息）
-app.get('/users/:id/profile', async (req, res) => {
-  const userId = req.params.id;
-  try {
-    const [rows] = await pool.query(
-      `SELECT u.UserId, u.UserName, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction,
-              (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
-              c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
-       FROM Users u
-       LEFT JOIN Consumers c ON u.UserId = c.ConsumerId
-       LEFT JOIN Providers p ON u.UserId = p.ProviderId
-       WHERE u.UserId = ? LIMIT 1`,
-      [userId]
-    );
-    if (!rows || rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    return res.json({ success: true, user: rows[0] });
-  } catch (err) {
-    console.error('DB query error (profile):', err);
-    return res.status(500).json({ error: 'Database query failed' });
-  }
+//FAKE USER🚨
+io.use((socket, next) => {
+  // Mock user identity for now (server-side)
+  const jwtUser = {
+    id: 100001,
+    name: '雨墨'
+  };
+  socket.user = jwtUser;
+  next();
 });
 
 //this part for socketIO
-io.on('connection', (socket) => {
+io.on("connection", (socket) => {
+  // 这里调用修正后的函数
   registerChatHandler(io, socket);
 
-  socket.on('disconnect', () => {
-    console.log('disconnect');
-  })
-})
+  socket.on("disconnect", () => {
+    console.log("disconnect");
+  });
+});
+
+// HTTP API调用读取函数
+app.get('/api/messages/history', async (req, res) => {
+  // 调用chatHandler.js的getChatHistory
+  const result = await getChatHistory(req.query);
+  if (result.success) {
+    res.status(200).json(result);
+  } else {
+    res.status(400).json(result);
+  }
+});
 
 //server listen on port 3000
 server.listen(3000, () => {
-    console.log('server running at http://localhost:3000');
+  console.log("server running at http://localhost:3000");
 });

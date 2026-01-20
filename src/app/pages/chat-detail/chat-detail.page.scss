@@ -1,0 +1,31 @@
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 消息气泡默认靠左 */
+.message-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* 我发的消息靠右 */
+.message-group.me {
+  align-items: flex-end;
+}
+
+.message-bubble {
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background-color: #f1f0f0;
+  word-wrap: break-word;
+}
+
+/* 我发的消息气泡颜色 */
+.message-group.me .message-bubble {
+  background-color: #4f9cff;
+  color: white;
+}

@@ -1,0 +1,28 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>事件列表</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- 调用搜索组件 -->
+  <app-universal-search [dataSource]="eventsData()" [detailRoute]="'/tabs/tab2/detail'">
+
+    <!--
+      【关键点】必须把自定义的组件写在 <ng-template> 里面
+      #cardTemplate: 模板标识符
+      let-event="event": 定义变量 event，接收搜索组件传来的数据
+      let-onClick="onItemClick": 定义变量 onClick，接收搜索组件传来的点击方法
+    -->
+    <ng-template #cardTemplate let-event="event" let-onClick="onItemClick">
+
+
+      <app-show-event
+        [event]="event"
+        (cardClick)="onClick(event)">
+      </app-show-event>
+
+    </ng-template>
+
+  </app-universal-search>
+</ion-content>

@@ -5,6 +5,7 @@
     <div class="search-actions-container">
       <!-- 搜索框 -->
       <ion-searchbar
+        #searchBar
         class="search-bar-custom"
         [animated]="true"
         placeholder="输入需求描述..."
@@ -41,59 +42,37 @@
       </ion-col>
     </ion-row>
 
-    <!-- ===== 3. 列表展示区 ===== -->
-    <div class="event-list-container">
-      @if (filteredEvents().length > 0) {
-        @for (event of filteredEvents(); track event.id) {
-          <ion-card class="custom-card" (click)="goToDetail(event.id)">
+    <!-- ===== 3. 列表展示区 (动态模板) ===== -->
 
-            <!-- 顶部大图 -->
-            <img [src]="event.cardImage" class="card-hero-image" alt="Event Image" />
+    <ion-grid class="event-list-container">
+      <ion-row>
+        @if (filteredEvents().length > 0) {
+          @for (event of filteredEvents(); track event.id) {
+            <ion-col size="6" size-md="4">
 
-            <ion-item lines="none" class="card-header">
-              <ion-avatar slot="start">
-                <img [src]="event.avatar" />
-              </ion-avatar>
-              <ion-label>
-                <h2>{{ event.name }}</h2>
-                <p>{{ event.distance }}</p>
-              </ion-label>
-              <!-- 图标展示 -->
-              <ion-icon slot="end" [name]="event.icon" color="primary" size="large"></ion-icon>
-            </ion-item>
+              <!--
+                   ngTemplateOutlet: 核心代码
+                   1. [ngTemplateOutlet]: 渲染父组件传进来的模板
+                   2. [ngTemplateOutletContext]: 把当前的数据 event 和 点击方法 handleCardClick 传给模板
+              -->
+              <ng-container *ngTemplateOutlet="cardTemplate; context: {
+  event: event,
+  onItemClick: handleCardClick.bind(this)
+}"></ng-container>
 
-            <ion-card-content>
-              <!-- 需求描述 -->
-              <h3 class="event-demand">{{ event.demand }}</h3>
-
-              <div class="detail-row">
-                <div class="detail-item">
-                  <ion-icon name="cash"></ion-icon>
-                  <span>¥{{ event.price }}</span>
-                </div>
-                <div class="detail-item">
-                  <ion-icon name="navigate"></ion-icon>
-                  <!-- 地址 -->
-                  <span>{{ event.address }}</span>
-                </div>
-              </div>
-            </ion-card-content>
-
-            <ion-row class="card-footer">
-              <ion-col text-right>
-                <small color="medium">点击查看详情 </small>
-                <ion-icon name="chevron-forward" color="medium"></ion-icon>
-              </ion-col>
-            </ion-row>
-          </ion-card>
+            </ion-col>
+          }
+        } @else {
+          <!-- 空状态保持不变 ... -->
+          <ion-col size="12">
+            <div class="empty-state">
+              <ion-icon name="file-tray" size="large" color="medium"></ion-icon>
+              <p>暂无符合条件的需求</p>
+            </div>
+          </ion-col>
         }
-      } @else {
-        <div class="empty-state">
-          <ion-icon name="file-tray" size="large" color="medium"></ion-icon>
-          <p>暂无符合条件的需求</p>
-        </div>
-      }
-    </div>
+      </ion-row>
+    </ion-grid>
 
     <!-- ==================== 模态框区域 ==================== -->
 

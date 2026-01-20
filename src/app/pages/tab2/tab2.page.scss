@@ -1,0 +1,49 @@
+// 引入 Material Icons（若全局已引入可删）
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+/* 通用图标样式 */
+.material-icons {
+  display: inline-block;
+  font-size: 1em;
+  width: 1em; height: 1em;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* 顶部筛选条 – 与小卡片筛选条同风格 */
+.filter-row {
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 10px 0;
+  ion-col { padding: 0 5px; }
+}
+
+/* 列表容器 – 同队友空状态背景 */
+.event-list-container {
+  padding: 10px;
+  background-color: #F8FAFC;      // 与队友空状态保持一致
+  min-height: 100%;
+}
+
+/* 空状态 – 直接复用队友空状态 */
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 10px;
+  color: #94A3B8;
+  text-align: center;
+  background-color: #F8FAFC;
+  border: 2px dashed #E2E8F0;
+  border-radius: 12px;
+  margin: 0 10px;
+
+  .material-icons {
+    font-size: 48px;
+    color: #CBD5E1;
+    margin-bottom: 10px;
+  }
+  p { font-size: 15px; margin: 0; font-weight: 500; }
+}

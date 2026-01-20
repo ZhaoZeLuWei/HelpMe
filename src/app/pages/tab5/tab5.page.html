@@ -1,0 +1,469 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title> 发布服务 </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="publish-guide">
+  <div class="hero">互帮互助一家亲</div>
+
+  <div class="cards">
+    <div class="action-card request-card" (click)="navigateToRequest()">
+      <div class="icon-bubble">
+        <ion-icon name="hand-left-outline"></ion-icon>
+      </div>
+      <div class="card-copy">
+        <div class="title-line">
+          <span class="tag">求助</span>
+        </div>
+        <p class="desc">我有困难时发布</p>
+      </div>
+    </div>
+
+    <div class="action-card help-card" (click)="navigateToSupport()">
+      <div class="icon-bubble">
+        <ion-icon name="heart-outline"></ion-icon>
+      </div>
+      <div class="card-copy">
+        <div class="title-line">
+          <span class="tag">帮助</span>
+        </div>
+        <p class="desc">你要帮助他人时发布</p>
+      </div>
+    </div>
+
+    <div
+      class="action-card identity-card"
+      (click)="navigateToIdentitySelection()"
+    >
+      <div class="icon-bubble">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+      </div>
+      <div class="card-copy">
+        <div class="title-line">
+          <span class="tag">认证资格</span>
+        </div>
+        <p class="desc">全职 兼职 商家</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="close-row">
+    <button class="close-btn" (click)="closeGuide()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+    <ion-text color="medium" class="close-hint"
+      >关闭当前页面，返回上一级</ion-text
+    >
+  </div>
+
+  <!-- 求助发布弹窗 -->
+  <ion-modal
+    [isOpen]="showRequestModal"
+    (didDismiss)="showRequestModal = false"
+  >
+    <ng-template>
+      <ion-header [translucent]="true">
+        <ion-toolbar>
+          <ion-title>发布求助</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="showRequestModal = false">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="modal-content">
+        <form [formGroup]="requestForm" (ngSubmit)="submitRequest()">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">标题 *</ion-label>
+              <ion-input
+                formControlName="EventTitle"
+                placeholder="简明描述你的需求（如：求修电脑）"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">类别 *</ion-label>
+              <ion-input
+                formControlName="EventCategory"
+                placeholder="如：电脑维修"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">位置 *</ion-label>
+              <ion-input
+                formControlName="Location"
+                placeholder="详细地址（如：XX校区1栋101室）"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">期望价格 (¥)</ion-label>
+              <ion-input
+                type="number"
+                step="0.01"
+                formControlName="Price"
+                placeholder="0 表示无偿帮助"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">详细描述 *</ion-label>
+              <ion-textarea
+                formControlName="EventDetails"
+                [autoGrow]="true"
+                placeholder="请说明具体困难、时间要求、紧急程度等"
+              ></ion-textarea>
+            </ion-item>
+
+            <ion-item lines="none">
+              <ion-label position="stacked">上传照片（可选）</ion-label>
+            </ion-item>
+
+            <div
+              class="photo-upload-area"
+              (click)="triggerFileInput('request')"
+            >
+              <input
+                #requestFileInput
+                type="file"
+                accept="image/*"
+                multiple
+                (change)="onFileSelected($event, 'request')"
+                style="display: none"
+              />
+
+              <div class="photo-preview-container">
+                @for (photo of requestPhotos; track $index; let i = $index) {
+                <div class="photo-preview">
+                  <img [src]="photo" alt="预览" />
+                  <ion-icon
+                    name="close-circle"
+                    class="remove-photo"
+                    (click)="removePhoto(i, 'request'); $event.stopPropagation()"
+                  ></ion-icon>
+                </div>
+                } @if (requestPhotos.length === 0) {
+                <div class="upload-placeholder">
+                  <ion-icon name="image-outline"></ion-icon>
+                  <p>点击上传照片</p>
+                </div>
+                } @else if (requestPhotos.length < 5) {
+                <div class="upload-placeholder">
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                </div>
+                }
+              </div>
+
+              <ion-text color="medium" class="upload-hint">
+                <p>最多可上传 5 张照片，支持 JPG/PNG</p>
+              </ion-text>
+            </div>
+          </ion-list>
+
+          <div class="modal-actions">
+            <ion-button
+              type="button"
+              fill="outline"
+              color="medium"
+              (click)="showRequestModal = false"
+              >取消</ion-button
+            >
+            <ion-button type="submit" [disabled]="requestForm.invalid"
+              >提交求助</ion-button
+            >
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- 帮助发布弹窗 -->
+  <ion-modal [isOpen]="showHelpModal" (didDismiss)="showHelpModal = false">
+    <ng-template>
+      <ion-header [translucent]="true">
+        <ion-toolbar>
+          <ion-title>发布帮助</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="showHelpModal = false">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="modal-content">
+        <form [formGroup]="helpForm" (ngSubmit)="submitHelp()">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">标题 *</ion-label>
+              <ion-input
+                formControlName="EventTitle"
+                placeholder="如：提供电脑维修服务"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">类别 *</ion-label>
+              <ion-input
+                formControlName="EventCategory"
+                placeholder="如：电脑维修等"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">服务区域 *</ion-label>
+              <ion-input
+                formControlName="Location"
+                placeholder="如：XX小区"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">服务价格 (¥) *</ion-label>
+              <ion-input
+                type="number"
+                step="0.01"
+                formControlName="Price"
+                placeholder="可填小数（如 59.99） 免费则填写0"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">服务详情 *</ion-label>
+              <ion-textarea
+                formControlName="EventDetails"
+                [autoGrow]="true"
+                placeholder="说明你能提供什么、时间安排、限制条件等"
+              ></ion-textarea>
+            </ion-item>
+
+            <ion-item lines="none">
+              <ion-label position="stacked">服务照片（可选）</ion-label>
+            </ion-item>
+
+            <div class="photo-upload-area" (click)="triggerFileInput('help')">
+              <input
+                #helpFileInput
+                type="file"
+                accept="image/*"
+                multiple
+                (change)="onFileSelected($event, 'help')"
+                style="display: none"
+              />
+
+              <div class="photo-preview-container">
+                @for (photo of helpPhotos; track $index; let i = $index) {
+                <div class="photo-preview">
+                  <img [src]="photo" alt="预览" />
+                  <ion-icon
+                    name="close-circle"
+                    class="remove-photo"
+                    (click)="removePhoto(i, 'help'); $event.stopPropagation()"
+                  ></ion-icon>
+                </div>
+                } @if (helpPhotos.length === 0) {
+                <div class="upload-placeholder">
+                  <ion-icon name="image-outline"></ion-icon>
+                  <p>点击上传照片</p>
+                </div>
+                } @else if (helpPhotos.length < 5) {
+                <div class="upload-placeholder">
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                </div>
+                }
+              </div>
+
+              <ion-text color="medium" class="upload-hint">
+                <p>最多可上传 5 张照片，支持 JPG/PNG</p>
+              </ion-text>
+            </div>
+          </ion-list>
+
+          <div class="modal-actions">
+            <ion-button
+              type="button"
+              fill="outline"
+              color="medium"
+              (click)="showHelpModal = false"
+              >取消</ion-button
+            >
+            <ion-button type="submit" [disabled]="helpForm.invalid"
+              >发布帮助</ion-button
+            >
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- 认证资格弹窗 -->
+  <ion-modal
+    [isOpen]="showIdentityModal"
+    (didDismiss)="showIdentityModal = false"
+  >
+    <ng-template>
+      <ion-header [translucent]="true">
+        <ion-toolbar>
+          <ion-title>认证资格</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="showIdentityModal = false">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="modal-content">
+        <form [formGroup]="identityForm" (ngSubmit)="submitIdentity()">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">真实姓名 *</ion-label>
+              <ion-input
+                formControlName="RealName"
+                placeholder="与身份证一致"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">手机号 *</ion-label>
+              <ion-input
+                formControlName="PhoneNumber"
+                type="tel"
+                [readonly]="true"
+                [maxlength]="11"
+                placeholder="11位中国大陆手机号"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">身份证号 *</ion-label>
+              <ion-input
+                formControlName="IdCardNumber"
+                [maxlength]="18"
+                placeholder="18位身份证号码"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">所在区域 *</ion-label>
+              <ion-input
+                formControlName="Location"
+                placeholder="如：XX小区"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">身份类型 *</ion-label>
+              <ion-input
+                formControlName="ProviderRole"
+                placeholder="请输入：1(全职) / 2(兼职) / 3(商家)"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">个人简介</ion-label>
+              <ion-textarea
+                formControlName="Introduction"
+                [autoGrow]="true"
+                placeholder="简要介绍你的服务经验或特长（选填）"
+              ></ion-textarea>
+            </ion-item>
+
+            <!-- 身份证照片上传 -->
+            <ion-item lines="none">
+              <ion-label position="stacked">身份证照片 *</ion-label>
+            </ion-item>
+
+            <div class="photo-upload-area" (click)="$event.stopPropagation()">
+              <input
+                #idCardFileInput
+                type="file"
+                accept="image/*"
+                multiple
+                (change)="onFileSelected($event, 'idcard')"
+                style="display: none"
+              />
+
+              <div class="photo-preview-container">
+                @for (photo of idCardPhotos; track $index; let i = $index) {
+                <div class="photo-preview">
+                  <img [src]="photo" alt="预览" />
+                  <ion-icon
+                    name="close-circle"
+                    class="remove-photo"
+                    (click)="removePhoto(i, 'idcard'); $event.stopPropagation()"
+                  ></ion-icon>
+                </div>
+                } @if (idCardPhotos.length === 0) {
+                <div
+                  class="upload-placeholder"
+                  (click)="triggerFileInput('idcard')"
+                >
+                  <ion-icon name="image-outline"></ion-icon>
+                  <p>点击上传身份证照片（正反面）</p>
+                </div>
+                } @else if (idCardPhotos.length < IDCARD_MAX) {
+                <div
+                  class="upload-placeholder"
+                  (click)="triggerFileInput('idcard')"
+                >
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- 职业证书照片上传 -->
+            <ion-item lines="none">
+              <ion-label position="stacked"
+                >职业证书照片（最多可上传 3 张） *</ion-label
+              >
+            </ion-item>
+
+            <div class="photo-upload-area" (click)="$event.stopPropagation()">
+              <input
+                #certFileInput
+                type="file"
+                accept="image/*"
+                multiple
+                (change)="onFileSelected($event, 'cert')"
+                style="display: none"
+              />
+
+              <div class="photo-preview-container">
+                @for (photo of certPhotos; track $index; let i = $index) {
+                <div class="photo-preview">
+                  <img [src]="photo" alt="预览" />
+                  <ion-icon
+                    name="close-circle"
+                    class="remove-photo"
+                    (click)="removePhoto(i, 'cert'); $event.stopPropagation()"
+                  ></ion-icon>
+                </div>
+                } @if (certPhotos.length === 0) {
+                <div
+                  class="upload-placeholder"
+                  (click)="triggerFileInput('cert')"
+                >
+                  <ion-icon name="image-outline"></ion-icon>
+                  <p>点击上传职业证书照片</p>
+                </div>
+                } @else if (certPhotos.length < CERT_MAX) {
+                <div
+                  class="upload-placeholder"
+                  (click)="triggerFileInput('cert')"
+                >
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                </div>
+                }
+              </div>
+            </div>
+          </ion-list>
+
+          <div class="modal-actions">
+            <ion-button
+              type="button"
+              fill="outline"
+              color="medium"
+              (click)="showIdentityModal = false"
+              >取消</ion-button
+            >
+            <ion-button type="submit" [disabled]="identityForm.invalid"
+              >提交认证</ion-button
+            >
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>
