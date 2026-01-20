@@ -7,8 +7,8 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #F8FAFC; 
-  position: relative; 
+  background-color: #F8FAFC;
+  position: relative;
 }
 
 // 全局 Material Icons 样式 (父页面也需要)
@@ -26,7 +26,7 @@
   position: absolute;
   top: 15px;
   right: 15px;
-  z-index: 999; 
+  z-index: 999;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -34,7 +34,7 @@
   border: 1px solid #0F766E;
   color: #0F766E;
   padding: 6px 12px;
-  border-radius: 20px; 
+  border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -49,11 +49,11 @@
   &:hover {
     background-color: #0F766E;
     color: white;
-    
+
     .material-icons {
-      color: white; 
+      color: white;
     }
-    
+
     transform: translateY(-1px);
   }
 
@@ -78,40 +78,40 @@
   max-width: 400px;
   height: 40px;
   padding: 0 15px;
-  border: 1px solid #CBD5E1; 
+  border: 1px solid #CBD5E1;
   border-right: none;
   border-radius: 20px 0 0 20px;
   background-color: white;
-  font-size: 15px; 
-  color: #334155; 
+  font-size: 15px;
+  color: #334155;
   outline: none;
 
   &::placeholder {
-    color: #94A3B8; 
+    color: #94A3B8;
     opacity: 1;
   }
 
   &:focus {
-    border-color: #0F766E; 
+    border-color: #0F766E;
     box-shadow: 0 0 4px rgba(15, 118, 110, 0.2);
   }
 }
 
 .search-btn {
   height: 40px;
-  padding: 0 24px; 
+  padding: 0 24px;
   border: 1px solid #0F766E;
   border-left: none;
   border-radius: 0 20px 20px 0;
-  background-color: #0F766E; 
+  background-color: #0F766E;
   color: white;
   font-size: 15px;
-  font-weight: 500; 
+  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #115E59; 
+    background-color: #115E59;
   }
 
   &:active {
@@ -127,30 +127,30 @@
 
 // 大卡片容器
 .big-card {
-  background-color: #FFFFFF; 
-  border: 1px solid #E2E8F0; 
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
   border-radius: 12px;
   padding: 20px 15px;
   margin-bottom: 15px;
-  position: relative; 
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+  position: relative;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   height: auto;
-  padding-bottom: 60px; 
+  padding-bottom: 60px;
 }
 
 .big-card-title {
-  color: #1E293B; 
+  color: #1E293B;
   font-size: 19px;
   font-weight: 700;
   margin-bottom: 15px;
   padding-left: 10px;
-  border-left: 4px solid #0F766E; 
+  border-left: 4px solid #0F766E;
 }
 
 // 网格布局 (保留在这里，因为它控制的是卡片的排列)
 .small-card-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); 
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 
   @media (min-width: 768px) {
@@ -164,7 +164,7 @@
   position: absolute;
   bottom: 20px;
   right: 20px;
-  background-color: #F0FDFA; 
+  background-color: #F0FDFA;
   border: 1px solid #0F766E;
   color: #0F766E;
   border-radius: 8px;
@@ -175,10 +175,10 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  z-index: 10; 
+  z-index: 10;
 
   &:hover {
-    background-color: #0F766E; 
+    background-color: #0F766E;
     color: white;
     .css-triangle {
       border-left-color: white !important;
@@ -195,23 +195,23 @@
   height: 0;
   border-top: 4px solid transparent;
   border-bottom: 4px solid transparent;
-  border-left: 6px solid #0F766E; 
+  border-left: 6px solid #0F766E;
   transition: border-left-color 0.2s;
 }
 
-// 自定义弹窗样式 
+// 自定义弹窗样式
 .custom-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); 
-  backdrop-filter: blur(4px); 
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000; 
+  z-index: 2000;
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -219,7 +219,7 @@
   background-color: white;
   width: 85%;
   max-width: 320px;
-  border-radius: 20px; 
+  border-radius: 20px;
   padding: 30px 20px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   text-align: center;
@@ -237,7 +237,7 @@
   justify-content: center;
   margin: 0 auto 20px auto;
   color: #0F766E;
-  
+
   .material-icons {
     font-size: 32px;
   }
@@ -255,7 +255,7 @@
   font-size: 14px;
   line-height: 1.6;
   margin-bottom: 30px;
-  
+
   .sub-text {
     font-size: 12px;
     color: #94A3B8;
@@ -284,7 +284,7 @@
 .modal-btn.cancel {
   background-color: #F1F5F9;
   color: #64748B;
-  
+
   &:hover {
     background-color: #E2E8F0;
   }
@@ -294,12 +294,12 @@
   background-color: #0F766E;
   color: white;
   box-shadow: 0 4px 6px -1px rgba(15, 118, 110, 0.4);
-  
+
   &:hover {
     background-color: #115E59;
     transform: translateY(-1px);
   }
-  
+
   &:active {
     transform: translateY(1px);
   }
@@ -321,31 +321,31 @@
   box-sizing: border-box;
 }
 
-// =空状态样式 
+// =空状态样式
 .empty-state {
-  grid-column: 1 / -1; 
-  
+  grid-column: 1 / -1;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px 10px;
-  color: #94A3B8; 
+  color: #94A3B8;
   text-align: center;
-  background-color: #F8FAFC; 
-  border: 2px dashed #E2E8F0; 
+  background-color: #F8FAFC;
+  border: 2px dashed #E2E8F0;
   border-radius: 12px;
-  margin-bottom: 0; 
-  min-height: 150px; 
+  margin-bottom: 0;
+  min-height: 150px;
 
   .material-icons {
-    font-size: 48px; 
+    font-size: 48px;
     color: #CBD5E1;
     margin-bottom: 10px;
   }
 
   p {
-    font-size: 15px; 
+    font-size: 15px;
     margin: 0;
     font-weight: 500;
   }
@@ -366,4 +366,17 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+.search-bar-wrapper {
+  cursor: pointer;
+  padding: 10px 15px;
+  background: #F8FAFC;          // 同队友空状态背景
+  border-bottom: 1px solid #E2E8F0;
+
+  ion-searchbar {
+    --background: #FFFFFF;
+    --border-radius: 20px;
+    --box-shadow: none;
+    pointer-events: none;       // 禁用原生输入
+  }
 }

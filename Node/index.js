@@ -1,15 +1,23 @@
 /* eslint-env node, es2021 */
-const express = require('express');
-const { createServer } = require('node:http');
-const { join } = require('node:path');
-const { Server } = require('socket.io');
+const express = require("express");
+const { createServer } = require("node:http");
+const { join } = require("node:path");
+const { Server } = require("socket.io");
+
+const corsMiddleware = require("./routes/cors.js");
+const { uploadDir } = require("./routes/upload.js");
 
 //import my js files here
-const pool = require('./help_me_db.js');
-const { registerChatHandler, getChatHistory } = require('./chatHandler.js');
+const pool = require("./help_me_db.js");
+const registerChatHandler = require("./chatHandler.js");
 
 //all routes imports here 这里引用路由
-const testRoutes = require('./routes/test.js');
+const testRoutes = require("./routes/test.js");
+const userRoutes = require("./routes/user.js");
+const eventRoutes = require("./routes/event.js");
+const verifyRoutes = require("./routes/verify.js");
+const orderRoutes = require("./routes/order.js");
+const reviewRoutes = require("./routes/review.js");
 
 //use all routes here 这里使用路由，定义URL路径
 const app = express();
@@ -73,101 +81,27 @@ app.post('/login', async (req, res) => {
   }
 });
 
-//测试数据库连接
-app.get('/users', async (req, res) => {
-  try {
-    const [rows] = await pool.query('SELECT UserId, UserName, PhoneNumber, Location FROM Users LIMIT 10');
-    res.json(rows);
-  } catch (err) {
-    console.error('DB query error:', err);
-    res.status(500).json({ error: 'Database query failed' });
-  }
-});
+app.use(express.json());
+app.use(corsMiddleware);
 
-// 测试获取用户发布的事件列表
-app.get('/users/:id/events', async (req, res) => {
-  const userId = req.params.id;
-  try {
-    const [rows] = await pool.query(
-      'SELECT EventId, EventTitle, EventCategory, Location, Price, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50',
-      [userId]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('DB query error (events):', err);
-    res.status(500).json({ error: 'Database query failed' });
-  }
-});
+app.use("/img", express.static(uploadDir));
 
-// 获取用户完整资料（包含 Consumers/Providers 信息）
-app.get('/users/:id/profile', async (req, res) => {
-  const userId = req.params.id;
-  try {
-    const [rows] = await pool.query(
-      `SELECT u.UserId, u.UserName, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction,
-              (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
-              c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
-       FROM Users u
-       LEFT JOIN Consumers c ON u.UserId = c.ConsumerId
-       LEFT JOIN Providers p ON u.UserId = p.ProviderId
-       WHERE u.UserId = ? LIMIT 1`,
-      [userId]
-    );
-    if (!rows || rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    return res.json({ success: true, user: rows[0] });
-  } catch (err) {
-    console.error('DB query error (profile):', err);
-    return res.status(500).json({ error: 'Database query failed' });
-  }
-});
+app.use("/test", testRoutes);
 
-// 获取卡片数据接口
-app.get('/api/cards', async (req, res) => {
-  try {
-    const { type } = req.query;
-    let eventType = null;
-    let sqlWhere = '';
-    let sqlParams = [];
+app.use(userRoutes);
+app.use(eventRoutes);
+app.use(verifyRoutes);
+app.use(orderRoutes);
+app.use(reviewRoutes);
 
-    if (type) {
-      if (type === 'help') {
-        eventType = 1;
-      } else if (type === 'request') {
-        eventType = 0;
-      } else {
-        return res.status(400).json({ msg: '参数错误，type需为 request 或 help' });
-      }
-      sqlWhere = ' WHERE e.EventType = ?';
-      sqlParams = [eventType];
-    }
+const server = createServer(app);
 
-    // 2. 执行SQL查询
-    const [rows] = await pool.query(`
-      SELECT
-        e.Eventid AS id,
-        e.Photos AS cardImage,
-        e.Location AS address,
-        e.EventDetails AS demand,
-        e.Price AS price,
-        u.UserName AS name,
-        u.UserAvatar AS avatar
-      FROM Events e
-      JOIN Users u ON e.CreatorId = u.UserId
-      ${sqlWhere}
-    `, sqlParams);
-
-    // 3. 补充固定字段
-    const cardData = rows.map(item => ({
-      ...item,
-      icon: 'navigate-outline',
-      distance: '距500m'
-    }));
-
-    res.status(200).json(cardData);
-  } catch (error) {
-    console.error('数据库查询错误：', error);
-    res.status(500).json({ msg: '读取卡片数据失败' });
-  }
+const io = new Server(server, {
+  connectionStateRecovery: {},
+  cors: {
+    origin: "http://localhost:8100",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  },
 });
 
 //FAKE USER🚨
@@ -182,14 +116,14 @@ io.use((socket, next) => {
 });
 
 //this part for socketIO
-io.on('connection', (socket) => {
+io.on("connection", (socket) => {
   // 这里调用修正后的函数
   registerChatHandler(io, socket);
 
-  socket.on('disconnect', () => {
-    console.log('disconnect');
-  })
-})
+  socket.on("disconnect", () => {
+    console.log("disconnect");
+  });
+});
 
 // HTTP API调用读取函数
 app.get('/api/messages/history', async (req, res) => {
@@ -204,5 +138,5 @@ app.get('/api/messages/history', async (req, res) => {
 
 //server listen on port 3000
 server.listen(3000, () => {
-    console.log('server running at http://localhost:3000');
+  console.log("server running at http://localhost:3000");
 });

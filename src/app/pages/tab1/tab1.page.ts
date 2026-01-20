@@ -1,10 +1,17 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from '@angular/core';
+import {
+  Component,
+  CUSTOM_ELEMENTS_SCHEMA,
+  OnInit,
+  inject,
+} from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { map } from 'rxjs/operators';
+import { map, Observable, forkJoin } from 'rxjs';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { UniversalSearchComponent } from '../../components/universal-search/universal-search.component';
+import { environment } from '../../../environments/environment';
+import { Router } from '@angular/router';
 
 // 卡片数据接口
 interface CardItem {
@@ -29,11 +36,15 @@ interface CardItem {
     CommonModule,
     ShowEventComponent,
     HttpClientModule, // 【修复1】这里加上了逗号
-    UniversalSearchComponent
   ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA]
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class Tab1Page implements OnInit {
+  private readonly API_BASE = environment.apiBase;
+  // 使用 inject() 函数替代构造函数注入
+  private http = inject(HttpClient);
+  private router = inject(Router);
+
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
 
@@ -45,14 +56,30 @@ export class Tab1Page implements OnInit {
   currentLang = '中文';
   showLangConfirmModal = false;
 
-  constructor(private http: HttpClient) {}
+  //constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
-    this.getCardData('request').subscribe(data => {
+    this.getCardData('request').subscribe((data) => {
       this.requestList = data;
       this.updateEventData(); // 更新总数据
     });
-    this.getCardData('help').subscribe(data => {
+    this.getCardData('help').subscribe((data) => {
+      this.helpList = data;
+      this.updateEventData(); // 更新总数据
+    });
+  }
+
+  // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
+  ionViewWillEnter() {
+    this.loadCardLists();
+  }
+
+  private loadCardLists() {
+    this.getCardData('request').subscribe((data) => {
+      this.requestList = data;
+      this.updateEventData(); // 更新总数据
+    });
+    this.getCardData('help').subscribe((data) => {
       this.helpList = data;
       this.updateEventData(); // 更新总数据
     });
@@ -65,14 +92,14 @@ export class Tab1Page implements OnInit {
 
   // 封装：请求卡片数据 + 随机显示4个逻辑
   private getCardData(type: 'request' | 'help') {
-    return this.http.get<any[]>(`http://localhost:3000/api/cards?type=${type}`).pipe(
-      map(rawData => {
+    return this.http.get<any[]>(`${this.API_BASE}/api/cards?type=${type}`).pipe(
+      map((rawData) => {
         // 1. 基础数据处理：格式化字段
-        const processedData = rawData.map(item => ({
+        const processedData = rawData.map((item) => ({
           ...item,
           icon: 'navigate-outline',
           distance: '距500m',
-          price: item.price ? item.price.toString() : '0.00元'
+          price: item.price ? item.price.toString() : '0.00元',
         }));
 
         let finalData = processedData;
@@ -83,7 +110,7 @@ export class Tab1Page implements OnInit {
         }
 
         return finalData;
-      })
+      }),
     );
   }
 
@@ -102,27 +129,22 @@ export class Tab1Page implements OnInit {
 
       // 交换它与当前元素
       [newArray[currentIndex], newArray[randomIndex]] = [
-        newArray[randomIndex], newArray[currentIndex]];
+        newArray[randomIndex],
+        newArray[currentIndex],
+      ];
     }
     return newArray;
   }
 
-  // 搜索输入事件
-  onSearchInput(event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.searchKeyword = input.value.trim().toLowerCase();
+  //去到搜索页面,并且搜索框自动聚焦
+  goToSearchPage() {
+    this.router.navigate(['/search'], {
+      queryParams: { returnTo: 'tabs/tab2' }   // 统一回到 Tab2
+    });
   }
-
-  // 回车触发搜索
-  onSearchKeyPress(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      this.executeSearch();
-    }
-  }
-
-  // 点击搜索按钮
-  onSearchClick() {
-    this.executeSearch();
+  //只去到搜索页面
+  goToTab2Search() {
+    this.router.navigate(['/tabs/tab2']);
   }
 
   // 切换语言
@@ -141,35 +163,6 @@ export class Tab1Page implements OnInit {
     this.showLangConfirmModal = false;
   }
 
-  // 执行搜索逻辑
-  private executeSearch() {
-    if (!this.searchKeyword) {
-
-      this.getCardData('request').subscribe(data => {
-        this.requestList = data;
-        this.updateEventData();
-      });
-      this.getCardData('help').subscribe(data => {
-        this.helpList = data;
-        this.updateEventData();
-      });
-
-      return;
-    }
-
-    // 过滤现有数据
-    this.requestList = this.requestList.filter(item =>
-      item.name.toLowerCase().includes(this.searchKeyword) ||
-      item.address.toLowerCase().includes(this.searchKeyword) ||
-      item.demand.toLowerCase().includes(this.searchKeyword)
-    );
-    this.helpList = this.helpList.filter(item =>
-      item.name.toLowerCase().includes(this.searchKeyword) ||
-      item.address.toLowerCase().includes(this.searchKeyword) ||
-      item.demand.toLowerCase().includes(this.searchKeyword)
-    );
-  }
-
   // 卡片点击反馈
   cardClickFeedback(item: CardItem) {
     console.log('点击了小卡片：', item.name, 'ID：', item.id);
@@ -177,7 +170,9 @@ export class Tab1Page implements OnInit {
 
   // 更多按钮点击
   onBigCardMoreClick(type: 'request' | 'help') {
-    console.log(`点击了【${type === 'request' ? '求助' : '帮助'}】大卡片的更多按钮`);
+    console.log(
+      `点击了【${type === 'request' ? '求助' : '帮助'}】大卡片的更多按钮`,
+    );
   }
 
   // 列表跟踪标识

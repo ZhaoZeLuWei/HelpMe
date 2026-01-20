@@ -1,4 +1,6 @@
-import { Component, EnvironmentInjector, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { NavController } from '@ionic/angular';
 import {
   IonTabs,
   IonTabBar,
@@ -14,6 +16,7 @@ import {
   chatbubblesOutline,
   personOutline,
   add,
+  close,
 } from 'ionicons/icons';
 
 @Component({
@@ -23,7 +26,10 @@ import {
   imports: [IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
 })
 export class TabsPage {
-  public environmentInjector = inject(EnvironmentInjector);
+  public router = inject(Router);
+  private navCtrl = inject(NavController);
+
+  isTab5Active = false;
 
   constructor() {
     //use these icons, need name here and then use the name in HTML
@@ -32,7 +38,25 @@ export class TabsPage {
       'search-outline': searchOutline,
       'chatbubbles-outline': chatbubblesOutline,
       'person-outline': personOutline,
-      'add': add,
+      add: add,
+      close: close,
     });
+  }
+
+  onTab5Click(): void {
+    if (this.isTab5Active) {
+      // 关闭tab5，返回上一个页面
+      this.isTab5Active = false;
+      this.navCtrl.back();
+    } else {
+      // 激活tab5
+      this.isTab5Active = true;
+      this.router.navigate(['/tabs/tab5']);
+    }
+  }
+
+  onTabChange(tabName: string): void {
+    // 当切换到非tab5的页面时，重置tab5状态
+    this.isTab5Active = tabName === 'tab5';
   }
 }
