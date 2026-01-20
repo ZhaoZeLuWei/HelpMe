@@ -94,16 +94,6 @@ app.use(verifyRoutes);
 app.use(orderRoutes);
 app.use(reviewRoutes);
 
-const server = createServer(app);
-
-const io = new Server(server, {
-  connectionStateRecovery: {},
-  cors: {
-    origin: "http://localhost:8100",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-  },
-});
-
 //FAKE USER🚨
 io.use((socket, next) => {
   // Mock user identity for now (server-side)
