@@ -68,9 +68,6 @@ const getChatHistory = async (queryParams) => {
   }
 };
 
-// ---------------------------------------------------------
-// 读取房间列表逻辑 (修改位置：移到了外层)
-// ---------------------------------------------------------
 const getRoomList = async (queryParams) => {
   try {
     const { page = 1, pageSize = 20, userId, eventId } = queryParams;
