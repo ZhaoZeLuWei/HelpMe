@@ -10,7 +10,7 @@
 <ion-content class="ion-padding">
   <div class="chat-container">
     @for (msg of messages(); track $index) {
-      <div class="message-group" [class.me]="msg.senderId === currentUser.id">
+      <div class="message-group" [class.me]="msg.senderId === myself.id">
         <span class="user-name">{{ msg.userName }} </span>
         <span class="timestamp"> {{ msg.timestamp | date:'HH:mm' }}</span>
         <div class="message-bubble">

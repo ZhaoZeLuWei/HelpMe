@@ -48,13 +48,8 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
   //get user info from chat list page
   targetUser: any;
+  myself: any;
   roomId :string | null = null;
-
-  //这是一个浏览器当前模拟的客户身份
-  currentUser = {
-    id: 'user_' + Math.floor(Math.random() * 1000), // 随机生成一个ID
-    name: '华为用户',
-  }
 
   //input checking before it send to node
   messageInput = new FormControl('', {
@@ -68,9 +63,6 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     if (state && state.targetUser) {
       this.targetUser = state.targetUser;
       this.roomId = this.targetUser.roomId;
-      console.log(state.targetUser);
-      console.log(this.roomId);
-      console.log("Get target user from chat lists⬆️")
     }
 
     // Init Connection (Without JSON Web Token !!!)
@@ -87,10 +79,10 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       }
     })
 
-    // Check the room connection
-    this.socket.on('connectSuccess', (msg: ChatModel) => {
-      this.addMessage(msg);
-    });
+    //get myself user from Node
+    this.socket.on('myself', (user:any) => {
+      this.myself = user;
+    })
 
     // step 2: receive msg from node and show it
     this.socket.on('chat message', (msg: ChatModel, offset?: number) => {
@@ -100,6 +92,11 @@ export class ChatDetailPage implements OnInit, OnDestroy {
         this.socket.auth.serverOffset = offset;
       }
     });
+
+    // Check the room connection
+    this.socket.on('connectSuccess', (msg: ChatModel) => {
+      this.addMessage(msg);
+    });
   }
 
   // step 1: send the message user input in client
@@ -108,18 +105,15 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
     //check if the input not null and not only space
     if (checkMsg && checkMsg.trim()) {
-      const newMsg: ChatModel = {
-        text: checkMsg,
-        senderId: this.currentUser.id,
-        userName: this.currentUser.name,
-        timestamp: new Date(),
-      }
-      //send msg to server
-      this.socket.emit('chat message', newMsg);
-      //clean all inputs from client site
+      // only send text; server will attach sender identity
+      this.socket.emit('chat message', {
+        text: checkMsg
+      });
       this.messageInput.reset();
     }
   }
+
+
 
   //在messages这个数据结构中，继续顺序添加新的msg
   private addMessage(msg: ChatModel) {

@@ -42,8 +42,6 @@ export class Tab3Page {
   chatRooms = [
     { roomId:'room_001',name: 'User1-Room1', time: '13:29', lastMsg: 'Hello World', count: 1, avatar: 'assets/icon/user.svg' },
     { roomId:'room_001',name: 'User2-Room1', time: '14:30', lastMsg: '你好', count: 2, avatar: 'assets/icon/user.svg' },
-    { roomId:'room_002',name: 'User1-Room2', time: '13:29', lastMsg: 'Hello World', count: 1, avatar: 'assets/icon/user.svg' },
-    { roomId:'room_002',name: 'User2-Room2', time: '14:30', lastMsg: '你好', count: 2, avatar: 'assets/icon/user.svg' },
   ];
 
   //go to the chat with router
