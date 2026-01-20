@@ -67,6 +67,69 @@ const getChatHistory = async (queryParams) => {
     return { success: false, message: '读取失败：' + error.message };
   }
 };
+
+// ---------------------------------------------------------
+// 读取房间列表逻辑 (修改位置：移到了外层)
+// ---------------------------------------------------------
+const getRoomList = async (queryParams) => {
+  try {
+    const { page = 1, pageSize = 20, userId, eventId } = queryParams;
+    
+    // 构造查询条件
+    const query = {};
+    
+    // 如果传了 eventId，只查该事件下的房间
+    if (eventId) {
+      query.eventId = eventId;
+    }
+
+    // 如果传了 userId，只查该用户参与的房间
+    if (userId) {
+      query.$or = [
+        { creatorId: userId },
+        { partnerId: userId }
+      ];
+    }
+
+    const pageNum = parseInt(page, 10);
+    const size = parseInt(pageSize, 10);
+    
+    if (isNaN(pageNum) || pageNum < 1 || isNaN(size) || size < 1 || size > 100) {
+      return { success: false, message: '分页参数错误' };
+    }
+
+    const skip = (pageNum - 1) * size;
+
+    // 查询数据库
+    const rooms = await Room.find(query)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(size)
+      .lean();
+
+    const total = await Room.countDocuments(query);
+
+    // 返回结果
+    return {
+      success: true,
+      message: '查询房间列表成功',
+      data: {
+        rooms: rooms,
+        pagination: {
+          page: pageNum,
+          pageSize: size,
+          total,
+          totalPages: Math.ceil(total / size)
+        }
+      }
+    };
+
+  } catch (error) {
+    console.log("读取房间列表失败：", error);
+    return { success: false, message: '读取失败：' + error.message };
+  }
+};
+
 module.exports.registerChatHandler = (io, socket) => {
 
   //join the room
@@ -135,3 +198,4 @@ module.exports.registerChatHandler = (io, socket) => {
 }
 
 module.exports.getChatHistory = getChatHistory;
+module.exports.getRoomList = getRoomList;
