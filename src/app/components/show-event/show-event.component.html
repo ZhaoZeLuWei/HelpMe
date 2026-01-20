@@ -1,9 +1,12 @@
-
 <div class="small-card clickable-card" (click)="onCardClick()">
-
   <!-- 图片区域 -->
   <div class="card-image-wrapper">
-    <img [src]="event.cardImage" class="card-image-img" alt="事件图片">
+    <!--  调用图片 on-image-url" 存在则显示图片；不存在则显示占位图 -->
+    <img
+      [src]="imgUrl(event.cardImage)"
+      class="card-image-img"
+      alt="事件图片"
+    />
     <div class="distance-in-image">
       <span class="material-icons">location_on</span>
       <span>{{ event.distance }}</span>

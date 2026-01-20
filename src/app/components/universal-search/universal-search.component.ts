@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, signal, ContentChild, TemplateRef } from '@angular/core'; // <--- 引入 ContentChild 和 TemplateRef
+import { Component,OnInit,Output, EventEmitter,computed, inject, input, signal, ContentChild, TemplateRef, ViewChild } from '@angular/core'; // <--- 引入 ContentChild 和 TemplateRef
 import { CommonModule } from '@angular/common';
 // 修改后 (确保 IonList 和 IonItem 都在)
 import {
@@ -24,6 +24,7 @@ import {
 } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';          // ← 新增
 import { addIcons } from 'ionicons';
 import { pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search } from 'ionicons/icons';
 
@@ -47,14 +48,16 @@ import { EventCardData } from '../show-event/show-event.component';
     IonInput,
   ]
 })
-export class UniversalSearchComponent {
+export class UniversalSearchComponent implements OnInit {
 
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   // --- 数据输入 ---
   dataSource = input<EventCardData[]>([]);
   detailRoute = input<string>('/');
+  @Output() searchEvent = new EventEmitter<string>();
 
   // --- 状态管理 ---
   modals = signal({
@@ -84,6 +87,7 @@ export class UniversalSearchComponent {
     { initialValue: this.filterForm.value }
   );
   @ContentChild('cardTemplate', { static: true }) cardTemplate!: TemplateRef<any>;
+  @ViewChild('searchBar') searchBar!: IonSearchbar;          // ← 拿到搜索框
 
   // --- 核心筛选逻辑 ---
   filteredEvents = computed(() => {
@@ -117,6 +121,28 @@ export class UniversalSearchComponent {
   constructor() {
     addIcons({ pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search });
   }
+  // 新增方法：初始化时同步路由参数
+  ngOnInit() {
+    // 订阅路由参数的变化
+    this.route.queryParams.subscribe(params => {
+      const keyword = params['search'];
+
+      if (keyword) {
+        // 1. 将关键词填入搜索框 (更新 FormControl)
+        this.searchControl.setValue(keyword);
+
+        // 2. 【关键】更新确认的搜索词 (更新 Signal)
+        // 这会触发 filteredEvents 的重新计算，从而筛选数据
+        this.confirmedSearchText.set(keyword);
+      } else {
+        // 如果 URL 没有关键词，确保清空状态
+        this.searchControl.setValue('');
+        this.confirmedSearchText.set('');
+      }
+    });
+  }
+
+
 
   // --- 方法 ---
 
@@ -136,6 +162,7 @@ export class UniversalSearchComponent {
   onSearch() {
     const currentVal = this.searchControl.value || '';
     this.confirmedSearchText.set(currentVal);
+    this.searchEvent.emit(currentVal);          // 父组件可监听
   }
   // 修改一下 goToDetail，让它接收完整的 event 对象，方便模板调用
   handleCardClick(event: EventCardData) {
