@@ -10,7 +10,7 @@ const Message = require('./models/Message');
 const getChatHistory = async (queryParams) => {
   try {
     const { roomId, page = 1, pageSize = 20, startTime, endTime } = queryParams;
-    
+
     const query = {}; // 默认为空对象，表示查询所有文档
     if (roomId) {
       query.roomId = roomId; // 如果传了 roomId，才加上筛选条件
@@ -49,7 +49,7 @@ const getChatHistory = async (queryParams) => {
       senderId: msg.senderId,
       text: msg.text,
       sendTime: new Date(msg.sendTime).toLocaleString(),
-      userName: msg.userName 
+      userName: msg.userName
     }));
 
     // 返回结果
@@ -72,12 +72,12 @@ const getRoomList = async (queryParams) => {
   try {
 
     const { page = 1, pageSize = 20, userId, eventId, roomId } = queryParams;
-    
+
     const query = {};
 
     if (roomId) {
       query._id = roomId;
-    } 
+    }
     else if (eventId) {
       query.eventId = eventId;
     }
@@ -90,7 +90,7 @@ const getRoomList = async (queryParams) => {
 
     const pageNum = parseInt(page, 10);
     const size = parseInt(pageSize, 10);
-    
+
     if (isNaN(pageNum) || pageNum < 1 || isNaN(size) || size < 1 || size > 100) {
       return { success: false, message: '分页参数错误' };
     }
@@ -148,7 +148,7 @@ module.exports.registerChatHandler = (io, socket) => {
         text: joined,
         senderId: 'system_bot',
         userName: '系统通知',
-        timestamp: new Date(),
+        sendTime: new Date(),
       }
     );
   }

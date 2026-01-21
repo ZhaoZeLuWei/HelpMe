@@ -13,9 +13,13 @@ import {
   IonInput,
   IonButton,
 } from '@ionic/angular/standalone';
-import {ChatModel} from "../../models/chat.model";
 import { DatePipe } from "@angular/common";
 import {ActivatedRoute, Router} from "@angular/router";
+import {HttpClient} from "@angular/common/http";
+
+//Models( Data structure) imports here
+import {ChatModel} from "../../models/chat.model";
+import { ChatHistory } from "../../models/chatHistory.model";
 
 
 @Component({
@@ -43,13 +47,16 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   socket: any;
   //signal NEW in angular rather than RxJS
   messages = signal<ChatModel[]>([]);
+  //check connection
   serverOffset = 0;
+  //privates?
   private route = inject(ActivatedRoute);
+  private http = inject(HttpClient);
 
   //get user info from chat list page
   targetUser: any;
   myself: any;
-  roomId :string | null = null;
+  roomId:string = "";
 
   //input checking before it send to node
   messageInput = new FormControl('', {
@@ -64,6 +71,8 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       this.targetUser = state.targetUser;
       this.roomId = this.targetUser.roomId;
     }
+
+    this.loadHistory(this.roomId);
 
     // Init Connection (Without JSON Web Token !!!)
     this.socket = io('http://localhost:3000', {
@@ -84,6 +93,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       this.myself = user;
     })
 
+
     // step 2: receive msg from node and show it
     this.socket.on('chat message', (msg: ChatModel, offset?: number) => {
       this.addMessage(msg);
@@ -97,6 +107,36 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     this.socket.on('connectSuccess', (msg: ChatModel) => {
       this.addMessage(msg);
     });
+  }
+
+//load msg history by API using ROOM_ID from chat list page !
+  loadHistory(roomId: string) {
+    this.http
+      .get<ChatHistory>(
+        `http://localhost:3000/api/messages/history?roomId=${roomId}`
+      )
+      .subscribe({
+        next: (res) => {
+          if (!res.success) return;
+          //rebuild the data structure into <messages> store
+
+          console.log(res);
+          const apiMsg: ChatModel[] = res.data.messages.map(msg => ({
+            text: msg.text,
+            senderId: msg.senderId,
+            userName: msg.userName,
+            sendTime: msg.sendTime,
+          }));
+
+          this.messages.set(apiMsg);
+
+          // 如果你后面用 offset / ack
+          //this.serverOffset = res.data.messages.length;
+        },
+        error: (err) => {
+          console.error('加载历史消息失败', err);
+        },
+      });
   }
 
   // step 1: send the message user input in client
