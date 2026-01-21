@@ -51,7 +51,7 @@ export class SearchPage implements OnInit {
 
   onCancel() {
     this.searchState.clear();
-    this.router.navigateByUrl(this.returnTo);
+    this.router.navigateByUrl('tabs/tab1');
   }
 
   aiSearch() {

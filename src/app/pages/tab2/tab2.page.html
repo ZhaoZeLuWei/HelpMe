@@ -1,11 +1,21 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>事件列表</ion-title>
+    <!-- 搜索条：在头部显示，点击跳转到搜索页面 -->
+    <div class="header-search-wrapper" (click)="navigateToSearch()">
+      <ion-searchbar
+        class="header-search-bar"
+        [disabled]="true"
+        placeholder="点击搜索"
+        [animated]="true"
+        show-clear-button="never">
+      </ion-searchbar>
+    </div>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <!-- 调用搜索组件 -->
+
+  <!-- 调用搜索组件，用于显示搜索结果 -->
   <app-universal-search [dataSource]="eventsData()" [detailRoute]="'/tabs/tab2/detail'">
 
     <!--

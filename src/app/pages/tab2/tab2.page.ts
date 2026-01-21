@@ -15,15 +15,15 @@ import {
   IonSearchbar,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
-import { ActivatedRoute } from '@angular/router'; // 添加 ActivatedRoute 导入
+import { ActivatedRoute, Router } from '@angular/router'; // 添加 ActivatedRoute 和 Router 导入
 
-// 引入搜索组件 (不再依赖 UI)
+// 引入搜索组件 (用于显示搜索结果)
 import {
   UniversalSearchComponent,
   EventCardData,
 } from '../../components/universal-search/universal-search.component';
 
-// 引入展示组件 (在这里由 Tab2 接管)
+// 引入展示组件
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { SearchStateService } from '../../services/search-state.service';
 @Component({
@@ -37,6 +37,7 @@ import { SearchStateService } from '../../services/search-state.service';
     IonToolbar,
     IonTitle,
     IonContent,
+    IonSearchbar,
     UniversalSearchComponent,
     ShowEventComponent,
   ],
@@ -44,6 +45,7 @@ import { SearchStateService } from '../../services/search-state.service';
 export class Tab2Page implements OnInit, AfterViewInit {
   private readonly API_BASE = environment.apiBase;
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private searchState = inject(SearchStateService);
 
   // 数据容器
@@ -89,7 +91,7 @@ export class Tab2Page implements OnInit, AfterViewInit {
     fetch(url)
       .then(res => res.json())
       .then(list => {
-        const transformed = list.map((item: any) => ({   // ← 显式 any
+        const transformed = list.map((item: any) => ({
           id: String(item.id),
           cardImage: item.cardImage || 'https://picsum.photos/seed/default/600/400',
           icon: item.icon || 'navigate-outline',
@@ -103,5 +105,12 @@ export class Tab2Page implements OnInit, AfterViewInit {
         this.eventsData.set(transformed);   // signal 自动触发视图更新
       })
       .catch(err => console.error('Tab2 加载失败', err));
+  }
+
+  /* 跳转到搜索页面 */
+  navigateToSearch() {
+    this.router.navigate(['/search'], {
+      queryParams: { returnTo: 'tabs/tab2' }
+    });
   }
 }
