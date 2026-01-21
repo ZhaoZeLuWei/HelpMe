@@ -96,16 +96,6 @@ app.use(verifyRoutes);
 app.use(orderRoutes);
 app.use(reviewRoutes);
 
-//FAKE USER🚨
-io.use((socket, next) => {
-  // Mock user identity for now (server-side)
-  const jwtUser = {
-    id: 100001,
-    name: '雨墨'
-  };
-  socket.user = jwtUser;
-  next();
-});
 
 //this part for socketIO
 io.on("connection", (socket) => {

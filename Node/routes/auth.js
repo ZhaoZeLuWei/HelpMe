@@ -8,9 +8,16 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 // 只放必要信息进 token（不要放手机号/身份证等敏感信息）
 function signToken(user) {
   // 你的 Users 表字段是 UserId / UserName / PhoneNumber（login里就是这么查的）
-  return jwt.sign({ id: user.UserId, name: user.UserName }, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
+  return jwt.sign(
+    {
+      id: user.UserId,
+      name: user.UserName,
+    },
+    JWT_SECRET,
+    {
+      expiresIn: JWT_EXPIRES_IN,
+    },
+  );
 }
 
 function authRequired(req, res, next) {

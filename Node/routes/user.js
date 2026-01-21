@@ -2,7 +2,7 @@
 
 const express = require("express");
 const pool = require("../help_me_db.js");
-const { signToken } = require("./auth.js"); 
+const { signToken } = require("./auth.js");
 
 const router = express.Router();
 
@@ -41,7 +41,7 @@ router.get("/users/:id/events", async (req, res) => {
   const userId = req.params.id;
   try {
     const [rows] = await pool.query(
-      "SELECT EventId, EventTitle, EventCategory, Location, Price, Photos, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50",
+      "SELECT EventId, EventTitle, EventType, EventCategory, Location, Price, Photos, EventDetails, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50",
       [userId],
     );
     return res.json(rows);

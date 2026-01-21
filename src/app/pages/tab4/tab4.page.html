@@ -145,5 +145,133 @@
   >
   </ion-alert>
 
+  <!-- 编辑事件弹窗（表单） -->
+  <ion-modal [isOpen]="isEditModalOpen" (didDismiss)="closeEditModal()">
+    <ng-template>
+      <ion-header [translucent]="true">
+        <ion-toolbar>
+          <ion-title>编辑事件</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeEditModal()"
+              >关闭</ion-button
+            >
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="edit-modal-content">
+        <form [formGroup]="editForm">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">标题 *</ion-label>
+              <ion-input
+                formControlName="EventTitle"
+                placeholder="简明描述（如：上门电脑维修）"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">类型 *</ion-label>
+              <ion-select
+                formControlName="EventType"
+                interface="popover"
+                placeholder="请选择事件类型"
+              >
+                <ion-select-option [value]="0">求助</ion-select-option>
+                <ion-select-option [value]="1">帮助</ion-select-option>
+              </ion-select>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">类别 *</ion-label>
+              <ion-input
+                formControlName="EventCategory"
+                placeholder="如：电脑维修"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">位置 *</ion-label>
+              <ion-input
+                formControlName="Location"
+                placeholder="详细地址"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">价格 (¥)</ion-label>
+              <ion-input
+                type="number"
+                step="0.01"
+                formControlName="Price"
+                placeholder="0 表示无偿帮助"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">详细描述 *</ion-label>
+              <ion-textarea
+                formControlName="EventDetails"
+                [autoGrow]="true"
+                placeholder="补充说明需求/服务内容"
+              ></ion-textarea>
+            </ion-item>
+
+            <ion-item lines="none">
+              <ion-label position="stacked">编辑图片（可选）</ion-label>
+            </ion-item>
+
+            <div class="photo-upload-area" (click)="triggerEditFileInput()">
+              <input
+                #editFileInput
+                type="file"
+                accept="image/*"
+                multiple
+                (change)="onEditFileSelected($event)"
+                style="display: none"
+              />
+
+              <div class="photo-preview-container">
+                @for (photo of getEditPhotoItems(); track $index) {
+                <div class="photo-preview">
+                  <img [src]="photo.preview" alt="预览" />
+                  <ion-icon
+                    name="close-circle"
+                    class="remove-photo"
+                    (click)="removeEditPhoto(photo.isExisting ? 'existing' : 'new', photo.index); $event.stopPropagation()"
+                  ></ion-icon>
+                </div>
+                } @if (getEditPhotoCount() === 0) {
+                <div class="upload-placeholder">
+                  <ion-icon name="image-outline"></ion-icon>
+                  <p>点击上传照片</p>
+                </div>
+                } @else if (getEditPhotoCount() < 5) {
+                <div class="upload-placeholder">
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                </div>
+                }
+              </div>
+
+              <ion-text color="medium" class="upload-hint">
+                <p>最多可上传 5 张照片，支持 JPG/PNG</p>
+              </ion-text>
+            </div>
+          </ion-list>
+
+          <div class="modal-actions">
+            <ion-button
+              type="button"
+              fill="outline"
+              color="medium"
+              (click)="closeEditModal()"
+              >取消</ion-button
+            >
+            <ion-button
+              type="button"
+              (click)="submitEdit()"
+              [disabled]="isSavingEdit"
+              >保存</ion-button
+            >
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
   }
 </ion-content>
