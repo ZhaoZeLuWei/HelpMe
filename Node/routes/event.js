@@ -2,6 +2,7 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
+const { authRequired } = require("./auth.js");
 
 const router = express.Router();
 
@@ -91,6 +92,7 @@ router.get("/api/cards", async (req, res) => {
 // 发布新事件
 router.post(
   "/events",
+  authRequired,
   (req, res, next) => {
     const contentType = String(req.headers["content-type"] || "");
     if (!contentType.includes("multipart/form-data")) {
@@ -112,11 +114,10 @@ router.post(
       Location,
       Price,
       EventDetails,
-      CreatorId,
     } = req.body || {};
 
-    // 表单必要内容校验
-    if (!CreatorId) {
+    const creatorId = Number(req.user?.id);
+    if (!Number.isInteger(creatorId) || creatorId <= 0) {
       cleanupUploadedFiles(req.files);
       return res.status(401).json({ success: false, error: "未登录" });
     }
@@ -136,20 +137,17 @@ router.post(
     }
 
     // Price校验
+    const MAX_PRICE = 1_000_000;
+
     const priceStr = String(Price || "").trim();
     const price = priceStr === "" ? 0 : Number(priceStr);
-    if (isNaN(price) || price < 0) {
-      cleanupUploadedFiles(req.files);
-      return res
-        .status(400)
-        .json({ success: false, error: "Price 必须为非负数字" });
-    }
 
-    //  CreatorId校验
-    const creatorId = Number(CreatorId);
-    if (!Number.isInteger(creatorId) || creatorId <= 0) {
+    if (Number.isNaN(price) || price < 0 || price > MAX_PRICE) {
       cleanupUploadedFiles(req.files);
-      return res.status(400).json({ success: false, error: "无效的用户ID" });
+      return res.status(400).json({
+        success: false,
+        error: `Price 必须为 0 ~ ${MAX_PRICE} 之间的数字`,
+      });
     }
 
     const files = req.files || [];
@@ -199,20 +197,165 @@ router.post(
   },
 );
 
-// 删除事件（级联删除关联订单）
-router.delete("/events/:id", async (req, res) => {
+// 获取事件详情
+router.get("/events/:id", async (req, res) => {
   const eventId = Number(req.params.id);
-  const creatorIdRaw = req.query.creatorId;
-  const creatorId = creatorIdRaw === undefined ? null : Number(creatorIdRaw);
 
   if (!Number.isInteger(eventId) || eventId <= 0) {
     return res.status(400).json({ success: false, error: "无效的事件ID" });
   }
-  if (
-    creatorIdRaw !== undefined &&
-    (!Number.isInteger(creatorId) || creatorId <= 0)
-  ) {
-    return res.status(400).json({ success: false, error: "无效的用户ID" });
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT EventId, CreatorId, EventTitle, EventType, EventCategory, Photos, Location, Price, EventDetails, CreateTime FROM Events WHERE EventId = ? LIMIT 1",
+      [eventId],
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, error: "事件不存在" });
+    }
+
+    return res.json({ success: true, event: rows[0] });
+  } catch (err) {
+    console.error("查询事件详情失败:", err);
+    return res.status(500).json({ success: false, error: "服务器内部错误" });
+  }
+});
+
+// 更新事件（要求登录，并校验只能更新自己的）
+router.put("/events/:id", authRequired, async (req, res) => {
+  const eventId = Number(req.params.id);
+  const creatorId = Number(req.user?.id);
+
+  if (!Number.isInteger(eventId) || eventId <= 0) {
+    return res.status(400).json({ success: false, error: "无效的事件ID" });
+  }
+
+  const {
+    EventTitle,
+    EventType,
+    EventCategory,
+    Location,
+    Price,
+    EventDetails,
+    Photos,
+  } = req.body || {};
+
+  if (!EventTitle || !EventCategory || !Location || !EventDetails) {
+    return res.status(400).json({ success: false, error: "缺少必填字段" });
+  }
+
+  const eventTypeNum = Number(EventType);
+  if (![0, 1].includes(eventTypeNum)) {
+    return res.status(400).json({
+      success: false,
+      error: "EventType 必须为 0（求助）或 1（帮助）",
+    });
+  }
+
+  const MAX_PRICE = 1_000_000;
+  const priceStr = String(Price ?? "").trim();
+  const price = priceStr === "" ? 0 : Number(priceStr);
+  if (Number.isNaN(price) || price < 0 || price > MAX_PRICE) {
+    return res.status(400).json({
+      success: false,
+      error: `Price 必须为 0 ~ ${MAX_PRICE} 之间的数字`,
+    });
+  }
+
+  const hasPhotos = Object.prototype.hasOwnProperty.call(
+    req.body || {},
+    "Photos",
+  );
+  let photosValue = null;
+  if (hasPhotos) {
+    if (Photos == null || Photos === "") {
+      photosValue = null;
+    } else if (Array.isArray(Photos)) {
+      photosValue = JSON.stringify(Photos);
+    } else if (typeof Photos === "string") {
+      const raw = Photos.trim();
+      if (!raw) {
+        photosValue = null;
+      } else {
+        try {
+          const arr = JSON.parse(raw);
+          photosValue = Array.isArray(arr) ? JSON.stringify(arr) : raw;
+        } catch {
+          photosValue = raw;
+        }
+      }
+    } else {
+      photosValue = null;
+    }
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    const [checkRows] = await conn.query(
+      "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",
+      [eventId, creatorId],
+    );
+
+    if (!checkRows || checkRows.length === 0) {
+      await conn.rollback();
+      return res
+        .status(404)
+        .json({ success: false, error: "事件不存在或无权编辑" });
+    }
+
+    const sets = [
+      "EventTitle = ?",
+      "EventType = ?",
+      "EventCategory = ?",
+      "Location = ?",
+      "Price = ?",
+      "EventDetails = ?",
+    ];
+    const params = [
+      String(EventTitle),
+      eventTypeNum,
+      String(EventCategory),
+      String(Location),
+      price,
+      String(EventDetails),
+    ];
+
+    if (hasPhotos) {
+      sets.push("Photos = ?");
+      params.push(photosValue);
+    }
+
+    params.push(eventId, creatorId);
+
+    await conn.query(
+      `UPDATE Events SET ${sets.join(", ")} WHERE EventId = ? AND CreatorId = ?`,
+      params,
+    );
+
+    await conn.commit();
+    return res.json({ success: true });
+  } catch (err) {
+    if (conn) {
+      await conn.rollback().catch(console.error);
+    }
+    console.error("更新事件数据库错误:", err);
+    return res.status(500).json({ success: false, error: "服务器内部错误" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// 删除事件（要求登录，并校验只能删自己的）
+router.delete("/events/:id", authRequired, async (req, res) => {
+  const eventId = Number(req.params.id);
+  const creatorId = Number(req.user?.id);
+
+  if (!Number.isInteger(eventId) || eventId <= 0) {
+    return res.status(400).json({ success: false, error: "无效的事件ID" });
   }
 
   let conn;
@@ -221,11 +364,10 @@ router.delete("/events/:id", async (req, res) => {
     await conn.beginTransaction();
 
     // 1. 检查事件是否存在且验证创建者（如需要）
-    const checkSql = creatorId
-      ? "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1"
-      : "SELECT EventId FROM Events WHERE EventId = ? LIMIT 1";
-    const checkParams = creatorId ? [eventId, creatorId] : [eventId];
-    const [checkRows] = await conn.query(checkSql, checkParams);
+    const [checkRows] = await conn.query(
+      "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",
+      [eventId, creatorId],
+    );
 
     if (!checkRows || checkRows.length === 0) {
       await conn.rollback();

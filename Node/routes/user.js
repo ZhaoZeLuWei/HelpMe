@@ -2,6 +2,7 @@
 
 const express = require("express");
 const pool = require("../help_me_db.js");
+const { signToken } = require("./auth.js");
 
 const router = express.Router();
 
@@ -24,7 +25,11 @@ router.post("/login", async (req, res) => {
     if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
-    return res.json({ success: true, user: rows[0] });
+
+    const user = rows[0];
+    const token = signToken(user);
+
+    return res.json({ success: true, user, token });
   } catch (err) {
     console.error("DB query error (login):", err);
     return res.status(500).json({ error: "Database query failed" });
@@ -36,7 +41,7 @@ router.get("/users/:id/events", async (req, res) => {
   const userId = req.params.id;
   try {
     const [rows] = await pool.query(
-      "SELECT EventId, EventTitle, EventCategory, Location, Price, Photos, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50",
+      "SELECT EventId, EventTitle, EventType, EventCategory, Location, Price, Photos, EventDetails, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50",
       [userId],
     );
     return res.json(rows);
