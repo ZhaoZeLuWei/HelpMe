@@ -166,13 +166,14 @@ export class UniversalSearchComponent implements OnInit {
   }
   // 修改一下 goToDetail，让它接收完整的 event 对象，方便模板调用
   handleCardClick(event: EventCardData) {
-    this.goToDetail(event.id);
+    this.goToDetail(event);
   }
 
-  goToDetail(itemId: string) {
-    const path = this.detailRoute();
-    const formattedPath = path.endsWith('/') ? path : path + '/';
-    this.router.navigate([formattedPath, itemId]);
+  goToDetail(event: EventCardData) {
+    // 跳转到新创建的详情页面，传递完整的event对象
+    this.router.navigate(['/particular'], {
+      queryParams: { event: JSON.stringify(event) }
+    });
   }
 
   get searchControl(): FormControl {

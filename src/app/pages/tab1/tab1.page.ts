@@ -166,6 +166,10 @@ export class Tab1Page implements OnInit {
   // 卡片点击反馈
   cardClickFeedback(item: CardItem) {
     console.log('点击了小卡片：', item.name, 'ID：', item.id);
+    // 跳转到详情页面，传递完整的item对象
+    this.router.navigate(['/particular'], {
+      queryParams: { event: JSON.stringify(item) }
+    });
   }
 
   // 更多按钮点击
