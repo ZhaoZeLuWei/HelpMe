@@ -70,18 +70,18 @@ const getChatHistory = async (queryParams) => {
 
 const getRoomList = async (queryParams) => {
   try {
-    const { page = 1, pageSize = 20, userId, eventId } = queryParams;
+
+    const { page = 1, pageSize = 20, userId, eventId, roomId } = queryParams;
     
-    // 构造查询条件
     const query = {};
-    
-    // 如果传了 eventId，只查该事件下的房间
-    if (eventId) {
+
+    if (roomId) {
+      query._id = roomId;
+    } 
+    else if (eventId) {
       query.eventId = eventId;
     }
-
-    // 如果传了 userId，只查该用户参与的房间
-    if (userId) {
+    else if (userId) {
       query.$or = [
         { creatorId: userId },
         { partnerId: userId }
@@ -97,7 +97,6 @@ const getRoomList = async (queryParams) => {
 
     const skip = (pageNum - 1) * size;
 
-    // 查询数据库
     const rooms = await Room.find(query)
       .sort({ updatedAt: -1 })
       .skip(skip)
@@ -106,7 +105,6 @@ const getRoomList = async (queryParams) => {
 
     const total = await Room.countDocuments(query);
 
-    // 返回结果
     return {
       success: true,
       message: '查询房间列表成功',
