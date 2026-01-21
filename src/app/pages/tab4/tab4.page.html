@@ -102,12 +102,22 @@
       <ion-item lines="none" class="task-actions">
         <ion-buttons slot="end">
           @if (task.status === 'published') {
-          <ion-button (click)="openDeleteAlert(task.id)">删除</ion-button>
+          <ion-button
+            [disabled]="deletingIds.has(task.id)"
+            (click)="openDeleteAlert(task.id)"
+          >
+            @if (deletingIds.has(task.id)) { 删除中... } @else { 删除 }
+          </ion-button>
           <ion-button (click)="editTask(task.id)">编辑</ion-button>
           } @if (task.status === 'inProgress') {
           <ion-button (click)="viewDetails(task.id)">详情</ion-button>
           } @if (task.status === 'completed') {
-          <ion-button (click)="openDeleteAlert(task.id)">删除</ion-button>
+          <ion-button
+            [disabled]="deletingIds.has(task.id)"
+            (click)="openDeleteAlert(task.id)"
+          >
+            @if (deletingIds.has(task.id)) { 删除中... } @else { 删除 }
+          </ion-button>
           <ion-button (click)="viewDetails(task.id)">详情</ion-button>
           } @if (task.status === 'review') {
           <ion-button (click)="goToReview(task.id)">评价</ion-button>
@@ -131,6 +141,7 @@
     header="确认删除"
     message="删除后不可恢复，是否继续？"
     [buttons]="alertButtons"
+    (didDismiss)="onDeleteAlertDismiss()"
   >
   </ion-alert>
 

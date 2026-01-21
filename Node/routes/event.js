@@ -2,6 +2,7 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
+const { authRequired } = require("./auth.js");
 
 const router = express.Router();
 
@@ -91,6 +92,7 @@ router.get("/api/cards", async (req, res) => {
 // 发布新事件
 router.post(
   "/events",
+  authRequired, 
   (req, res, next) => {
     const contentType = String(req.headers["content-type"] || "");
     if (!contentType.includes("multipart/form-data")) {
@@ -112,11 +114,10 @@ router.post(
       Location,
       Price,
       EventDetails,
-      CreatorId,
     } = req.body || {};
 
-    // 表单必要内容校验
-    if (!CreatorId) {
+    const creatorId = Number(req.user?.id); 
+    if (!Number.isInteger(creatorId) || creatorId <= 0) {
       cleanupUploadedFiles(req.files);
       return res.status(401).json({ success: false, error: "未登录" });
     }
@@ -136,20 +137,17 @@ router.post(
     }
 
     // Price校验
+    const MAX_PRICE = 1_000_000;
+
     const priceStr = String(Price || "").trim();
     const price = priceStr === "" ? 0 : Number(priceStr);
-    if (isNaN(price) || price < 0) {
-      cleanupUploadedFiles(req.files);
-      return res
-        .status(400)
-        .json({ success: false, error: "Price 必须为非负数字" });
-    }
 
-    //  CreatorId校验
-    const creatorId = Number(CreatorId);
-    if (!Number.isInteger(creatorId) || creatorId <= 0) {
+    if (Number.isNaN(price) || price < 0 || price > MAX_PRICE) {
       cleanupUploadedFiles(req.files);
-      return res.status(400).json({ success: false, error: "无效的用户ID" });
+      return res.status(400).json({
+        success: false,
+        error: `Price 必须为 0 ~ ${MAX_PRICE} 之间的数字`,
+      });
     }
 
     const files = req.files || [];
@@ -199,20 +197,13 @@ router.post(
   },
 );
 
-// 删除事件（级联删除关联订单）
-router.delete("/events/:id", async (req, res) => {
+// 删除事件（要求登录，并校验只能删自己的）
+router.delete("/events/:id", authRequired, async (req, res) => {
   const eventId = Number(req.params.id);
-  const creatorIdRaw = req.query.creatorId;
-  const creatorId = creatorIdRaw === undefined ? null : Number(creatorIdRaw);
+  const creatorId = Number(req.user?.id);
 
   if (!Number.isInteger(eventId) || eventId <= 0) {
     return res.status(400).json({ success: false, error: "无效的事件ID" });
-  }
-  if (
-    creatorIdRaw !== undefined &&
-    (!Number.isInteger(creatorId) || creatorId <= 0)
-  ) {
-    return res.status(400).json({ success: false, error: "无效的用户ID" });
   }
 
   let conn;
@@ -221,11 +212,10 @@ router.delete("/events/:id", async (req, res) => {
     await conn.beginTransaction();
 
     // 1. 检查事件是否存在且验证创建者（如需要）
-    const checkSql = creatorId
-      ? "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1"
-      : "SELECT EventId FROM Events WHERE EventId = ? LIMIT 1";
-    const checkParams = creatorId ? [eventId, creatorId] : [eventId];
-    const [checkRows] = await conn.query(checkSql, checkParams);
+    const [checkRows] = await conn.query(
+      "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",
+      [eventId, creatorId],
+    );
 
     if (!checkRows || checkRows.length === 0) {
       await conn.rollback();

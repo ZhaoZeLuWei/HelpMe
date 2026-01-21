@@ -3,11 +3,13 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
+const { authRequired } = require("./auth.js"); 
 
 const router = express.Router();
 
 router.post(
   "/verifications",
+  authRequired, 
   (req, res, next) => {
     const contentType = String(req.headers["content-type"] || "");
     if (!contentType.includes("multipart/form-data")) {
@@ -28,7 +30,6 @@ router.post(
 
   async (req, res) => {
     const {
-      ProviderId,
       ServiceCategory,
       RealName,
       IdCardNumber,
@@ -36,16 +37,11 @@ router.post(
       Introduction,
     } = req.body || {};
 
-    // 基础内容校验
-    if (!ProviderId) {
-      cleanupUploadedFiles(req.files);
-      return res.status(401).json({ success: false, error: "未登录" });
-    }
-
-    const providerId = Number(ProviderId);
+    // 基础内容校验，从 JWT token 中提取 providerId
+    const providerId = Number(req.user?.id);
     if (!Number.isInteger(providerId) || providerId <= 0) {
       cleanupUploadedFiles(req.files);
-      return res.status(400).json({ success: false, error: "无效的用户ID" });
+      return res.status(401).json({ success: false, error: "未登录" });
     }
 
     if (

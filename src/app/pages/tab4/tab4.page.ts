@@ -76,7 +76,12 @@ export class Tab4Page implements OnDestroy {
   // 删除确认弹窗状态
   isDeleteAlertOpen = false;
 
-  deleteTargetId: number | null = null; // 待删除任务的 ID（null 表示未选择）
+  // 当前准备删除的 id
+  deleteTargetId: number | null = null;
+
+  deletingIds = new Set<number>();
+
+  // 删除按钮配置
   alertButtons = [
     {
       text: '取消',
@@ -165,9 +170,20 @@ export class Tab4Page implements OnDestroy {
 
   // 打开删除确认弹窗
   openDeleteAlert(taskId: number) {
+    if (this.deletingIds.has(taskId)) return;
+
     this.deleteTargetId = taskId;
-    this.isDeleteAlertOpen = true;
+    this.isDeleteAlertOpen = false;
+    setTimeout(() => {
+      this.isDeleteAlertOpen = true;
+    }, 0);
   }
+
+  onDeleteAlertDismiss() {
+    this.isDeleteAlertOpen = false;
+    this.deleteTargetId = null;
+  }
+
 
   async deleteTask(taskId: number) {
     if (!this.currentUserId) {
@@ -175,37 +191,56 @@ export class Tab4Page implements OnDestroy {
       return;
     }
 
+    if (this.deletingIds.has(taskId)) return;
+    this.deletingIds.add(taskId);
+
+    const snapshot = [...this.tasks];
+    this.tasks = this.tasks.filter((t) => Number(t?.id) !== Number(taskId));
+
     try {
-      const resp = await fetch(
-        `${this.API_BASE}/events/${taskId}?creatorId=${this.currentUserId}`,
-        { method: 'DELETE' },
-      );
+      const resp = await fetch(`${this.API_BASE}/events/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          ...this.auth.getAuthHeader(),
+        },
+      });
+
+      const data = await resp.json().catch(() => null);
 
       if (!resp.ok) {
-        const errText = await resp.text();
-        await this.presentDeleteToast(errText || '删除失败');
+        this.tasks = snapshot;
+
+        const msg =
+          data?.error ||
+          data?.msg ||
+          (resp.status === 401
+            ? '未登录或登录已过期'
+            : `删除失败（${resp.status}）`);
+        await this.presentDeleteToast(msg);
         return;
       }
 
-      const result = await resp.json();
-      if (!result?.success) {
-        await this.presentDeleteToast(result?.error || '删除失败');
+      if (!data?.success) {
+        this.tasks = snapshot;
+        await this.presentDeleteToast(data?.error || '删除失败');
         return;
       }
 
       await this.presentDeleteToast('删除成功');
-      // 删除成功后重新加载列表，确保显示最新数据
-      await this.loadUserFromStorage();
     } catch (e) {
       console.error('deleteTask error', e);
+
+      this.tasks = snapshot;
       await this.presentDeleteToast('网络错误，稍后重试');
+    } finally {
+      this.deletingIds.delete(taskId);
     }
   }
 
   async presentDeleteToast(message: string) {
     const toast = await this.toastController.create({
       message,
-      duration: 3000,
+      duration: 750,
       position: 'bottom',
     });
     await toast.present();
@@ -286,6 +321,8 @@ export class Tab4Page implements OnDestroy {
   resetUserInfo() {
     this.userInfo = this.createDefaultUserInfo();
     this.tasks = []; // 清空任务列表
+    this.currentUserId = null;
+    this.deletingIds.clear();
   }
 
   // 统一更新用户信息的工具方法
@@ -320,7 +357,7 @@ export class Tab4Page implements OnDestroy {
         try {
           const resp = await fetch(`${this.API_BASE}/users/${id}/profile`);
           if (resp.ok) {
-            const data = await resp.json();
+            const data = await resp.json().catch(() => null);
             if (data?.success && data.user) {
               this.updateUserFromData(data.user);
 
@@ -333,7 +370,7 @@ export class Tab4Page implements OnDestroy {
         }
       }
 
-      // Fallback: 使用 localStorage 中的数据
+      // fallback: local user
       this.updateUserFromData(u);
       const fid = u.UserId || u.userId || u.id;
       if (fid) this.currentUserId = fid;
@@ -349,7 +386,7 @@ export class Tab4Page implements OnDestroy {
       const resp = await fetch(`${this.API_BASE}/users/${userId}/events`);
       if (!resp.ok) return;
 
-      const data = await resp.json();
+      const data = await resp.json().catch(() => null);
       if (!Array.isArray(data)) return;
 
       this.tasks = data.map((e: any) => ({

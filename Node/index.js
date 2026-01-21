@@ -3,13 +3,14 @@ const express = require("express");
 const { createServer } = require("node:http");
 const { join } = require("node:path");
 const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken"); 
 
 const corsMiddleware = require("./routes/cors.js");
 const { uploadDir } = require("./routes/upload.js");
 
 //import my js files here
 const pool = require("./help_me_db.js");
-const { registerChatHandler, getChatHistory }= require('./chatHandler.js');
+const { registerChatHandler, getChatHistory } = require('./chatHandler.js');
 
 //all routes imports here 这里引用路由
 const testRoutes = require("./routes/test.js");
@@ -25,6 +26,9 @@ app.use(express.json());
 
 // 芒果引入数据库连接函数
 const connectDB = require('./help_me_chat_db');
+
+// JWT secret (建议在生产环境通过 .env 配置)
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me"; 
 
 // 启动服务器前先连接数据库
 const startServer = async () => {
@@ -50,6 +54,33 @@ const io = new Server(server, {
   cors: {
     origin: 'http://localhost:8100',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  }
+});
+
+// 替换 FAKE USER：Socket.IO JWT 鉴权中间件
+io.use((socket, next) => {
+  try {
+    // 优先从 handshake.auth.token 获取（前端通过 auth: { token } 传入）
+    let token = socket.handshake.auth?.token;
+
+    // 其次尝试从 Authorization header（如 Bearer <token>）
+    if (!token && socket.handshake.headers?.authorization) {
+      const authHeader = socket.handshake.headers.authorization;
+      if (authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      return next(new Error("NO_TOKEN"));
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    socket.user = decoded;
+    return next();
+  } catch (e) {
+    console.warn("Socket.IO JWT 验证失败:", e.message);
+    return next(new Error("INVALID_TOKEN"));
   }
 });
 

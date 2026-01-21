@@ -74,7 +74,7 @@
         </ion-toolbar>
       </ion-header>
       <ion-content class="modal-content">
-        <form [formGroup]="requestForm" (ngSubmit)="submitRequest()">
+        <form [formGroup]="requestForm">
           <ion-list lines="full">
             <ion-item>
               <ion-label position="stacked">标题 *</ion-label>
@@ -168,7 +168,10 @@
               (click)="showRequestModal = false"
               >取消</ion-button
             >
-            <ion-button type="submit" [disabled]="requestForm.invalid"
+            <ion-button
+              type="button"
+              (click)="submitRequest()"
+              [disabled]="isSubmittingRequest"
               >提交求助</ion-button
             >
           </div>
@@ -191,7 +194,7 @@
         </ion-toolbar>
       </ion-header>
       <ion-content class="modal-content">
-        <form [formGroup]="helpForm" (ngSubmit)="submitHelp()">
+        <form [formGroup]="helpForm">
           <ion-list lines="full">
             <ion-item>
               <ion-label position="stacked">标题 *</ion-label>
@@ -282,7 +285,10 @@
               (click)="showHelpModal = false"
               >取消</ion-button
             >
-            <ion-button type="submit" [disabled]="helpForm.invalid"
+            <ion-button
+              type="button"
+              (click)="submitHelp()"
+              [disabled]="isSubmittingHelp"
               >发布帮助</ion-button
             >
           </div>
@@ -309,7 +315,7 @@
       </ion-header>
 
       <ion-content class="modal-content">
-        <form [formGroup]="identityForm" (ngSubmit)="submitIdentity()">
+        <form [formGroup]="identityForm">
           <ion-list lines="full">
             <ion-item>
               <ion-label position="stacked">真实姓名 *</ion-label>
@@ -345,10 +351,15 @@
             </ion-item>
             <ion-item>
               <ion-label position="stacked">身份类型 *</ion-label>
-              <ion-input
+              <ion-select
                 formControlName="ProviderRole"
-                placeholder="请输入：1(全职) / 2(兼职) / 3(商家)"
-              ></ion-input>
+                interface="popover"
+                placeholder="请选择身份类型"
+              >
+                <ion-select-option value="1">全职</ion-select-option>
+                <ion-select-option value="2">兼职</ion-select-option>
+                <ion-select-option value="3">商家</ion-select-option>
+              </ion-select>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">个人简介</ion-label>
@@ -458,7 +469,10 @@
               (click)="showIdentityModal = false"
               >取消</ion-button
             >
-            <ion-button type="submit" [disabled]="identityForm.invalid"
+            <ion-button
+              type="button"
+              (click)="submitIdentity()"
+              [disabled]="isSubmittingIdentity"
               >提交认证</ion-button
             >
           </div>
