@@ -51,13 +51,18 @@ export class Tab2Page implements OnInit, AfterViewInit {
   // 数据容器
   eventsData = signal<EventCardData[]>([]);
 
+  // 分类参数
+  currentType: string | null = null;
+
   // 拿到搜索框实例
   @ViewChild('searchBar') searchBar!: IonSearchbar;
 
   //constructor(private route: ActivatedRoute) {}
 
   ngOnInit() {    // 统一订阅：关键词变化 or 聚焦标志变化都走这里
+    // 接收路由参数
     this.route.queryParams.subscribe(params => {
+      this.currentType = params['type'] || null;
       const keyword = params['search'] || '';
       this.loadEvents(keyword);          // 把关键词传进去
 
@@ -82,11 +87,19 @@ export class Tab2Page implements OnInit, AfterViewInit {
     });
   }
 
-  /* 统一加载：根据关键词决定接口 */
+  /* 统一加载：根据关键词和分类决定接口 */
   private loadEvents(keyword?: string) {
-    const url = keyword
-      ? `${this.API_BASE}/api/cards?search=${encodeURIComponent(keyword)}`
-      : `${this.API_BASE}/api/cards`;
+    // 构建查询参数
+    const params = new URLSearchParams();
+    if (keyword) {
+      params.append('search', encodeURIComponent(keyword));
+    }
+    if (this.currentType) {
+      params.append('type', this.currentType);
+    }
+    
+    // 构建URL
+    const url = `${this.API_BASE}/api/cards${params.toString() ? '?' + params.toString() : ''}`;
 
     fetch(url)
       .then(res => res.json())

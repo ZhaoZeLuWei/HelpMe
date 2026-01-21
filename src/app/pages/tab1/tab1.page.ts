@@ -143,8 +143,10 @@ export class Tab1Page implements OnInit {
     });
   }
   //只去到搜索页面
-  goToTab2Search() {
-    this.router.navigate(['/tabs/tab2']);
+  goToTab2Search(type?: 'request' | 'help') {
+    this.router.navigate(['/tabs/tab2'], {
+      queryParams: { type: type }
+    });
   }
 
   // 切换语言
