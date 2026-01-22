@@ -3,7 +3,7 @@ const express = require("express");
 const { createServer } = require("node:http");
 const { join } = require("node:path");
 const { Server } = require("socket.io");
-const jwt = require("jsonwebtoken"); 
+const jwt = require("jsonwebtoken");
 
 const corsMiddleware = require("./routes/cors.js");
 const { uploadDir } = require("./routes/upload.js");
@@ -23,12 +23,20 @@ const reviewRoutes = require("./routes/review.js");
 //use all routes here 这里使用路由，定义URL路径
 const app = express();
 app.use(express.json());
+app.use(corsMiddleware);
+app.use("/img", express.static(uploadDir));
+app.use("/test", testRoutes);
+app.use(userRoutes);
+app.use(eventRoutes);
+app.use(verifyRoutes);
+app.use(orderRoutes);
+app.use(reviewRoutes);
 
 // 芒果引入数据库连接函数
 const connectDB = require('./help_me_chat_db');
 
 // JWT secret (建议在生产环境通过 .env 配置)
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me"; 
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
 
 // 启动服务器前先连接数据库
 const startServer = async () => {
@@ -55,9 +63,7 @@ const io = new Server(server, {
     origin: 'http://localhost:8100',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   }
-});
-
-// 替换 FAKE USER：Socket.IO JWT 鉴权中间件
+});// get user jwt
 io.use((socket, next) => {
   try {
     // 优先从 handshake.auth.token 获取（前端通过 auth: { token } 传入）
@@ -84,17 +90,6 @@ io.use((socket, next) => {
   }
 });
 
-app.use(corsMiddleware);
-
-app.use("/img", express.static(uploadDir));
-
-app.use("/test", testRoutes);
-
-app.use(userRoutes);
-app.use(eventRoutes);
-app.use(verifyRoutes);
-app.use(orderRoutes);
-app.use(reviewRoutes);
 
 
 //this part for socketIO
@@ -118,7 +113,7 @@ app.get('/api/messages/history', async (req, res) => {
   }
 });
 
-// 读取房间列表 
+// 读取房间列表
 app.get('/api/rooms/list', async (req, res) => {
   const result = await getRoomList(req.query);
   if (result.success) {

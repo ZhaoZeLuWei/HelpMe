@@ -1,4 +1,5 @@
-import {Component, inject} from '@angular/core';
+import {Component,OnInit, inject} from '@angular/core';
+import { AuthService } from "../../services/auth.service";
 //Standalone need to import specific component tag
 import {
   IonContent,
@@ -34,9 +35,16 @@ import {NavController} from '@ionic/angular';
   ],
   standalone: true,
 })
-export class Tab3Page {
-  private router = inject(Router);
+export class Tab3Page implements OnInit {
   private navCtrl = inject(NavController);
+  private auth = inject(AuthService);
+
+  getUser: any;
+
+  ngOnInit() {
+    this.getUser = this.auth.currentUser;
+    console.log(this.getUser);
+  }
 
   //add room_id 1-2 注意这里的数据结构全部为模拟作用，并非实际情况，用户聊天数据库+ mysql对接待设计
   chatRooms = [

@@ -21,6 +21,8 @@ import {HttpClient} from "@angular/common/http";
 import {ChatModel} from "../../models/chat.model";
 import { ChatHistory } from "../../models/chatHistory.model";
 
+//import Service
+import {AuthService} from "../../services/auth.service";
 
 @Component({
   selector: 'app-chat-detail',
@@ -47,16 +49,18 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   socket: any;
   //signal NEW in angular rather than RxJS
   messages = signal<ChatModel[]>([]);
-  //check connection
-  serverOffset = 0;
-  //privates?
+
+  //injects (import)
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
+  private auth = inject(AuthService);
 
-  //get user info from chat list page
-  targetUser: any;
-  myself: any;
+  //get user info from chat list page(Tab3)
+  roomInfoTab3: any;
+  myself: any; //from socket io
   roomId:string = "";
+  getUserFromService: any;
+  serverOffset = 0;
 
   //input checking before it send to node
   messageInput = new FormControl('', {
@@ -65,20 +69,32 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
-    //init room id and target user info HERE FROM chat list page
+    //get user from Node server first
+    this.getUserFromService = this.auth.currentUser;
+    console.log(this.getUserFromService);
+
+    //init room id from chat list page ,and use it to load all msg from this room
     const state = history.state;
     if (state && state.targetUser) {
-      this.targetUser = state.targetUser;
-      this.roomId = this.targetUser.roomId;
+      this.roomInfoTab3 = state.targetUser;
+      this.roomId = this.roomInfoTab3.roomId;
     }
-
     this.loadHistory(this.roomId);
 
     // Init Connection (Without JSON Web Token !!!)
     this.socket = io('http://localhost:3000', {
-      //without auth !!!
-      auth: { serverOffset: this.serverOffset }
+      auth: {
+        token: this.auth.token,
+        serverOffset: this.serverOffset
+      }
     });
+
+    //get myself from socket io chat handler
+    this.socket.on('myself', (user:any) => {
+      this.myself = user;
+      console.log("this.myself ⬇️");
+      console.log(this.myself);
+    })
 
     //send JOIN room request to server
     this.socket.on('connect', () => {
@@ -87,12 +103,6 @@ export class ChatDetailPage implements OnInit, OnDestroy {
         console.log("Joined room", this.roomId);
       }
     })
-
-    //get myself user from Node
-    this.socket.on('myself', (user:any) => {
-      this.myself = user;
-    })
-
 
     // step 2: receive msg from node and show it
     this.socket.on('chat message', (msg: ChatModel, offset?: number) => {
@@ -119,7 +129,6 @@ export class ChatDetailPage implements OnInit, OnDestroy {
         next: (res) => {
           if (!res.success) return;
           //rebuild the data structure into <messages> store
-
           console.log(res);
           const apiMsg: ChatModel[] = res.data.messages.map(msg => ({
             text: msg.text,
@@ -152,8 +161,6 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       this.messageInput.reset();
     }
   }
-
-
 
   //在messages这个数据结构中，继续顺序添加新的msg
   private addMessage(msg: ChatModel) {

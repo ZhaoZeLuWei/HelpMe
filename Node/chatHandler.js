@@ -126,7 +126,6 @@ const getRoomList = async (queryParams) => {
 };
 
 module.exports.registerChatHandler = (io, socket) => {
-
   //join the room
   const joinRoom = (roomId) => {
     //🚨需要JWT验证确认身份再真正对接后端？(1-16 Node穿入Fake身份）
