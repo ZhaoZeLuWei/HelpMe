@@ -10,7 +10,7 @@ const { uploadDir } = require("./routes/upload.js");
 
 //import my js files here
 const pool = require("./help_me_db.js");
-const { registerChatHandler, getChatHistory } = require('./chatHandler.js');
+const { registerChatHandler, getChatHistory, getRoomList }= require('./chatHandler.js');
 
 //all routes imports here 这里引用路由
 const testRoutes = require("./routes/test.js");
@@ -107,10 +107,20 @@ io.on("connection", (socket) => {
   });
 });
 
-// HTTP API调用读取函数
+// 读取聊天信息
 app.get('/api/messages/history', async (req, res) => {
   // 调用chatHandler.js的getChatHistory
   const result = await getChatHistory(req.query);
+  if (result.success) {
+    res.status(200).json(result);
+  } else {
+    res.status(400).json(result);
+  }
+});
+
+// 读取房间列表 
+app.get('/api/rooms/list', async (req, res) => {
+  const result = await getRoomList(req.query);
   if (result.success) {
     res.status(200).json(result);
   } else {
