@@ -1,5 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, inject } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  ViewChild,
+  inject,
+} from '@angular/core';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import type { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 
@@ -13,6 +25,9 @@ import {
   eye,
   personCircle,
   logOut,
+  imageOutline,
+  addCircleOutline,
+  closeCircle,
 } from 'ionicons/icons';
 
 import {
@@ -32,6 +47,12 @@ import {
   IonItem,
   IonText,
   IonAlert,
+  IonModal,
+  IonList,
+  IonInput,
+  IonTextarea,
+  IonSelect,
+  IonSelectOption,
 } from '@ionic/angular/standalone';
 
 import { ToastController } from '@ionic/angular';
@@ -43,6 +64,7 @@ import { environment } from '../../../environments/environment';
   selector: 'app-tab4',
   templateUrl: './tab4.page.html',
   styleUrls: ['./tab4.page.scss'],
+  standalone: true,
   imports: [
     CommonModule,
     IonHeader,
@@ -61,6 +83,13 @@ import { environment } from '../../../environments/environment';
     IonItem,
     IonText,
     IonAlert,
+    IonModal,
+    IonList,
+    IonInput,
+    IonTextarea,
+    IonSelect,
+    IonSelectOption,
+    ReactiveFormsModule,
     LoginPage,
   ],
 })
@@ -69,6 +98,10 @@ export class Tab4Page implements OnDestroy {
 
   private readonly auth = inject(AuthService);
   private readonly toastController = inject(ToastController);
+  private readonly fb = inject(FormBuilder);
+
+  @ViewChild('editFileInput')
+  editFileInput!: ElementRef<HTMLInputElement>;
 
   isLoggedIn = false;
   private readonly _sub: Subscription;
@@ -76,7 +109,28 @@ export class Tab4Page implements OnDestroy {
   // 删除确认弹窗状态
   isDeleteAlertOpen = false;
 
-  deleteTargetId: number | null = null; // 待删除任务的 ID（null 表示未选择）
+  // 当前准备删除的 id
+  deleteTargetId: number | null = null;
+
+  deletingIds = new Set<number>();
+
+  // 编辑弹窗状态
+  isEditModalOpen = false;
+  editingTaskId: number | null = null;
+  isSavingEdit = false;
+  readonly EDIT_MAX = 5;
+  editExistingPhotos: string[] = [];
+  editNewPhotos: Array<{ file: File; preview: string }> = [];
+  editForm: FormGroup = this.fb.group({
+    EventTitle: ['', Validators.required],
+    EventType: [0, Validators.required],
+    EventCategory: ['', Validators.required],
+    Location: ['', Validators.required],
+    Price: [0, [Validators.min(0), Validators.max(1_000_000)]],
+    EventDetails: ['', Validators.required],
+  });
+
+  // 删除按钮配置
   alertButtons = [
     {
       text: '取消',
@@ -117,6 +171,9 @@ export class Tab4Page implements OnDestroy {
       eye,
       personCircle,
       logOut,
+      imageOutline,
+      addCircleOutline,
+      closeCircle,
     });
 
     // 订阅登录状态
@@ -165,8 +222,18 @@ export class Tab4Page implements OnDestroy {
 
   // 打开删除确认弹窗
   openDeleteAlert(taskId: number) {
+    if (this.deletingIds.has(taskId)) return;
+
     this.deleteTargetId = taskId;
-    this.isDeleteAlertOpen = true;
+    this.isDeleteAlertOpen = false;
+    setTimeout(() => {
+      this.isDeleteAlertOpen = true;
+    }, 0);
+  }
+
+  onDeleteAlertDismiss() {
+    this.isDeleteAlertOpen = false;
+    this.deleteTargetId = null;
   }
 
   async deleteTask(taskId: number) {
@@ -175,45 +242,63 @@ export class Tab4Page implements OnDestroy {
       return;
     }
 
+    if (this.deletingIds.has(taskId)) return;
+    this.deletingIds.add(taskId);
+
+    const snapshot = [...this.tasks];
+    this.tasks = this.tasks.filter((t) => Number(t?.id) !== Number(taskId));
+
     try {
-      const resp = await fetch(
-        `${this.API_BASE}/events/${taskId}?creatorId=${this.currentUserId}`,
-        { method: 'DELETE' },
-      );
+      const resp = await fetch(`${this.API_BASE}/events/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          ...this.auth.getAuthHeader(),
+        },
+      });
+
+      const data = await resp.json().catch(() => null);
 
       if (!resp.ok) {
-        const errText = await resp.text();
-        await this.presentDeleteToast(errText || '删除失败');
+        this.tasks = snapshot;
+
+        const msg =
+          data?.error ||
+          data?.msg ||
+          (resp.status === 401
+            ? '未登录或登录已过期'
+            : `删除失败（${resp.status}）`);
+        await this.presentDeleteToast(msg);
         return;
       }
 
-      const result = await resp.json();
-      if (!result?.success) {
-        await this.presentDeleteToast(result?.error || '删除失败');
+      if (!data?.success) {
+        this.tasks = snapshot;
+        await this.presentDeleteToast(data?.error || '删除失败');
         return;
       }
 
       await this.presentDeleteToast('删除成功');
-      // 删除成功后重新加载列表，确保显示最新数据
-      await this.loadUserFromStorage();
     } catch (e) {
       console.error('deleteTask error', e);
+
+      this.tasks = snapshot;
       await this.presentDeleteToast('网络错误，稍后重试');
+    } finally {
+      this.deletingIds.delete(taskId);
     }
   }
 
   async presentDeleteToast(message: string) {
     const toast = await this.toastController.create({
       message,
-      duration: 3000,
+      duration: 750,
       position: 'bottom',
     });
     await toast.present();
   }
 
   editTask(taskId: number) {
-    console.log(`编辑任务 ${taskId}`);
-    //后续跳转编辑页
+    void this.openEditModal(taskId);
   }
 
   viewDetails(taskId: number) {
@@ -286,6 +371,8 @@ export class Tab4Page implements OnDestroy {
   resetUserInfo() {
     this.userInfo = this.createDefaultUserInfo();
     this.tasks = []; // 清空任务列表
+    this.currentUserId = null;
+    this.deletingIds.clear();
   }
 
   // 统一更新用户信息的工具方法
@@ -320,7 +407,7 @@ export class Tab4Page implements OnDestroy {
         try {
           const resp = await fetch(`${this.API_BASE}/users/${id}/profile`);
           if (resp.ok) {
-            const data = await resp.json();
+            const data = await resp.json().catch(() => null);
             if (data?.success && data.user) {
               this.updateUserFromData(data.user);
 
@@ -333,7 +420,7 @@ export class Tab4Page implements OnDestroy {
         }
       }
 
-      // Fallback: 使用 localStorage 中的数据
+      // fallback: local user
       this.updateUserFromData(u);
       const fid = u.UserId || u.userId || u.id;
       if (fid) this.currentUserId = fid;
@@ -349,7 +436,7 @@ export class Tab4Page implements OnDestroy {
       const resp = await fetch(`${this.API_BASE}/users/${userId}/events`);
       if (!resp.ok) return;
 
-      const data = await resp.json();
+      const data = await resp.json().catch(() => null);
       if (!Array.isArray(data)) return;
 
       this.tasks = data.map((e: any) => ({
@@ -358,10 +445,251 @@ export class Tab4Page implements OnDestroy {
         title: e.EventTitle,
         status: 'published',
         createdAt: e.CreateTime || '',
+        EventTitle: e.EventTitle,
+        EventType: e.EventType ?? 0,
+        EventCategory: e.EventCategory || '',
+        Location: e.Location || '',
+        Price: e.Price ?? 0,
+        EventDetails: e.EventDetails || '',
+        Photos: e.Photos || null,
       }));
     } catch (e) {
       console.warn('loadUserEvents failed', e);
     }
+  }
+
+  private async openEditModal(taskId: number): Promise<void> {
+    if (this.deletingIds.has(taskId)) return;
+
+    const task = this.tasks.find((t) => Number(t?.id) === Number(taskId));
+    if (!task) return;
+
+    let source = task;
+    if (task.EventDetails == null || task.EventType == null) {
+      try {
+        const resp = await fetch(`${this.API_BASE}/events/${taskId}`);
+        const data = await resp.json().catch(() => null);
+        if (resp.ok && data?.success && data?.event) {
+          source = { ...task, ...data.event };
+        }
+      } catch (e) {
+        console.warn('fetch event detail failed', e);
+      }
+    }
+
+    this.editingTaskId = taskId;
+    this.resetEditPhotos();
+    this.editExistingPhotos = this.normalizePhotos(
+      source.Photos || source.photos,
+    );
+    this.editForm.reset({
+      EventTitle: source.EventTitle || source.title || '',
+      EventType: source.EventType ?? 0,
+      EventCategory: source.EventCategory || '',
+      Location: source.Location || '',
+      Price: source.Price ?? 0,
+      EventDetails: source.EventDetails || '',
+    });
+    this.isEditModalOpen = true;
+  }
+
+  closeEditModal() {
+    this.isEditModalOpen = false;
+    this.editingTaskId = null;
+    this.resetEditPhotos();
+  }
+
+  getEditPhotoItems(): Array<{
+    preview: string;
+    isExisting: boolean;
+    index: number;
+  }> {
+    const existing = this.editExistingPhotos.map((p, i) => ({
+      preview: this.getAssetUrl(p),
+      isExisting: true,
+      index: i,
+    }));
+    const next = this.editNewPhotos.map((p, i) => ({
+      preview: p.preview,
+      isExisting: false,
+      index: i,
+    }));
+    return [...existing, ...next];
+  }
+
+  getEditPhotoCount(): number {
+    return this.editExistingPhotos.length + this.editNewPhotos.length;
+  }
+
+  triggerEditFileInput(): void {
+    if (this.getEditPhotoCount() >= this.EDIT_MAX) {
+      void this.presentDeleteToast(`最多只能上传 ${this.EDIT_MAX} 张图片`);
+      return;
+    }
+    this.editFileInput?.nativeElement.click();
+  }
+
+  onEditFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
+    const remaining = this.EDIT_MAX - this.getEditPhotoCount();
+    const pick = Array.from(files)
+      .filter((f) => f.type.startsWith('image/'))
+      .slice(0, remaining);
+
+    for (const f of pick) {
+      this.editNewPhotos.push({ file: f, preview: URL.createObjectURL(f) });
+    }
+
+    input.value = '';
+  }
+
+  removeEditPhoto(type: 'existing' | 'new', index: number): void {
+    if (type === 'existing') {
+      this.editExistingPhotos.splice(index, 1);
+      return;
+    }
+
+    const removed = this.editNewPhotos[index];
+    if (removed?.preview) URL.revokeObjectURL(removed.preview);
+    this.editNewPhotos.splice(index, 1);
+  }
+
+  private collectEditFormErrors(): string[] {
+    const msgs: string[] = [];
+    if (this.editForm.get('EventTitle')?.invalid) msgs.push('标题必填');
+    if (this.editForm.get('EventCategory')?.invalid) msgs.push('类别必填');
+    if (this.editForm.get('Location')?.invalid) msgs.push('位置必填');
+    if (this.editForm.get('EventDetails')?.invalid) msgs.push('详细描述必填');
+    if (this.editForm.get('Price')?.invalid)
+      msgs.push('价格需在 0 ~ 1000000 之间');
+    return msgs;
+  }
+
+  async submitEdit(): Promise<void> {
+    if (this.editForm.invalid) {
+      await this.presentDeleteToast(this.collectEditFormErrors().join('，'));
+      return;
+    }
+
+    if (!this.editingTaskId) return;
+    if (this.isSavingEdit) return;
+
+    this.isSavingEdit = true;
+    const payload = this.editForm.getRawValue();
+
+    const uploaded = await this.uploadEditPhotos();
+    if (uploaded == null) {
+      this.isSavingEdit = false;
+      return;
+    }
+    const allPhotos = [...this.editExistingPhotos, ...uploaded];
+    const photosPayload =
+      allPhotos.length > 0 ? JSON.stringify(allPhotos) : null;
+
+    try {
+      const resp = await fetch(
+        `${this.API_BASE}/events/${this.editingTaskId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.auth.getAuthHeader(),
+          },
+          body: JSON.stringify({ ...payload, Photos: photosPayload }),
+        },
+      );
+
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.success) {
+        const msg =
+          data?.error ||
+          data?.msg ||
+          (resp.status === 401
+            ? '未登录或登录已过期'
+            : `保存失败（${resp.status}）`);
+        await this.presentDeleteToast(msg);
+        return;
+      }
+
+      const idx = this.tasks.findIndex(
+        (t) => Number(t?.id) === Number(this.editingTaskId),
+      );
+      if (idx >= 0) {
+        const updated = {
+          ...this.tasks[idx],
+          ...payload,
+          title: payload.EventTitle,
+          Photos: photosPayload,
+        };
+        this.tasks = [
+          ...this.tasks.slice(0, idx),
+          updated,
+          ...this.tasks.slice(idx + 1),
+        ];
+      }
+
+      await this.presentDeleteToast('保存成功');
+      this.closeEditModal();
+    } catch (e) {
+      console.error('submitEdit error', e);
+      await this.presentDeleteToast('网络错误，稍后重试');
+    } finally {
+      this.isSavingEdit = false;
+    }
+  }
+
+  private async uploadEditPhotos(): Promise<string[] | null> {
+    if (this.editNewPhotos.length === 0) return [];
+
+    const fd = new FormData();
+    for (const p of this.editNewPhotos) {
+      fd.append('images', p.file);
+    }
+
+    try {
+      const resp = await fetch(`${this.API_BASE}/upload/images`, {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.success || !Array.isArray(data.paths)) {
+        await this.presentDeleteToast(data?.error || '图片上传失败');
+        return null;
+      }
+      return data.paths;
+    } catch (e) {
+      console.error('uploadEditPhotos error', e);
+      await this.presentDeleteToast('图片上传失败，请稍后重试');
+      return null;
+    }
+  }
+
+  private resetEditPhotos(): void {
+    for (const p of this.editNewPhotos) {
+      if (p.preview) URL.revokeObjectURL(p.preview);
+    }
+    this.editNewPhotos = [];
+    this.editExistingPhotos = [];
+  }
+
+  private normalizePhotos(photos: any): string[] {
+    if (!photos) return [];
+    if (Array.isArray(photos)) return photos.filter(Boolean);
+    if (typeof photos === 'string') {
+      const raw = photos.trim();
+      if (!raw) return [];
+      try {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return arr.filter(Boolean);
+      } catch {
+        return [raw];
+      }
+      return [raw];
+    }
+    return [];
   }
 
   getAssetUrl(path: string): string {

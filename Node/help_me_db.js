@@ -7,7 +7,7 @@ const dbConfig = {
   host: 'localhost',
   port: 3306,
   user: 'root',
-  password: 'Xzw13068!',
+  password: '123456',
   database: 'help_me_db',
   //设置可用的连接池数量
   connectionLimit: 10,
