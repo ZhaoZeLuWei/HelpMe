@@ -1,16 +1,12 @@
-/* eslint-env node, es2021 */
 const express = require("express");
-const { createServer } = require("node:http");
-const { join } = require("node:path");
-const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
-
 const corsMiddleware = require("./routes/cors.js");
-const { uploadDir } = require("./routes/upload.js");
 
-//import my js files here
-const pool = require("./help_me_db.js");
+const { createServer } = require("node:http");
+const { Server } = require("socket.io");
+const { uploadDir } = require("./routes/upload.js");
 const { registerChatHandler, getChatHistory, getRoomList }= require('./chatHandler.js');
+const connectDB = require('./help_me_chat_db');
 
 //all routes imports here 这里引用路由
 const testRoutes = require("./routes/test.js");
@@ -32,29 +28,22 @@ app.use(verifyRoutes);
 app.use(orderRoutes);
 app.use(reviewRoutes);
 
-// 芒果引入数据库连接函数
-const connectDB = require('./help_me_chat_db');
-
 // JWT secret (建议在生产环境通过 .env 配置)
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
 
-// 启动服务器前先连接数据库
-const startServer = async () => {
+// mongoDB Connection here
+const mongoDBConnect = async () => {
   try {
     await connectDB();
     console.log('数据库连接成功');
-
   } catch (err) {
     console.error('服务器启动失败：', err.message);
     process.exit(1);
   }
-
 };
+mongoDBConnect();
 
-// 调用启动函数
-startServer();
-
-
+//connect to local node server
 const server = createServer(app);
 const io = new Server(server, {
   connectionStateRecovery:{},
@@ -63,7 +52,9 @@ const io = new Server(server, {
     origin: 'http://localhost:8100',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   }
-});// get user jwt
+});
+
+// get user jwt
 io.use((socket, next) => {
   try {
     // 优先从 handshake.auth.token 获取（前端通过 auth: { token } 传入）
@@ -90,9 +81,7 @@ io.use((socket, next) => {
   }
 });
 
-
-
-//this part for socketIO
+//this part for socketIO (chat system)
 io.on("connection", (socket) => {
   // 这里调用修正后的函数
   registerChatHandler(io, socket);

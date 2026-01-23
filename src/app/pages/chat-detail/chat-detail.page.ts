@@ -16,6 +16,7 @@ import {
 import { DatePipe } from "@angular/common";
 import {ActivatedRoute, Router} from "@angular/router";
 import {HttpClient} from "@angular/common/http";
+import {ToastController} from "@ionic/angular";
 
 //Models( Data structure) imports here
 import {ChatModel} from "../../models/chat.model";
@@ -54,6 +55,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
   private auth = inject(AuthService);
+  private toastCtrl = inject(ToastController);
 
   //get user info from chat list page(Tab3)
   roomInfoTab3: any;
@@ -92,8 +94,8 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     //get myself from socket io chat handler
     this.socket.on('myself', (user:any) => {
       this.myself = user;
-      console.log("this.myself ⬇️");
-      console.log(this.myself);
+      console.log(this.myself.id);
+      console.log(this.myself.name);
     })
 
     //send JOIN room request to server
@@ -113,10 +115,19 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       }
     });
 
-    // Check the room connection
-    this.socket.on('connectSuccess', (msg: ChatModel) => {
-      this.addMessage(msg);
-    });
+    //tell user the connnection with this room chat finally success!!~~
+    this.socket.on(
+      'connectSuccess',
+      async (msg: ChatModel) => {
+        const toast = await this.toastCtrl.create({
+          message: msg.text,
+          duration: 500,
+          position: 'top',
+          color: 'light',
+        });
+        await toast.present();
+      }
+    );
   }
 
 //load msg history by API using ROOM_ID from chat list page !

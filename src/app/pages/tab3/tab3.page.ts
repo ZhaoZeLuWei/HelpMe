@@ -71,6 +71,7 @@ export class Tab3Page implements OnInit {
     }
   }
 
+  //if user not login ,show a toast at the top of the screen ( all pages can see)
   private async loginToast() {
     const toast = await this.toastCtrl.create({
       message: '请您登录或注册',

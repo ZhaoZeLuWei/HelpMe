@@ -128,10 +128,8 @@ const getRoomList = async (queryParams) => {
 module.exports.registerChatHandler = (io, socket) => {
   //join the room
   const joinRoom = (roomId) => {
-    //🚨需要JWT验证确认身份再真正对接后端？(1-16 Node穿入Fake身份）
-    //先用Node 写好的身份，告诉客户端（前端）我是谁
+    //Node已经通过JWT获取了登陆用户的身份，并传递到客户端
     socket.emit('myself', socket.user);
-
 
     if (!roomId) return;
     socket.join(roomId);
