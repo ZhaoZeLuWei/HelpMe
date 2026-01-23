@@ -43,15 +43,18 @@ export class Tab3Page implements OnInit {
 
   //variables
   getUser: any;
-  showChat: boolean = false;
+  showChat: boolean | undefined;
 
   ngOnInit() {
+    this.showChat = false;
     console.log(this.getUser);
   }
 
   ionViewWillEnter() {
-    this.getUser = this.auth.currentUser;
-    this.checkAuth();
+    //init each time
+    this.showChat = false;// web page HTML show check
+    this.getUser = this.auth.currentUser;// user get check
+    this.checkAuth();// do checking
   }
 
   private async checkAuth(){
@@ -59,15 +62,19 @@ export class Tab3Page implements OnInit {
     if(!token || !this.getUser){
       console.log("Please log in or Register");
       //简单粗暴的跳转到了登陆页 需要优化login page 1-23
+      //wait to show toast at top and let user read the html contents then do navigation
       await this.loginToast();
+      await new Promise(resolve => setTimeout(resolve, 1000));
       this.navCtrl.navigateRoot('/tabs/tab4');
+    }  else {
+      this.showChat = true;
     }
   }
 
   private async loginToast() {
     const toast = await this.toastCtrl.create({
       message: '请您登录或注册',
-      duration: 3000,
+      duration: 4000,
       position: 'top',
       color: 'warning',
     });
