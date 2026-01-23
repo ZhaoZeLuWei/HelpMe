@@ -14,7 +14,7 @@ import {
   IonLabel,
   } from '@ionic/angular/standalone';
 import {Router} from '@angular/router';
-import {NavController} from '@ionic/angular';
+import {NavController, ToastController} from '@ionic/angular';
 
 
 @Component({
@@ -36,14 +36,42 @@ import {NavController} from '@ionic/angular';
   standalone: true,
 })
 export class Tab3Page implements OnInit {
+  //injects
   private navCtrl = inject(NavController);
   private auth = inject(AuthService);
+  private toastCtrl = inject(ToastController);
 
+  //variables
   getUser: any;
+  showChat: boolean = false;
 
   ngOnInit() {
-    this.getUser = this.auth.currentUser;
     console.log(this.getUser);
+  }
+
+  ionViewWillEnter() {
+    this.getUser = this.auth.currentUser;
+    this.checkAuth();
+  }
+
+  private async checkAuth(){
+    const token = this.auth.token;
+    if(!token || !this.getUser){
+      console.log("Please log in or Register");
+      //简单粗暴的跳转到了登陆页 需要优化login page 1-23
+      await this.loginToast();
+      this.navCtrl.navigateRoot('/tabs/tab4');
+    }
+  }
+
+  private async loginToast() {
+    const toast = await this.toastCtrl.create({
+      message: '请您登录或注册',
+      duration: 3000,
+      position: 'top',
+      color: 'warning',
+    });
+    await toast.present();
   }
 
   //add room_id 1-2 注意这里的数据结构全部为模拟作用，并非实际情况，用户聊天数据库+ mysql对接待设计
