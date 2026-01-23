@@ -5,7 +5,7 @@ const corsMiddleware = require("./routes/cors.js");
 const { createServer } = require("node:http");
 const { Server } = require("socket.io");
 const { uploadDir } = require("./routes/upload.js");
-const { registerChatHandler, getChatHistory, getRoomList }= require('./chatHandler.js');
+const { registerChatHandler } = require('./chatHandler.js');
 const connectDB = require('./help_me_chat_db');
 
 //all routes imports here 这里引用路由
@@ -15,6 +15,7 @@ const eventRoutes = require("./routes/event.js");
 const verifyRoutes = require("./routes/verify.js");
 const orderRoutes = require("./routes/order.js");
 const reviewRoutes = require("./routes/review.js");
+const chatRoutes = require("./routes/chat.js");
 
 //use all routes here 这里使用路由，定义URL路径
 const app = express();
@@ -27,6 +28,7 @@ app.use(eventRoutes);
 app.use(verifyRoutes);
 app.use(orderRoutes);
 app.use(reviewRoutes);
+app.use(chatRoutes);
 
 // JWT secret (建议在生产环境通过 .env 配置)
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
@@ -89,27 +91,6 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("disconnect");
   });
-});
-
-// 读取聊天信息
-app.get('/api/messages/history', async (req, res) => {
-  // 调用chatHandler.js的getChatHistory
-  const result = await getChatHistory(req.query);
-  if (result.success) {
-    res.status(200).json(result);
-  } else {
-    res.status(400).json(result);
-  }
-});
-
-// 读取房间列表
-app.get('/api/rooms/list', async (req, res) => {
-  const result = await getRoomList(req.query);
-  if (result.success) {
-    res.status(200).json(result);
-  } else {
-    res.status(400).json(result);
-  }
 });
 
 //server listen on port 3000
