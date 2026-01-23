@@ -97,7 +97,7 @@ export class Tab2Page implements OnInit, AfterViewInit {
     if (this.currentType) {
       params.append('type', this.currentType);
     }
-    
+
     // 构建URL
     const url = `${this.API_BASE}/api/cards${params.toString() ? '?' + params.toString() : ''}`;
 
@@ -106,13 +106,15 @@ export class Tab2Page implements OnInit, AfterViewInit {
       .then(list => {
         const transformed = list.map((item: any) => ({
           id: String(item.id),
-          cardImage: item.cardImage || 'https://picsum.photos/seed/default/600/400',
+          creatorId: Number(item.creatorId), // 新增
+          cardImage: item.cardImage ,
           icon: item.icon || 'navigate-outline',
           distance: item.distance || '未知距离',
           name: item.name,
           address: item.address,
           demand: item.demand,
           price: item.price ? String(item.price) : '0.00',
+          createTime: item.createTime,
           avatar: item.avatar,
         }));
         this.eventsData.set(transformed);   // signal 自动触发视图更新

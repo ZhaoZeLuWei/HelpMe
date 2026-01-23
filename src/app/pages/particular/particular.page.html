@@ -34,8 +34,12 @@
     <div class="content-area">
       <!-- 发布者信息 -->
       <div class="publisher-info">
-        <h3>发布者昵称：刘XX</h3>
-        <p class="publisher-meta">注册2个月 · 共服务18次 · 好评率100%</p>
+        <h3>发布者昵称：{{ event?.name }}</h3>
+        <p class="publisher-meta">
+          注册时间：{{ profile?.CreateTime }} |
+          服务评分：{{ profile?.serviceScore }} 分|
+          服务次数：{{ profile?.orderCount }} 次
+        </p>
       </div>
 
       <!-- 任务核心信息 -->
@@ -43,7 +47,7 @@
         <h2 class="event-title">{{ event?.name }}</h2>
         <div class="event-details">
           <p><ion-icon name="location-outline"></ion-icon> 地点：{{ event?.address }}</p>
-          <p><ion-icon name="time-outline"></ion-icon> 时间：2025年11月12日 8:00</p>
+          <p><ion-icon name="time-outline"></ion-icon> 时间：{{ event?.createTime }}</p>
           <p><ion-icon name="cash-outline"></ion-icon> 价格：¥{{ event?.price }}</p>
         </div>
         <p class="event-description">{{ event?.demand }}</p>

@@ -20,6 +20,8 @@ export interface EventCardData {
   demand: string;
   price: string;
   avatar: string;
+  createTime: string;   // 新增
+  creatorId: number;
 }
 
 @Component({

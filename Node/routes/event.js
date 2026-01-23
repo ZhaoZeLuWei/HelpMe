@@ -47,8 +47,10 @@ router.get("/api/cards", async (req, res) => {
         e.Location AS address,
         e.EventDetails AS demand,
         e.Price AS price,
+        e.CreateTime   AS createTime,   -- 新增
         u.UserName AS name,
-        u.UserAvatar AS avatar
+        u.UserAvatar AS avatar,
+        e.CreatorId AS creatorId   -- 新增
       FROM Events e
       JOIN Users u ON e.CreatorId = u.UserId
       ${sqlWhere}
@@ -74,8 +76,10 @@ router.get("/api/cards", async (req, res) => {
         address: item.address,
         demand: item.demand,
         price: item.price,
+        createTime: item.createTime,
         name: item.name,
         avatar: item.avatar,
+        creatorId: item.creatorId,
         icon: "navigate-outline",
         distance: "距500m", // 实际项目中应计算真实距离
       };
@@ -165,7 +169,7 @@ router.post(
       await conn.beginTransaction();
 
       const [result] = await conn.query(
-        `INSERT INTO Events 
+        `INSERT INTO Events
           (CreatorId, EventTitle, EventType, EventCategory, Photos, Location, Price, EventDetails)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
@@ -258,6 +262,25 @@ router.delete("/events/:id", async (req, res) => {
   } finally {
     if (conn) conn.release();
   }
+});
+router.get('/api/provider-profile', async (req, res) => {
+  const userId = Number(req.query.userId);
+  if (!userId) return res.status(400).json({ msg: '缺少 userId' });
+
+  const [rows] = await pool.query(
+    `SELECT u.UserId,
+            u.UserName,
+            u.CreateTime,
+            IFNULL(p.ServiceRanking, 0) AS serviceScore,
+            IFNULL(p.OrderCount, 0)     AS orderCount   -- 新增
+     FROM Users u
+            LEFT JOIN Providers p ON p.ProviderId = u.UserId
+     WHERE u.UserId = ? LIMIT 1`,
+    [userId]
+  );
+  if (!rows.length) return res.status(404).json({ msg: '用户不存在' });
+
+  res.json({ success: true, data: rows[0] });
 });
 
 module.exports = router;

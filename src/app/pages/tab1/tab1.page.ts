@@ -16,6 +16,7 @@ import { Router } from '@angular/router';
 // 卡片数据接口
 interface CardItem {
   id: string;
+  creatorId: number;      // 新增
   cardImage: string;
   icon: string;
   distance: string;
@@ -24,6 +25,7 @@ interface CardItem {
   demand: string;
   price: string;
   avatar: string;
+  createTime: string;   // 新增
 }
 
 @Component({

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EventCardData } from '../../components/show-event/show-event.component';
+import { AuthService, ProviderProfile } from '../../services/auth.service';
 
 @Component({
   selector: 'app-particular',
@@ -22,15 +23,21 @@ import { EventCardData } from '../../components/show-event/show-event.component'
 export class ParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private auth = inject(AuthService);   // 新增
+  profile: ProviderProfile | null = null; // 新增
 
   event: EventCardData | null = null;
-
   ngOnInit() {
-    // 接收路由参数
     this.route.queryParams.subscribe(params => {
       if (params['event']) {
         try {
           this.event = JSON.parse(params['event']);
+
+          /* === 新增：拿发布者信息 ===================== */
+          if (this.event?.id) {   // id 就是 CreatorId
+            this.auth.getProviderProfile(Number(this.event.creatorId)).then(p => this.profile = p);
+          }
+          /* =========================================== */
         } catch (error) {
           console.error('解析事件数据失败:', error);
         }
