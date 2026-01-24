@@ -8,6 +8,7 @@ export interface ProviderProfile {
   CreateTime: string;
   serviceScore: number;
   orderCount: number;   // 新增
+  avatar: string;
 }
 @Injectable({
   providedIn: 'root',

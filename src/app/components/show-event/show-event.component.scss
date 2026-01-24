@@ -11,7 +11,7 @@
   vertical-align: middle;
 }
 
-// 小卡片样式
+// 小卡片基础
 .small-card {
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
@@ -22,7 +22,6 @@
   width: 100%;
 }
 
-// 点击效果
 .clickable-card {
   cursor: pointer;
   transition: all 0.2s ease;
@@ -44,7 +43,7 @@
 // 图片区域
 .card-image-wrapper {
   position: relative;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   border-radius: 8px;
   overflow: hidden;
   background-color: #f1f5f9;
@@ -87,53 +86,71 @@
   }
 }
 
-// 用户信息行
+// 用户信息行：水平弹性，不换行
 .user-info-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 8px;
+  margin: 6px 0;
+  overflow: hidden;          // 关键：不换行
 }
 
+// 头像固定尺寸
 .user-avatar {
   width: 28px;
   height: 28px;
-  background-color: #e0f2fe;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 50%;
-
-  .material-icons {
-    font-size: 24px;
-    color: #0284c7;
-  }
+  overflow: hidden;
+  flex-shrink: 0;            // 防止被挤压
 }
 
+.avatar-img-small {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+// 右侧文字区：单列弹性，溢出省略
 .name-address-wrapper {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;              // 允许收缩
   flex: 1;
+}
+
+.event-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0;
+  line-height: 1.2;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;          // 不换行
 }
 
 .user-name {
-  font-size: 13px;
-  color: #1e293b;
-  font-weight: 600;
+  font-size: 12px;                // 比标题 14px 小一点
+  color: #64748b;                 // 中性灰，区别于标题的 #1e293b
+  font-weight: 500;               // 用 500 替代 600，更细
   white-space: nowrap;
 }
 
 .user-address {
   font-size: 13px;
-  color: #1e293b;
-  margin-left: auto;
-  font-weight: 400;
+  color: #64748b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1 1 auto;            // 超长自动省略
 }
 
 // 需求描述

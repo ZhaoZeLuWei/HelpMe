@@ -4,6 +4,7 @@ import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonF
 import { ActivatedRoute, Router } from '@angular/router';
 import { EventCardData } from '../../components/show-event/show-event.component';
 import { AuthService, ProviderProfile } from '../../services/auth.service';
+import { environment } from 'src/environments/environment'
 
 @Component({
   selector: 'app-particular',
@@ -26,9 +27,9 @@ import { AuthService, ProviderProfile } from '../../services/auth.service';
 export class ParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private auth = inject(AuthService);   // 新增
+  private auth = inject(AuthService);// 新增
+  readonly apiBase = environment.apiBase;   // ← 新增这一行
   profile: ProviderProfile | null = null; // 新增
-
   event: EventCardData | null = null;
   ngOnInit() {
     this.route.queryParams.subscribe(params => {

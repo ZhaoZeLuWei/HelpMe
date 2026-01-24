@@ -24,12 +24,19 @@
     <div class="content-area">
       <!-- 发布者信息 -->
       <div class="publisher-info">
-        <h3>用户:{{ event?.name }}</h3>
-        <p class="publisher-meta">
-          注册时间：{{ profile?.CreateTime }} |
-          服务评分：{{ profile?.serviceScore }} 分|
-          服务次数：{{ profile?.orderCount }} 次
-        </p>
+        <div class="avatar-container">
+          <img [src]="apiBase + (profile?.avatar || '/assets/icon/user.svg')"
+               alt="用户头像"
+               class="user-avatar">
+        </div>
+        <div class="publisher-text">
+          <h3>{{ event?.name }}</h3>
+          <p class="publisher-meta">
+            注册时间：{{ profile?.CreateTime }} |
+            服务评分：{{ profile?.serviceScore }} 分 |
+            服务次数：{{ profile?.orderCount }} 次
+          </p>
+        </div>
       </div>
 
       <!-- 任务核心信息 -->

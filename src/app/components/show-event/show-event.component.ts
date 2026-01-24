@@ -49,7 +49,8 @@ export class ShowEventComponent {
     if (!p) return this.PLACEHOLDER_IMG;
     const s = String(p).trim();
     if (!s) return this.PLACEHOLDER_IMG;
-    if (s.startsWith('/img/')) return this.API_BASE + s;
+    // 已经是绝对路径，直接返回
+    if (s.startsWith('/')) return this.API_BASE + s;
     return this.PLACEHOLDER_IMG;
   }
   // 处理点击逻辑

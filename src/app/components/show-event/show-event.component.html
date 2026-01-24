@@ -15,11 +15,18 @@
 
   <div class="user-info-row">
     <div class="user-avatar">
-      <span class="material-icons">account_circle</span>
+      <img
+        [src]="'http://localhost:3000' + (event?.avatar || '/assets/icon/user.svg')"
+        alt="用户头像"
+        class="avatar-img-small"
+      >
     </div>
     <div class="name-address-wrapper">
-      <span class="user-name">{{ event.name }}</span>
-      <span class="user-address">{{ event.address }}</span>
+      <div class="event-title">{{ event.title }}</div>
+      <div class="user-info">
+        <span class="user-name">{{ event.name }}</span>
+        <span class="user-address">{{ event.address }}</span>
+      </div>
     </div>
   </div>
 

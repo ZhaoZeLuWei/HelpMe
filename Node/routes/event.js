@@ -273,6 +273,7 @@ router.get('/api/provider-profile', async (req, res) => {
     `SELECT u.UserId,
             u.UserName,
             u.CreateTime,
+            u.UserAvatar AS avatar,
             IFNULL(p.ServiceRanking, 0) AS serviceScore,
             IFNULL(p.OrderCount, 0)     AS orderCount   -- 新增
      FROM Users u
@@ -282,7 +283,9 @@ router.get('/api/provider-profile', async (req, res) => {
   );
   if (!rows.length) return res.status(404).json({ msg: '用户不存在' });
 
-  res.json({ success: true, data: rows[0] });
+  const row = rows[0];
+  row.avatar = row.avatar ? row.avatar : '/assets/icon/user.svg';
+  res.json({ success: true, data: row });
 });
 
 module.exports = router;

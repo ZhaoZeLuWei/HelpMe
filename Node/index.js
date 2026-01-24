@@ -5,7 +5,7 @@ const { join } = require("node:path");
 const { Server } = require("socket.io");
 
 const corsMiddleware = require("./routes/cors.js");
-const { uploadDir } = require("./routes/upload.js");
+//const { uploadDir } = require("./routes/upload.js");
 
 //import my js files here
 const pool = require("./help_me_db.js");
@@ -84,7 +84,7 @@ app.post('/login', async (req, res) => {
 app.use(express.json());
 app.use(corsMiddleware);
 
-app.use("/img", express.static(uploadDir));
+//app.use("/img", express.static(uploadDir));
 
 app.use("/test", testRoutes);
 
