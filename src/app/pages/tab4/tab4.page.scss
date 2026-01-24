@@ -2,6 +2,37 @@
   --card-radius: 16px;
 }
 
+.login-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
+  text-align: center;
+
+  .prompt-icon {
+    font-size: 80px;
+    color: var(--ion-color-primary);
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 8px;
+  }
+
+  p {
+    color: var(--ion-color-medium);
+    margin: 0 0 24px;
+  }
+
+  ion-button {
+    --padding-start: 32px;
+    --padding-end: 32px;
+  }
+}
+
 .user-card {
   margin: 12px;
   border-radius: var(--card-radius);

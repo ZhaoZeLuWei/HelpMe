@@ -6,7 +6,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { IonicModule, ToastController } from '@ionic/angular';
+import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -19,6 +19,7 @@ import { AuthService } from '../../services/auth.service';
 export class LoginPage {
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
+  private modalCtrl = inject(ModalController);
 
   form = new FormGroup({
     phone: new FormControl('', [
@@ -94,5 +95,12 @@ export class LoginPage {
 
     const t = await this.toastCtrl.create({ message, duration: 750});
     await t.present();
+    
+    // 登录成功后关闭 Modal
+    await this.modalCtrl.dismiss();
+  }
+
+  async closeModal() {
+    await this.modalCtrl.dismiss();
   }
 }

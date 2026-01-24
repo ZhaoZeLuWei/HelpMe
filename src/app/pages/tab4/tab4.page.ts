@@ -53,10 +53,10 @@ import {
   IonTextarea,
   IonSelect,
   IonSelectOption,
+  ModalController,
 } from '@ionic/angular/standalone';
 
 import { ToastController } from '@ionic/angular';
-import { LoginPage } from '../login/login.page';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
 
@@ -90,7 +90,6 @@ import { environment } from '../../../environments/environment';
     IonSelect,
     IonSelectOption,
     ReactiveFormsModule,
-    LoginPage,
   ],
 })
 export class Tab4Page implements OnDestroy {
@@ -98,6 +97,7 @@ export class Tab4Page implements OnDestroy {
 
   private readonly auth = inject(AuthService);
   private readonly toastController = inject(ToastController);
+  private readonly modalController = inject(ModalController);
   private readonly fb = inject(FormBuilder);
 
   @ViewChild('editFileInput')
@@ -295,6 +295,13 @@ export class Tab4Page implements OnDestroy {
       position: 'bottom',
     });
     await toast.present();
+  }
+
+  async openLoginModal() {
+    const modal = await this.modalController.create({
+      component: (await import('../login/login.page')).LoginPage,
+    });
+    await modal.present();
   }
 
   editTask(taskId: number) {

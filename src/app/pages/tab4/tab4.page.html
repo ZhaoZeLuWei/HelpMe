@@ -6,7 +6,13 @@
 
 <ion-content [fullscreen]="true">
   @if (!isLoggedIn) {
-  <app-login></app-login>
+  <!-- 未登录时显示登录提示 -->
+  <div class="login-prompt">
+    <ion-icon name="person-circle" class="prompt-icon"></ion-icon>
+    <h2>欢迎使用 HelpMe</h2>
+    <p>登录后查看个人中心</p>
+    <ion-button (click)="openLoginModal()">立即登录</ion-button>
+  </div>
   } @if (isLoggedIn) {
   <!-- 用户信息 -->
   <ion-card class="user-card">
