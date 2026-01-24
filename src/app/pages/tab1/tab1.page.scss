@@ -151,11 +151,11 @@
 // 网格布局 (保留在这里，因为它控制的是卡片的排列)
 .small-card-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));  // 自动填充，最小列宽 150px
   gap: 10px;
 
   @media (min-width: 768px) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));  // 中等屏幕最小列宽 200px
     gap: 20px;
   }
 }
