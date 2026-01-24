@@ -293,6 +293,7 @@ export class Tab4Page implements OnDestroy {
       message,
       duration: 750,
       position: 'bottom',
+      positionAnchor: 'main-tab-bar',
     });
     await toast.present();
   }

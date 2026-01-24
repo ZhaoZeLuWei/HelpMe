@@ -164,11 +164,12 @@ export class Tab5Page implements OnInit {
     });
   }
 
-  private async toast(message: string, duration = 750) {
+  private async toast(message: string) {
     const t = await this.toastCtrl.create({
       message,
-      duration,
+      duration: 750,
       position: 'bottom',
+      positionAnchor: 'main-tab-bar',
     });
     await t.present();
   }
@@ -227,18 +228,18 @@ export class Tab5Page implements OnInit {
 
     const msgs = this.collectInvalidMessages(formType);
     if (msgs.length === 0) {
-      await this.toast('请完善必填项后再提交', 750);
+      await this.toast('请完善必填项后再提交');
       return;
     }
 
-    await this.toast(`请先完善：${msgs.join('、')}`, 1000);
+    await this.toast(`请先完善：${msgs.join('、')}`);
   }
 
   private async requireLogin(): Promise<number | null> {
     const uid = this.auth.currentUserId;
     if (uid) return uid;
 
-    await this.toast('请先登录后再发布', 750);
+    await this.toast('请先登录后再发布');
     this.router.navigate(['/tabs/tab4']);
     return null;
   }
@@ -259,16 +260,16 @@ export class Tab5Page implements OnInit {
 
     if (!resp.ok || !data?.success) {
       if (resp.status === 401) {
-        await this.toast('未登录或登录已过期，请重新登录', 750);
+        await this.toast('未登录或登录已过期，请重新登录');
         return null;
       }
       if (resp.status === 404) {
-        await this.toast(`接口不存在（404）：${endpoint}`, 750);
+        await this.toast(`接口不存在（404）：${endpoint}`);
         return null;
       }
 
       const msg = data?.error || data?.msg || '请求失败';
-      await this.toast(String(msg), 750);
+      await this.toast(String(msg));
       return null;
     }
 
@@ -330,7 +331,7 @@ export class Tab5Page implements OnInit {
     }
 
     if (photos.length >= max) {
-      void this.toast(`最多只能上传 ${max} 张图片`, 750);
+      void this.toast(`最多只能上传 ${max} 张图片`);
       return;
     }
 
@@ -432,7 +433,7 @@ export class Tab5Page implements OnInit {
       const data = await this.postFormData('/events', fd);
       if (!data) return;
 
-      await this.toast('发布成功', 750);
+      await this.toast('发布成功');
 
       for (const u of this.requestPhotos) URL.revokeObjectURL(u);
       this.requestPhotos = [];
@@ -480,7 +481,7 @@ export class Tab5Page implements OnInit {
       const data = await this.postFormData('/events', fd);
       if (!data) return;
 
-      await this.toast('发布成功', 750);
+      await this.toast('发布成功');
 
       for (const u of this.helpPhotos) URL.revokeObjectURL(u);
       this.helpPhotos = [];
@@ -532,7 +533,7 @@ export class Tab5Page implements OnInit {
       const data = await this.postFormData('/verifications', fd);
       if (!data) return;
 
-      await this.toast('认证提交成功，等待审核', 750);
+      await this.toast('认证提交成功，等待审核');
 
       for (const u of this.idCardPhotos) URL.revokeObjectURL(u);
       for (const u of this.certPhotos) URL.revokeObjectURL(u);

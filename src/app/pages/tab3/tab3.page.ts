@@ -75,8 +75,9 @@ export class Tab3Page implements OnInit {
   private async loginToast() {
     const toast = await this.toastCtrl.create({
       message: '请您登录或注册',
-      duration: 4000,
-      position: 'top',
+      duration: 1000,
+      position: 'bottom',
+      positionAnchor: 'main-tab-bar',
       color: 'warning',
     });
     await toast.present();
