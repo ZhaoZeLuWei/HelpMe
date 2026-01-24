@@ -5,7 +5,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { EventCardData } from '../../components/show-event/show-event.component';
 import { AuthService, ProviderProfile } from '../../services/auth.service';
 import { environment } from 'src/environments/environment'
-
 @Component({
   selector: 'app-particular',
   templateUrl: './particular.page.html',
@@ -28,8 +27,9 @@ export class ParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private auth = inject(AuthService);// 新增
-  readonly apiBase = environment.apiBase;   // ← 新增这一行
+  readonly apiBase = environment.apiBase;
   profile: ProviderProfile | null = null; // 新增
+
   event: EventCardData | null = null;
   ngOnInit() {
     this.route.queryParams.subscribe(params => {

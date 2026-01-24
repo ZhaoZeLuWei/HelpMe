@@ -52,7 +52,9 @@
 
       <!-- 任务图标区 -->
       <div class="event-icon-area">
-        <img [src]="event?.cardImage" alt="任务图标" class="event-icon">
+        <img [src]="event && event.cardImage ? apiBase + event.cardImage : ''"
+             alt="暂无任务图片"
+             class="event-icon">
       </div>
     </div>
   </div>
