@@ -25,7 +25,8 @@ interface CardItem {
   demand: string;
   price: string;
   avatar: string;
-  createTime: string;   // 新增
+  createTime: string;// 新增
+  title: string; // 新增
 }
 
 @Component({

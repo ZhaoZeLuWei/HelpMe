@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons } from '@ionic/angular/standalone';
+import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow,IonCol} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EventCardData } from '../../components/show-event/show-event.component';
 import { AuthService, ProviderProfile } from '../../services/auth.service';
@@ -18,6 +18,9 @@ import { AuthService, ProviderProfile } from '../../services/auth.service';
     IonButton,
     IonIcon,
     IonButtons,
+    IonFooter,
+    IonRow,
+    IonCol,
   ],
 })
 export class ParticularPage implements OnInit {

@@ -17,24 +17,14 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
+
   <div class="detail-container">
-    <!-- 左侧操作区 -->
-    <div class="left-actions">
-      <ion-button class="action-button" (click)="onCollect()">
-        <ion-icon slot="icon-only" name="star-outline"></ion-icon>
-        <div class="action-label">收藏</div>
-      </ion-button>
-      <ion-button class="action-button" (click)="onChat()">
-        <ion-icon slot="icon-only" name="chatbubble-outline"></ion-icon>
-        <div class="action-label">聊一聊</div>
-      </ion-button>
-    </div>
 
     <!-- 右侧内容区 -->
     <div class="content-area">
       <!-- 发布者信息 -->
       <div class="publisher-info">
-        <h3>发布者昵称：{{ event?.name }}</h3>
+        <h3>用户:{{ event?.name }}</h3>
         <p class="publisher-meta">
           注册时间：{{ profile?.CreateTime }} |
           服务评分：{{ profile?.serviceScore }} 分|
@@ -44,7 +34,7 @@
 
       <!-- 任务核心信息 -->
       <div class="event-info">
-        <h2 class="event-title">{{ event?.name }}</h2>
+        <h2 class="event-title">{{event?.title}}</h2>
         <div class="event-details">
           <p><ion-icon name="location-outline"></ion-icon> 地点：{{ event?.address }}</p>
           <p><ion-icon name="time-outline"></ion-icon> 时间：{{ event?.createTime }}</p>
@@ -60,3 +50,22 @@
     </div>
   </div>
 </ion-content>
+<!-- ✅ 底部固定栏：与 ion-content 并列 -->
+<ion-footer>
+  <ion-toolbar>
+    <ion-row class="bottom-actions">
+      <ion-col>
+        <ion-button expand="block" fill="outline" (click)="onCollect()">
+          <ion-icon slot="start" name="star-outline"></ion-icon>
+          收藏
+        </ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button expand="block" (click)="onChat()">
+          <ion-icon slot="start" name="chatbubble-outline"></ion-icon>
+          聊一聊
+        </ion-button>
+      </ion-col>
+    </ion-row>
+  </ion-toolbar>
+</ion-footer>

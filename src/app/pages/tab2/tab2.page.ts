@@ -108,6 +108,7 @@ export class Tab2Page implements OnInit, AfterViewInit {
           id: String(item.id),
           creatorId: Number(item.creatorId), // 新增
           cardImage: item.cardImage ,
+          title: item.title,
           icon: item.icon || 'navigate-outline',
           distance: item.distance || '未知距离',
           name: item.name,

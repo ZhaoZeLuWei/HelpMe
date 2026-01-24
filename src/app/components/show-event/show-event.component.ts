@@ -22,6 +22,7 @@ export interface EventCardData {
   avatar: string;
   createTime: string;   // 新增
   creatorId: number;
+  title: string; // 新增
 }
 
 @Component({

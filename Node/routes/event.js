@@ -45,6 +45,7 @@ router.get("/api/cards", async (req, res) => {
         e.EventId AS id,
         e.Photos AS photos,
         e.Location AS address,
+        e.EventTitle AS title,
         e.EventDetails AS demand,
         e.Price AS price,
         e.CreateTime   AS createTime,   -- 新增
@@ -80,6 +81,7 @@ router.get("/api/cards", async (req, res) => {
         name: item.name,
         avatar: item.avatar,
         creatorId: item.creatorId,
+        title: item.title,   // 新增
         icon: "navigate-outline",
         distance: "距500m", // 实际项目中应计算真实距离
       };
