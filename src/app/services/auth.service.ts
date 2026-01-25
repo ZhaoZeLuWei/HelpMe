@@ -1,10 +1,17 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { environment } from '../../environments/environment';
 import { ProviderProfile } from '../models/provider-profile.model'; // ← 引入公共模型
-@Injectable({
-  providedIn: 'root',
-})
+import { environment } from '../../environments/environment';
+
+type LoginOk = { ok: true };
+type LoginFail = { ok: false; message: string; status?: number };
+
+type Session = {
+  token: string;
+  user: any; // 项目里 user 字段结构不稳定（UserId/userId/id），先用 any 更稳
+};
+
+@Injectable({ providedIn: 'root' })
 
 export class AuthService {
   private readonly API_BASE = environment.apiBase;
