@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow,IonCol} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EventCardData } from '../../components/show-event/show-event.component';
-import { AuthService, ProviderProfile } from '../../services/auth.service';
+import { AuthService} from '../../services/auth.service';
+import { ProviderProfile } from '../../models/provider-profile.model';
 import { environment } from 'src/environments/environment'
 @Component({
   selector: 'app-particular',

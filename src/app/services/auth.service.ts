@@ -1,15 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
-
-export interface ProviderProfile {
-  UserId: number;
-  UserName: string;
-  CreateTime: string;
-  serviceScore: number;
-  orderCount: number;   // 新增
-  avatar: string;
-}
+import { ProviderProfile } from '../models/provider-profile.model'; // ← 引入公共模型
 @Injectable({
   providedIn: 'root',
 })
