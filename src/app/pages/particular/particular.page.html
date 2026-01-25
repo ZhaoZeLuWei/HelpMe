@@ -1,0 +1,80 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <!-- 返回箭头 -->
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="chevron-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <!-- 关注按钮 -->
+    <ion-buttons slot="end">
+      <ion-button (click)="onFollow()">
+        <ion-icon slot="start" name="heart-outline"></ion-icon>
+        关注
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <div class="detail-container">
+
+    <!-- 右侧内容区 -->
+    <div class="content-area">
+      <!-- 发布者信息 -->
+      <div class="publisher-info">
+        <div class="avatar-container">
+          <img [src]="apiBase + (profile?.avatar || '/assets/icon/user.svg')"
+               alt="用户头像"
+               class="user-avatar">
+        </div>
+        <div class="publisher-text">
+          <h3>{{ event?.name }}</h3>
+          <p class="publisher-meta">
+            注册时间：{{ profile?.CreateTime }} |
+            服务评分：{{ profile?.serviceScore }} 分 |
+            服务次数：{{ profile?.orderCount }} 次
+          </p>
+        </div>
+      </div>
+
+      <!-- 任务核心信息 -->
+      <div class="event-info">
+        <h2 class="event-title">{{event?.title}}</h2>
+        <div class="event-details">
+          <p><ion-icon name="location-outline"></ion-icon> 地点：{{ event?.address }}</p>
+          <p><ion-icon name="time-outline"></ion-icon> 时间：{{ event?.createTime }}</p>
+          <p><ion-icon name="cash-outline"></ion-icon> 价格：¥{{ event?.price }}</p>
+        </div>
+        <p class="event-description">{{ event?.demand }}</p>
+      </div>
+
+      <!-- 任务图标区 -->
+      <div class="event-icon-area">
+        <img [src]="event && event.cardImage ? apiBase + event.cardImage : ''"
+             alt="暂无任务图片"
+             class="event-icon">
+      </div>
+    </div>
+  </div>
+</ion-content>
+<!-- ✅ 底部固定栏：与 ion-content 并列 -->
+<ion-footer>
+  <ion-toolbar>
+    <ion-row class="bottom-actions">
+      <ion-col>
+        <ion-button expand="block" fill="outline" (click)="onCollect()">
+          <ion-icon slot="start" name="star-outline"></ion-icon>
+          收藏
+        </ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button expand="block" (click)="onChat()">
+          <ion-icon slot="start" name="chatbubble-outline"></ion-icon>
+          聊一聊
+        </ion-button>
+      </ion-col>
+    </ion-row>
+  </ion-toolbar>
+</ion-footer>

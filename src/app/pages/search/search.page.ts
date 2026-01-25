@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonButtons, IonButton, IonContent, IonHeader, IonTitle, IonToolbar, IonSearchbar } from '@ionic/angular/standalone';
+import { IonButton, IonContent, IonHeader, IonToolbar, IonSearchbar, IonIcon } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
@@ -22,11 +22,10 @@ import { HttpClientModule } from '@angular/common/http'; // ← 新增
     HttpClientModule,
     IonHeader,
     IonToolbar,
-    IonTitle,
     IonContent,
-    IonButtons,   // ← 必须加
     IonButton,    // ← 已有
     IonSearchbar, // 如果模板里用到也加上
+    IonIcon,      // ← 添加IonIcon
   ],
 })
 export class SearchPage implements OnInit {
@@ -52,6 +51,11 @@ export class SearchPage implements OnInit {
 
   onCancel() {
     this.searchState.clear();
-    this.router.navigateByUrl(this.returnTo);
+    this.router.navigateByUrl('tabs/tab1');
+  }
+
+  aiSearch() {
+    console.log('AI辅助搜索功能暂未开发');
+    // 为后续功能开发预留接口
   }
 }

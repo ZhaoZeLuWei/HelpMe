@@ -9,7 +9,7 @@ const connectDB = async () => {
     console.log('MongoDB 已成功连接到 HelpMeChat 数据库！');
   } catch (err) {
     console.error('MongoDB连接失败：', err.message);
-    process.exit(1);
+    console.log('继续启动服务器，MongoDB功能将不可用');
   }
 };
 

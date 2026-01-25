@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, map, distinctUntilChanged } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+// 认证相关类型
 type LoginOk = { ok: true };
 type LoginFail = { ok: false; message: string; status?: number };
 
@@ -9,6 +10,16 @@ type Session = {
   token: string;
   user: any; // 项目里 user 字段结构不稳定（UserId/userId/id），先用 any 更稳
 };
+
+// 服务提供者资料接口
+export interface ProviderProfile {
+  UserId: number;
+  UserName: string;
+  CreateTime: string;
+  serviceScore: number;
+  orderCount: number;
+  avatar: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -87,7 +98,7 @@ export class AuthService {
     const t = this.token;
     return t ? { Authorization: `Bearer ${t}` } : {};
   }
-// ----------------- login / logout -----------------
+  // ----------------- login / logout -----------------
   async loginWithPhone(
     phone: string,
     code: string,
@@ -147,5 +158,18 @@ export class AuthService {
 
   logout() {
     this.setSession(null);
+  }
+  async getProviderProfile(userId: number): Promise<ProviderProfile | null> {
+    try {
+      const res = await fetch(
+        `${this.API_BASE}/api/provider-profile?userId=${userId}`,
+      );
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.success ? (json.data as ProviderProfile) : null;
+    } catch (e) {
+      console.error('getProviderProfile error:', e);
+      return null;
+    }
   }
 }
