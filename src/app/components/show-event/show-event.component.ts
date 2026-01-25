@@ -20,7 +20,7 @@ export interface EventCardData {
   demand: string;
   price: string;
   avatar: string;
-  createTime: string;   // 新增
+  createTime: string; // 新增
   creatorId: number;
   title: string; // 新增
 }
@@ -43,15 +43,35 @@ export class ShowEventComponent {
   private readonly API_BASE = environment.apiBase;
   private readonly PLACEHOLDER_IMG =
     'https://picsum.photos/seed/default/600/400'; //展示默认图片
+  private readonly PLACEHOLDER_ICON = 'assets/icon/user.svg';
 
   // 后端路径 /img/...
   imgUrl(p: any): string {
     if (!p) return this.PLACEHOLDER_IMG;
     const s = String(p).trim();
     if (!s) return this.PLACEHOLDER_IMG;
-    // 已经是绝对路径，直接返回
     if (s.startsWith('/')) return this.API_BASE + s;
     return this.PLACEHOLDER_IMG;
+  }
+  // 处理事件加载错误
+  onImageError(event: any) {
+    if (event.target.src !== this.PLACEHOLDER_IMG) {
+      event.target.src = this.PLACEHOLDER_IMG;
+    }
+  }
+  // 处理头像的图片路径
+  avatarUrl(p?: string): string {
+    if (!p) return this.PLACEHOLDER_ICON;
+    const s = String(p).trim();
+    if (!s) return this.PLACEHOLDER_ICON;
+    if (s.startsWith('/')) return this.API_BASE + s;
+    return this.PLACEHOLDER_ICON;
+  }
+  // 处理头像加载错误
+  onAvatarError(event: any) {
+    if (event.target.src !== this.PLACEHOLDER_ICON) {
+      event.target.src = this.PLACEHOLDER_ICON;
+    }
   }
   // 处理点击逻辑
   onCardClick() {

@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, map, distinctUntilChanged } from 'rxjs';
-import { ProviderProfile } from '../models/provider-profile.model'; // ← 引入公共模型
 import { environment } from '../../environments/environment';
 
 // 认证相关类型
@@ -23,7 +22,6 @@ export interface ProviderProfile {
 }
 
 @Injectable({ providedIn: 'root' })
-
 export class AuthService {
   private readonly API_BASE = environment.apiBase;
 
@@ -100,7 +98,7 @@ export class AuthService {
     const t = this.token;
     return t ? { Authorization: `Bearer ${t}` } : {};
   }
-// ----------------- login / logout -----------------
+  // ----------------- login / logout -----------------
   async loginWithPhone(
     phone: string,
     code: string,
@@ -163,10 +161,12 @@ export class AuthService {
   }
   async getProviderProfile(userId: number): Promise<ProviderProfile | null> {
     try {
-      const res = await fetch(`${this.API_BASE}/api/provider-profile?userId=${userId}`);
+      const res = await fetch(
+        `${this.API_BASE}/api/provider-profile?userId=${userId}`,
+      );
       if (!res.ok) return null;
       const json = await res.json();
-      return json.success ? json.data as ProviderProfile : null;
+      return json.success ? (json.data as ProviderProfile) : null;
     } catch (e) {
       console.error('getProviderProfile error:', e);
       return null;
