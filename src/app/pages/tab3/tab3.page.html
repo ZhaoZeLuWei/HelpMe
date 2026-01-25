@@ -7,37 +7,44 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-list>
-    <ion-item [button]="true">
-      <ion-avatar slot="start">
-        <img src="../../../assets/icon/notification.svg" alt="notification" />
-      </ion-avatar>
-
-      <ion-label>
-        <div class="chat-header">
-          <h2>通知</h2>
-          <ion-note color="medium">DT</ion-note>
-        </div>
-        <p>Here is the last message send</p>
-      </ion-label>
-
-      <ion-badge slot="end" color="danger">0</ion-badge>
-    </ion-item>
-
-    @for (user of chatRooms; track user.name) {
-      <ion-item [button]="true" (click)="goChat(user)">
+  @if (!showChat) {
+    <h1>您好！请登录</h1>
+    <h1>Welcome! Please Login</h1>
+    <h3>Now directing you to the login page...</h3>
+  }
+  @if (showChat) {
+    <ion-list>
+      <ion-item [button]="true">
         <ion-avatar slot="start">
-          <img [src]="user.avatar" [alt]="user.name" />
+          <img src="../../../assets/icon/notification.svg" alt="notification" />
         </ion-avatar>
+
         <ion-label>
           <div class="chat-header">
-            <h2>{{user.name}}</h2>
-            <ion-note color="medium">{{user.time}}</ion-note>
+            <h2>通知</h2>
+            <ion-note color="medium">DT</ion-note>
           </div>
-          <p>{{user.lastMsg}}</p>
+          <p>Here is the last message send</p>
         </ion-label>
-        <ion-badge slot="end" color="danger">{{user.count}}</ion-badge>
+
+        <ion-badge slot="end" color="danger">0</ion-badge>
       </ion-item>
-    }
-  </ion-list>
+
+      @for (user of chatRooms; track user.name) {
+        <ion-item [button]="true" (click)="goChat(user)">
+          <ion-avatar slot="start">
+            <img [src]="user.avatar" [alt]="user.name" />
+          </ion-avatar>
+          <ion-label>
+            <div class="chat-header">
+              <h2>{{user.name}}</h2>
+              <ion-note color="medium">{{user.time}}</ion-note>
+            </div>
+            <p>{{user.lastMsg}}</p>
+          </ion-label>
+          <ion-badge slot="end" color="danger">{{user.count}}</ion-badge>
+        </ion-item>
+      }
+    </ion-list>
+  }
 </ion-content>

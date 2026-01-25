@@ -16,6 +16,7 @@ import {
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
+import {provideHttpClient} from "@angular/common/http";
 
 /* 2. 一次性注册全局图标 */
 addIcons({
@@ -31,6 +32,7 @@ addIcons({
 bootstrapApplication(AppComponent, {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+    provideHttpClient(),
     provideIonicAngular(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
   ],

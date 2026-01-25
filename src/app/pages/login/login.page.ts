@@ -6,7 +6,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { IonicModule, ToastController } from '@ionic/angular';
+import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -19,6 +19,7 @@ import { AuthService } from '../../services/auth.service';
 export class LoginPage {
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
+  private modalCtrl = inject(ModalController);
 
   form = new FormGroup({
     phone: new FormControl('', [
@@ -38,7 +39,9 @@ export class LoginPage {
     if (this.form.controls.phone.invalid) {
       const t = await this.toastCtrl.create({
         message: '请输入有效的11位手机号',
-        duration: 3000,
+        duration: 750,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
       });
       await t.present();
       return;
@@ -49,7 +52,9 @@ export class LoginPage {
     // 模拟发送
     const toast = await this.toastCtrl.create({
       message: '验证码已发送，验证码为1234',
-      duration: 3000,
+      duration: 750,
+      position: 'bottom',
+      positionAnchor: 'main-tab-bar',
     });
     await toast.present();
 
@@ -69,7 +74,9 @@ export class LoginPage {
     if (this.form.invalid) {
       const t = await this.toastCtrl.create({
         message: '请完善手机号和验证码',
-        duration: 3000,
+        duration: 750,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
       });
       await t.present();
       return;
@@ -78,26 +85,35 @@ export class LoginPage {
     const phone = this.form.controls.phone.value || '';
     const code = this.form.controls.code.value || '';
 
-    const ok = await this.auth.loginWithPhone(phone, code);
-    if (!ok) {
+    const result = await this.auth.loginWithPhone(phone, code);
+    if (!result.ok) {
       const t = await this.toastCtrl.create({
-        message: '手机号或验证码错误',
-        duration: 3000,
+        message: result.message,
+        duration: 750,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
       });
       await t.present();
       return;
     }
 
-    let name = '';
-    try {
-      const raw = localStorage.getItem('user');
-      if (raw) {
-        name = JSON.parse(raw).UserName || '';
-      }
-    } catch (e) {}
+    const u = this.auth.currentUser;
+    const name = u?.UserName ?? u?.userName ?? u?.name ?? '';
     const message = name ? `登录成功，${name}，欢迎您！` : '登录成功，欢迎您！';
-    const t = await this.toastCtrl.create({ message, duration: 3000 });
 
+    const t = await this.toastCtrl.create({
+      message,
+      duration: 750,
+      position: 'bottom',
+      positionAnchor: 'main-tab-bar',
+    });
     await t.present();
+
+    // 登录成功后关闭 Modal
+    await this.modalCtrl.dismiss();
+  }
+
+  async closeModal() {
+    await this.modalCtrl.dismiss();
   }
 }

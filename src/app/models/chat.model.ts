@@ -3,5 +3,5 @@ export interface ChatModel {
   text: string;
   senderId: string;
   userName: string;
-  timestamp: string | Date;
+  sendTime: string | Date;
 }
