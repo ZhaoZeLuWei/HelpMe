@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, map, distinctUntilChanged } from 'rxjs';
 import { ProviderProfile } from '../models/provider-profile.model'; // ← 引入公共模型
+
 import { environment } from '../../environments/environment';
 
 type LoginOk = { ok: true };
