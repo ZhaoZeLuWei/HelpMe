@@ -99,7 +99,8 @@ export class UniversalSearchComponent implements OnInit {
 
     return allEvents.filter(item => {
       // 1. 搜索词过滤（核心修复）
-      if (term && !item.demand?.toLowerCase().includes(term.toLowerCase())) {
+
+        if (term && !item.demand?.toLowerCase().includes(term.toLowerCase()) && !item.title?.toLowerCase().includes(term.toLowerCase())) {
         return false;
       }
 
