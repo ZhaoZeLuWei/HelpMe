@@ -27,9 +27,17 @@
     margin: 0 0 24px;
   }
 
-  ion-button {
-    --padding-start: 32px;
-    --padding-end: 32px;
+  .auth-buttons {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 400px;
+
+    ion-button {
+      flex: 1;
+      --padding-start: 24px;
+      --padding-end: 24px;
+    }
   }
 }
 

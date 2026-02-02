@@ -11,7 +11,12 @@
     <ion-icon name="person-circle" class="prompt-icon"></ion-icon>
     <h2>欢迎使用 HelpMe</h2>
     <p>登录后查看个人中心</p>
-    <ion-button (click)="openLoginModal()">立即登录</ion-button>
+    <div class="auth-buttons">
+      <ion-button (click)="openLoginModal()">立即登录</ion-button>
+      <ion-button fill="outline" (click)="openRegisterModal()"
+        >注册账号</ion-button
+      >
+    </div>
   </div>
   } @if (isLoggedIn) {
   <!-- 用户信息 -->

@@ -305,6 +305,13 @@ export class Tab4Page implements OnDestroy {
     await modal.present();
   }
 
+  async openRegisterModal() {
+    const modal = await this.modalController.create({
+      component: (await import('../register/register.page')).RegisterPage,
+    });
+    await modal.present();
+  }
+
   editTask(taskId: number) {
     void this.openEditModal(taskId);
   }
@@ -351,6 +358,14 @@ export class Tab4Page implements OnDestroy {
 
   logout() {
     this.auth.logout(); // 登出会触发状态变更
+    this.toastController
+      .create({
+        message: '已成功登出',
+        duration: 750,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      })
+      .then((toast) => toast.present());
   }
 
   ngOnDestroy(): void {
