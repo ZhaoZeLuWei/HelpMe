@@ -4,6 +4,7 @@
     <!--  调用图片 on-image-url" 存在则显示图片；不存在则显示占位图 -->
     <img
       [src]="imgUrl(event.cardImage)"
+      (error)="onImageError($event)"
       class="card-image-img"
       alt="事件图片"
     />
@@ -15,11 +16,19 @@
 
   <div class="user-info-row">
     <div class="user-avatar">
-      <span class="material-icons">account_circle</span>
+      <img
+        [src]="avatarUrl(event?.avatar)"
+        (error)="onAvatarError($event)"
+        alt="用户头像"
+        class="avatar-img-small"
+      />
     </div>
     <div class="name-address-wrapper">
-      <span class="user-name">{{ event.name }}</span>
-      <span class="user-address">{{ event.address }}</span>
+      <div class="event-title">{{ event.title }}</div>
+      <div class="user-info">
+        <span class="user-name">{{ event.name }}</span>
+        <span class="user-address">{{ event.address }}</span>
+      </div>
     </div>
   </div>
 

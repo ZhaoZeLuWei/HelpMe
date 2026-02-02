@@ -10,7 +10,7 @@ const Message = require('./models/Message');
 const getChatHistory = async (queryParams) => {
   try {
     const { roomId, page = 1, pageSize = 20, startTime, endTime } = queryParams;
-    
+
     const query = {}; // 默认为空对象，表示查询所有文档
     if (roomId) {
       query.roomId = roomId; // 如果传了 roomId，才加上筛选条件
@@ -49,7 +49,7 @@ const getChatHistory = async (queryParams) => {
       senderId: msg.senderId,
       text: msg.text,
       sendTime: new Date(msg.sendTime).toLocaleString(),
-      userName: msg.userName 
+      userName: msg.userName
     }));
 
     // 返回结果
@@ -67,14 +67,69 @@ const getChatHistory = async (queryParams) => {
     return { success: false, message: '读取失败：' + error.message };
   }
 };
-module.exports.registerChatHandler = (io, socket) => {
 
+const getRoomList = async (queryParams) => {
+  try {
+
+    const { page = 1, pageSize = 20, userId, eventId, roomId } = queryParams;
+
+    const query = {};
+
+    if (roomId) {
+      query._id = roomId;
+    }
+    else if (eventId) {
+      query.eventId = eventId;
+    }
+    else if (userId) {
+      query.$or = [
+        { creatorId: userId },
+        { partnerId: userId }
+      ];
+    }
+
+    const pageNum = parseInt(page, 10);
+    const size = parseInt(pageSize, 10);
+
+    if (isNaN(pageNum) || pageNum < 1 || isNaN(size) || size < 1 || size > 100) {
+      return { success: false, message: '分页参数错误' };
+    }
+
+    const skip = (pageNum - 1) * size;
+
+    const rooms = await Room.find(query)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(size)
+      .lean();
+
+    const total = await Room.countDocuments(query);
+
+    return {
+      success: true,
+      message: '查询房间列表成功',
+      data: {
+        rooms: rooms,
+        pagination: {
+          page: pageNum,
+          pageSize: size,
+          total,
+          totalPages: Math.ceil(total / size)
+        }
+      }
+    };
+
+  } catch (error) {
+    console.log("读取房间列表失败：", error);
+    return { success: false, message: '读取失败：' + error.message };
+  }
+};
+
+module.exports.registerChatHandler = (io, socket) => {
   //join the room
   const joinRoom = (roomId) => {
-    //🚨需要JWT验证确认身份再真正对接后端？(1-16 Node穿入Fake身份）
-    //先用Node 写好的身份，告诉客户端（前端）我是谁
+    //Node已经通过JWT获取了登陆用户的身份，并传递到客户端
     socket.emit('myself', socket.user);
-
 
     if (!roomId) return;
     socket.join(roomId);
@@ -90,7 +145,7 @@ module.exports.registerChatHandler = (io, socket) => {
         text: joined,
         senderId: 'system_bot',
         userName: '系统通知',
-        timestamp: new Date(),
+        sendTime: new Date(),
       }
     );
   }
@@ -135,3 +190,4 @@ module.exports.registerChatHandler = (io, socket) => {
 }
 
 module.exports.getChatHistory = getChatHistory;
+module.exports.getRoomList = getRoomList;

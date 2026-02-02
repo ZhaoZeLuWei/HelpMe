@@ -1,9 +1,6 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>搜索</ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="onSearch()">搜索</ion-button>
-    </ion-buttons>
+    <!-- 移除了按钮，只保留工具栏结构 -->
   </ion-toolbar>
 </ion-header>
 
@@ -13,5 +10,21 @@
     placeholder="输入需求描述"
     (keyup.enter)="onSearch()"
   ></ion-searchbar>
+  
+  <!-- 将按钮移动到搜索框下方 -->
+  <div class="button-container">
+    <ion-button size="large" (click)="onCancel()">
+      <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+      返回
+    </ion-button>
+    <ion-button size="large" (click)="onSearch()">
+      <ion-icon slot="start" name="search-outline"></ion-icon>
+      搜索
+    </ion-button>
+    <ion-button size="large" (click)="aiSearch()">
+      <ion-icon slot="start" name="sparkles-outline"></ion-icon>
+      AI辅助
+    </ion-button>
+  </div>
 </ion-content>
 

@@ -15,15 +15,15 @@ import {
   IonSearchbar,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
-import { ActivatedRoute } from '@angular/router'; // 添加 ActivatedRoute 导入
+import { ActivatedRoute, Router } from '@angular/router'; // 添加 ActivatedRoute 和 Router 导入
 
-// 引入搜索组件 (不再依赖 UI)
+// 引入搜索组件 (用于显示搜索结果)
 import {
   UniversalSearchComponent,
   EventCardData,
 } from '../../components/universal-search/universal-search.component';
 
-// 引入展示组件 (在这里由 Tab2 接管)
+// 引入展示组件
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { SearchStateService } from '../../services/search-state.service';
 @Component({
@@ -37,6 +37,7 @@ import { SearchStateService } from '../../services/search-state.service';
     IonToolbar,
     IonTitle,
     IonContent,
+    IonSearchbar,
     UniversalSearchComponent,
     ShowEventComponent,
   ],
@@ -44,10 +45,14 @@ import { SearchStateService } from '../../services/search-state.service';
 export class Tab2Page implements OnInit, AfterViewInit {
   private readonly API_BASE = environment.apiBase;
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private searchState = inject(SearchStateService);
 
   // 数据容器
   eventsData = signal<EventCardData[]>([]);
+
+  // 分类参数
+  currentType: string | null = null;
 
   // 拿到搜索框实例
   @ViewChild('searchBar') searchBar!: IonSearchbar;
@@ -55,7 +60,9 @@ export class Tab2Page implements OnInit, AfterViewInit {
   //constructor(private route: ActivatedRoute) {}
 
   ngOnInit() {    // 统一订阅：关键词变化 or 聚焦标志变化都走这里
+    // 接收路由参数
     this.route.queryParams.subscribe(params => {
+      this.currentType = params['type'] || null;
       const keyword = params['search'] || '';
       this.loadEvents(keyword);          // 把关键词传进去
 
@@ -80,28 +87,46 @@ export class Tab2Page implements OnInit, AfterViewInit {
     });
   }
 
-  /* 统一加载：根据关键词决定接口 */
+  /* 统一加载：根据关键词和分类决定接口 */
   private loadEvents(keyword?: string) {
-    const url = keyword
-      ? `${this.API_BASE}/api/cards?search=${encodeURIComponent(keyword)}`
-      : `${this.API_BASE}/api/cards`;
+    // 构建查询参数
+    const params = new URLSearchParams();
+    if (keyword) {
+      params.append('search', encodeURIComponent(keyword));
+    }
+    if (this.currentType) {
+      params.append('type', this.currentType);
+    }
+
+    // 构建URL
+    const url = `${this.API_BASE}/api/cards${params.toString() ? '?' + params.toString() : ''}`;
 
     fetch(url)
       .then(res => res.json())
       .then(list => {
-        const transformed = list.map((item: any) => ({   // ← 显式 any
+        const transformed = list.map((item: any) => ({
           id: String(item.id),
-          cardImage: item.cardImage || 'https://picsum.photos/seed/default/600/400',
+          creatorId: Number(item.creatorId), // 新增
+          cardImage: item.cardImage ,
+          title: item.title,
           icon: item.icon || 'navigate-outline',
           distance: item.distance || '未知距离',
           name: item.name,
           address: item.address,
           demand: item.demand,
           price: item.price ? String(item.price) : '0.00',
+          createTime: item.createTime,
           avatar: item.avatar,
         }));
         this.eventsData.set(transformed);   // signal 自动触发视图更新
       })
       .catch(err => console.error('Tab2 加载失败', err));
+  }
+
+  /* 跳转到搜索页面 */
+  navigateToSearch() {
+    this.router.navigate(['/search'], {
+      queryParams: { returnTo: 'tabs/tab2' }
+    });
   }
 }

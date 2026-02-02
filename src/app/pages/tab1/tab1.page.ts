@@ -16,6 +16,7 @@ import { Router } from '@angular/router';
 // 卡片数据接口
 interface CardItem {
   id: string;
+  creatorId: number;      // 新增
   cardImage: string;
   icon: string;
   distance: string;
@@ -24,6 +25,8 @@ interface CardItem {
   demand: string;
   price: string;
   avatar: string;
+  createTime: string;// 新增
+  title: string; // 新增
 }
 
 @Component({
@@ -143,8 +146,10 @@ export class Tab1Page implements OnInit {
     });
   }
   //只去到搜索页面
-  goToTab2Search() {
-    this.router.navigate(['/tabs/tab2']);
+  goToTab2Search(type?: 'request' | 'help') {
+    this.router.navigate(['/tabs/tab2'], {
+      queryParams: { type: type }
+    });
   }
 
   // 切换语言
@@ -166,6 +171,10 @@ export class Tab1Page implements OnInit {
   // 卡片点击反馈
   cardClickFeedback(item: CardItem) {
     console.log('点击了小卡片：', item.name, 'ID：', item.id);
+    // 跳转到详情页面，传递完整的item对象
+    this.router.navigate(['/particular'], {
+      queryParams: { event: JSON.stringify(item) }
+    });
   }
 
   // 更多按钮点击
