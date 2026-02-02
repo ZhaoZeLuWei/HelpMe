@@ -158,6 +158,12 @@ export class UniversalSearchComponent implements OnInit {
       location: ''
     });
     this.confirmedSearchText.set(''); // 清空确认的搜索词
+    // 清除 URL 中的搜索参数
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      queryParamsHandling: 'merge'
+    });
   }
 
   onSearch() {
