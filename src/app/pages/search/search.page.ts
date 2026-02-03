@@ -5,10 +5,8 @@ import { IonButton, IonContent, IonHeader, IonSearchbar, IonIcon } from '@ionic/
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { Location } from '@angular/common';  // 添加这行
 import { SearchStateService } from '../../services/search-state.service'; // 根据实际路径调整
-import { EventCardData } from '../../components/show-event/show-event.component'; // 根据实际路径调整
-import { environment } from '../../../environments/environment';
 import { HttpClientModule } from '@angular/common/http'; // ← 新增
 
 @Component({
@@ -31,6 +29,7 @@ export class SearchPage implements OnInit {
   private searchState = inject(SearchStateService);
   private router = inject(Router);
   private http = inject(HttpClient);
+  private location = inject(Location);
   private route = inject(ActivatedRoute);
 
   keyword = '';
@@ -48,9 +47,13 @@ export class SearchPage implements OnInit {
     });
   }
 
-  onCancel() {
-    this.searchState.clear();
-    this.router.navigateByUrl('tabs/tab1');
+  goBack() {
+    // 尝试返回上一页，如果没有历史则回首页
+    if (window.history.length > 1) {
+      this.location.back();
+    } else {
+      this.router.navigate(['/tabs/tab1']);
+    }
   }
 
   aiSearch() {

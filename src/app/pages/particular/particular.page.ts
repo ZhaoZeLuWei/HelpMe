@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow,IonCol,IonBadge} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';  // 添加这行
 import { EventCardData } from '../../components/show-event/show-event.component';
 import { environment } from 'src/environments/environment';
 
@@ -27,6 +28,7 @@ import { environment } from 'src/environments/environment';
 export class ParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private location = inject(Location);  // 添加这行
   readonly apiBase = environment.apiBase;
 
   // 新增 userInfo 对象，模拟队友的数据结构
@@ -186,7 +188,12 @@ export class ParticularPage implements OnInit {
   }
   // 返回上一页
   goBack() {
-    this.router.navigate(['/tabs/tab1']);
+    // 尝试返回上一页，如果没有历史则回首页
+    if (window.history.length > 1) {
+      this.location.back();
+    } else {
+      this.router.navigate(['/tabs/tab1']);
+    }
   }
 
   // 关注按钮点击事件

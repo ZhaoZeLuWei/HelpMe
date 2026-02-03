@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow, IonCol, IonTitle, IonBadge } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';  // 添加这行
 import { environment } from 'src/environments/environment';
 import { addIcons } from 'ionicons';
 import {
@@ -35,6 +36,7 @@ import {
 export class UserParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private location = inject(Location);
   readonly apiBase = environment.apiBase;
 
   // 用户信息
@@ -268,6 +270,11 @@ export class UserParticularPage implements OnInit {
   }
   // 返回上一页
   goBack() {
-    this.router.navigate(['/tabs/tab1']);
+    // 尝试返回上一页，如果没有历史则回首页
+    if (window.history.length > 1) {
+      this.location.back();
+    } else {
+      this.router.navigate(['/tabs/tab1']);
+    }
   }
 }
