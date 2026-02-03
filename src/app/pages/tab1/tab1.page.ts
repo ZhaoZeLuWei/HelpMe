@@ -12,6 +12,7 @@ import { ShowEventComponent } from '../../components/show-event/show-event.compo
 import { UniversalSearchComponent } from '../../components/universal-search/universal-search.component';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
+import { LanguageService } from '../../services/language.service'; 
 
 // 卡片数据接口
 interface CardItem {
@@ -47,9 +48,20 @@ export class Tab1Page implements OnInit {
   // 使用 inject() 函数替代构造函数注入
   private http = inject(HttpClient);
   private router = inject(Router);
+  private langService = inject(LanguageService);
 
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
+
+   // 页面翻译对象
+  t = this.langService.getTranslations('zh').tab1;
+  
+  // 按钮显示的文字（从t对象取）
+  get currentLangBtnText() {
+    return this.t.btnText;
+  }
+
+
 
   // 【修复2】在类中定义了缺失的 eventData 属性
   // 初始化为空数组，类型为 CardItem[]
@@ -60,17 +72,23 @@ export class Tab1Page implements OnInit {
   showLangConfirmModal = false;
 
   //constructor(private http: HttpClient, private router: Router) {}
-
-  ngOnInit() {
+ngOnInit() {
+    // --- 保留你原有的数据加载逻辑 ---
     this.getCardData('request').subscribe((data) => {
       this.requestList = data;
-      this.updateEventData(); // 更新总数据
+      this.updateEventData(); 
     });
     this.getCardData('help').subscribe((data) => {
       this.helpList = data;
-      this.updateEventData(); // 更新总数据
+      this.updateEventData();
+    });
+
+    // --- 新增：监听语言变化 ---
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).tab1;
     });
   }
+
 
   // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
   ionViewWillEnter() {
@@ -159,7 +177,7 @@ export class Tab1Page implements OnInit {
 
   // 确认切换语言
   confirmSwitchLanguage() {
-    this.currentLang = this.currentLang === '中文' ? 'EN' : '中文';
+    this.langService.toggleLanguage();
     this.showLangConfirmModal = false;
   }
 
