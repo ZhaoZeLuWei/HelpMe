@@ -3,13 +3,48 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
-const { authRequired } = require("./auth.js"); 
+const { authRequired } = require("./auth.js");
 
 const router = express.Router();
 
+//GET 获取所有申请记录（仅包含通过和待审核) by Zewei 2-3
+router.get("/adminVerify", async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    const [rows] = await conn.query(`
+      SELECT
+        p.ProviderId,
+        p.ProviderRole,
+        CASE
+          WHEN v.VerificationStatus = 1 THEN 1
+          ELSE 0
+        END AS IsVerified
+      FROM Providers p
+      LEFT JOIN Verifications v
+        ON p.ProviderId = v.ProviderId
+        AND v.VerificationStatus = 1
+    `);
+
+    res.json({
+      success: true,
+      data: rows,
+    });
+  } catch (err) {
+    console.error("查询人员认证列表失败:", err);
+    res.status(500).json({
+      success: false,
+      error: "服务器内部错误",
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 router.post(
   "/verifications",
-  authRequired, 
+  authRequired,
   (req, res, next) => {
     const contentType = String(req.headers["content-type"] || "");
     if (!contentType.includes("multipart/form-data")) {
