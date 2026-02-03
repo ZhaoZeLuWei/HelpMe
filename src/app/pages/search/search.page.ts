@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonSearchbar, IonIcon } from '@ionic/angular/standalone';
+import { IonButton, IonContent, IonHeader, IonSearchbar, IonIcon } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
@@ -21,7 +21,6 @@ import { HttpClientModule } from '@angular/common/http'; // ← 新增
     FormsModule,
     HttpClientModule,
     IonHeader,
-    IonToolbar,
     IonContent,
     IonButton,    // ← 已有
     IonSearchbar, // 如果模板里用到也加上

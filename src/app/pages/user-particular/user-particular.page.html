@@ -11,7 +11,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" scroll-y="true">
 
   <div class="detail-container">
 
@@ -46,7 +46,106 @@
           <p class="user-introduction">个人介绍: {{ userInfo.introduction || '暂无介绍' }}</p>
         </div>
       </div>
+      <!-- 标签页导航 -->
+      <div class="tab-navigation">
+        <div
+          class="tab-item"
+          [class.active]="activeTab === 'active-events'"
+          (click)="switchTab('active-events')"
+        >
+          发布的活动
+        </div>
+        <div
+          class="tab-item"
+          [class.active]="activeTab === 'comments'"
+          (click)="switchTab('comments')"
+        >
+          评价
+        </div>
+        <div
+          class="tab-item"
+          [class.active]="activeTab === 'activity-feed'"
+          (click)="switchTab('activity-feed')"
+        >
+          动态
+        </div>
+      </div>
 
+      <!-- 标签页内容 -->
+      <div class="tab-content">
+        <!-- 发布的活动栏 -->
+        @if (activeTab === 'active-events') {
+          <div class="tab-pane">
+            <h3>正在进行的活动</h3>
+            @if (activeEvents.length === 0) {
+              <div class="empty-state">
+                <ion-icon name="calendar-outline"></ion-icon>
+                <p>暂无正在进行的活动</p>
+              </div>
+            }
+            @for (event of activeEvents; track event.EventId) {
+              <div class="event-item">
+                <div class="event-info">
+                  <h4>{{ event.EventTitle }}</h4>
+                  <p class="event-category">{{ event.EventCategory }}</p>
+                  <p class="event-price">¥{{ event.Price }}</p>
+                  <p class="event-time">{{ formatDate(event.CreateTime) }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- 评价栏 -->
+        @if (activeTab === 'comments') {
+          <div class="tab-pane">
+            <h3>用户评价</h3>
+            @if (userComments.length === 0) {
+              <div class="empty-state">
+                <ion-icon name="chatbubble-outline"></ion-icon>
+                <p>暂无评价</p>
+              </div>
+            }
+            @for (comment of userComments; track comment.id) {
+              <div class="comment-item">
+                <div class="comment-header">
+                  <!-- 使用新方法处理头像 -->
+                  <img [src]="getCommentAvatarUrl(comment.authorAvatar)" class="comment-avatar" />
+                  <span class="comment-author">{{ comment.authorName }}</span>
+                  <span class="comment-score">{{ comment.rating }}分</span>
+                </div>
+                <p class="comment-content">{{ comment.content }}</p>
+                <p class="comment-time">{{ formatDate(comment.createTime) }}</p>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- 动态栏 -->
+        @if (activeTab === 'activity-feed') {
+          <div class="tab-pane">
+            <h3>活动动态</h3>
+            @if (activityFeed.length === 0) {
+              <div class="empty-state">
+                <ion-icon name="time-outline"></ion-icon>
+                <p>暂无活动动态</p>
+              </div>
+            }
+            @for (activity of activityFeed; track activity.id) {
+              <div class="activity-item">
+                <div class="activity-header">
+                  <span class="activity-type">{{ activity.activityType }}</span>
+                  <span class="activity-time">{{ formatDate(activity.date) }}</span>
+                </div>
+                <div class="activity-content">
+                  <h4>{{ activity.title }}</h4>
+                  <p>{{ activity.description }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
     </div>
   </div>
 </ion-content>

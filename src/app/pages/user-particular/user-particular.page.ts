@@ -3,6 +3,14 @@ import { CommonModule } from '@angular/common';
 import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow, IonCol, IonTitle, IonBadge } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
+import { addIcons } from 'ionicons';
+import {
+  chevronBackOutline,
+  calendarOutline,
+  chatbubbleOutline,
+  timeOutline,
+  heartOutline
+} from 'ionicons/icons';
 
 @Component({
   selector: 'app-user-particular',
@@ -28,7 +36,7 @@ export class UserParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   readonly apiBase = environment.apiBase;
-  
+
   // 用户信息
   userInfo: any = {
     name: '',
@@ -43,21 +51,147 @@ export class UserParticularPage implements OnInit {
     stats: { favorites: 0, views: 0, follows: 0 },
     CreateTime: ''
   };
-  
+
   userId: number | null = null;
-  
+
+// 在 UserParticularPage 类中添加以下属性
+// 标签页导航
+  activeTab: string = 'active-events'; // 默认显示发布的活动栏
+
+// 三个栏目的数据
+  activeEvents: any[] = []; // 正在进行的活动
+  userComments: any[] = []; // 用户评价
+  activityFeed: any[] = []; // 活动动态
+
+  constructor() {
+    // 注册图标
+    addIcons({
+      chevronBackOutline,
+      calendarOutline,
+      chatbubbleOutline,
+      timeOutline,
+      heartOutline
+    });
+  }
+
+// 在 ngOnInit 方法中添加数据加载
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
       this.userInfo.name = params['name'] || '';
       this.userId = params['userId'] ? Number(params['userId']) : null;
-      
-      // 如果有 userId，加载用户详情
+
+      // 如果有 userId，加载用户详情和相关数据
       if (this.userId) {
         this.loadUserFromStorage(this.userId);
+        this.loadActiveEvents(this.userId);
+        this.loadUserComments(this.userId);
+        this.loadActivityFeed(this.userId);
       }
     });
   }
-  
+
+// 添加以下方法
+// 切换标签页
+  switchTab(tab: string) {
+    this.activeTab = tab;
+  }
+
+// 加载用户正在进行的活动
+  async loadActiveEvents(userId: number): Promise<void> {
+    try {
+      const resp = await fetch(`${this.apiBase}/users/${userId}/events`);
+      if (resp.ok) {
+        const data = await resp.json().catch(() => null);
+        if (Array.isArray(data)) {
+          // 如果没有status字段，直接使用所有活动
+          this.activeEvents = data;
+        }
+      }
+    } catch (e) {
+      console.error('loadActiveEvents error', e);
+    }
+  }
+
+// 加载用户评价
+  async loadUserComments(userId: number): Promise<void> {
+    try {
+      const resp = await fetch(`${this.apiBase}/users/${userId}/comments`);
+      if (resp.ok) {
+        const data = await resp.json().catch(() => null);
+        if (data?.success) {
+          this.userComments = data.comments || [];
+        }
+      } else if (resp.status === 404) {
+        // 评论 API 未实现，设置为空数组
+        this.userComments = [];
+        console.log('Comments API not implemented, setting empty array');
+      }
+    } catch (e) {
+      console.error('loadUserComments error', e);
+      this.userComments = [];
+    }
+  }
+  // 获取评论者头像URL
+  getCommentAvatarUrl(avatarPath?: string): string {
+    if (!avatarPath || avatarPath.trim() === '') {
+      return '/assets/icon/user.svg';
+    }
+    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
+      return avatarPath;
+    }
+    return environment.apiBase + avatarPath;
+  }
+
+// 加载用户活动动态
+  async loadActivityFeed(userId: number): Promise<void> {
+    try {
+      const resp = await fetch(`${this.apiBase}/users/${userId}/events`);
+      if (resp.ok) {
+        const data = await resp.json().catch(() => null);
+        if (Array.isArray(data)) {
+          // 按日期排序所有活动，创建动态 feed
+          this.activityFeed = [...data]
+            .sort((a, b) => {
+              const dateA = new Date(a.CreateTime || 0).getTime();
+              const dateB = new Date(b.CreateTime || 0).getTime();
+              return dateB - dateA; // 降序排列，最新的在前
+            })
+            .map(event => ({
+              id: event.EventId,
+              title: event.EventTitle,
+              description: event.EventDetails || '暂无描述',
+              activityType: this.getActivityType(event.status),
+              date: event.CreateTime
+            }));
+        }
+      }
+    } catch (e) {
+      console.error('loadActivityFeed error', e);
+    }
+  }
+
+  // 获取活动类型文本
+  getActivityType(status: string): string {
+    const map: Record<string, string> = {
+      published: '发布活动',
+      inProgress: '活动进行中',
+      completed: '活动完成',
+      review: '待评价'
+    };
+    return map[status] || '活动';
+  }
+// 格式化日期
+  formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
   // 加载用户信息
   async loadUserFromStorage(userId: number): Promise<void> {
     try {
@@ -80,7 +214,7 @@ export class UserParticularPage implements OnInit {
       console.error('loadUserFromStorage error', e);
     }
   }
-  
+
   // 获取服务等级文本
   getServiceRoleText(providerRole: number): string {
     switch (providerRole) {
@@ -92,7 +226,7 @@ export class UserParticularPage implements OnInit {
         return '普通用户';
     }
   }
-  
+
   // 获取服务等级颜色
   getServiceRoleColor(providerRole: number): string {
     switch (providerRole) {
@@ -104,7 +238,7 @@ export class UserParticularPage implements OnInit {
         return 'medium';
     }
   }
-  
+
   // 获取头像URL
   getAvatarUrl(avatarPath?: string): string {
     if (!avatarPath || avatarPath.trim() === '') {
@@ -115,7 +249,7 @@ export class UserParticularPage implements OnInit {
     }
     return environment.apiBase + avatarPath;
   }
-  
+
   // 返回上一页
   goBack() {
     this.router.navigate(['/tabs/tab1']);

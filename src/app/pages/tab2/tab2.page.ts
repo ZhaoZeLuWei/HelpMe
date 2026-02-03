@@ -10,7 +10,6 @@ import { CommonModule } from '@angular/common';
 import {
   IonHeader,
   IonToolbar,
-  IonTitle,
   IonContent,
   IonSearchbar,
 } from '@ionic/angular/standalone';
@@ -35,7 +34,6 @@ import { SearchStateService } from '../../services/search-state.service';
     CommonModule,
     IonHeader,
     IonToolbar,
-    IonTitle,
     IonContent,
     IonSearchbar,
     UniversalSearchComponent,
