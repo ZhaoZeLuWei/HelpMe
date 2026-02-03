@@ -56,7 +56,7 @@ router.get("/users/:id/profile", async (req, res) => {
   const userId = req.params.id;
   try {
     const [rows] = await pool.query(
-      `SELECT u.UserId, u.UserName, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction,
+      `SELECT u.UserId, u.UserName, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction,u.CreateTime,
               (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
               c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
        FROM Users u

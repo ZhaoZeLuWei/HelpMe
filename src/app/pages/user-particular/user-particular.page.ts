@@ -1,14 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow,IonCol,IonBadge} from '@ionic/angular/standalone';
+import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow, IonCol, IonTitle, IonBadge } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EventCardData } from '../../components/show-event/show-event.component';
 import { environment } from 'src/environments/environment';
 
 @Component({
-  selector: 'app-particular',
-  templateUrl: './particular.page.html',
-  styleUrls: ['./particular.page.scss'],
+  selector: 'app-user-particular',
+  templateUrl: './user-particular.page.html',
+  styleUrls: ['./user-particular.page.scss'],
   standalone: true,
   imports: [
     CommonModule,
@@ -21,15 +20,16 @@ import { environment } from 'src/environments/environment';
     IonFooter,
     IonRow,
     IonCol,
-    IonBadge
+    IonTitle,
+    IonBadge,
   ],
 })
-export class ParticularPage implements OnInit {
+export class UserParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   readonly apiBase = environment.apiBase;
-
-  // 新增 userInfo 对象，模拟队友的数据结构
+  
+  // 用户信息
   userInfo: any = {
     name: '',
     location: '',
@@ -41,36 +41,30 @@ export class ParticularPage implements OnInit {
     serviceRanking: 0,
     isVerified: '未认证',
     stats: { favorites: 0, views: 0, follows: 0 },
-    CreateTime: '' // 注册时间
+    CreateTime: ''
   };
-
-  event: EventCardData | null = null;
-
+  
+  userId: number | null = null;
+  
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
-      if (params['event']) {
-        try {
-          this.event = JSON.parse(params['event']);
-
-          /* 修改为使用 loadUserFromStorage 方法 ===================== */
-          if (this.event?.creatorId) {
-            this.loadUserFromStorage(Number(this.event.creatorId));
-          }
-        } catch (error) {
-          console.error('解析事件数据失败:', error);
-        }
+      this.userInfo.name = params['name'] || '';
+      this.userId = params['userId'] ? Number(params['userId']) : null;
+      
+      // 如果有 userId，加载用户详情
+      if (this.userId) {
+        this.loadUserFromStorage(this.userId);
       }
     });
   }
-
-  /* 新增：直接使用 tab4 的 loadUserFromStorage 方法 ===================== */
+  
+  // 加载用户信息
   async loadUserFromStorage(userId: number): Promise<void> {
     try {
       const resp = await fetch(`${this.apiBase}/users/${userId}/profile`);
       if (resp.ok) {
         const data = await resp.json().catch(() => null);
         if (data?.success && data.user) {
-          // 更新 userInfo
           this.userInfo.name = data.user.UserName || '';
           this.userInfo.location = data.user.Location || '';
           this.userInfo.introduction = data.user.Introduction || '';
@@ -86,20 +80,8 @@ export class ParticularPage implements OnInit {
       console.error('loadUserFromStorage error', e);
     }
   }
-
-  // 获取头像URL，处理默认值
-  getAvatarUrl(avatarPath?: string): string {
-    if (!avatarPath || avatarPath.trim() === '') {
-      return '/assets/icon/user.svg'; // 默认头像路径
-    }
-    // 检查是否已经是完整URL
-    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
-      return avatarPath;
-    }
-    // 拼接API基础URL
-    return environment.apiBase + avatarPath;
-  }
-  // 新增：根据 providerRole 返回服务等级文本
+  
+  // 获取服务等级文本
   getServiceRoleText(providerRole: number): string {
     switch (providerRole) {
       case 1:
@@ -110,46 +92,32 @@ export class ParticularPage implements OnInit {
         return '普通用户';
     }
   }
-
-// 新增：根据 providerRole 返回对应颜色
+  
+  // 获取服务等级颜色
   getServiceRoleColor(providerRole: number): string {
     switch (providerRole) {
       case 1:
-        return 'warning'; // 黄色
+        return 'warning';
       case 2:
-        return 'success'; // 绿色
+        return 'success';
       default:
-        return 'medium'; // 灰色
+        return 'medium';
     }
   }
-// 新增：跳转到用户详情页面
-  goToUserParticular() {
-    if (this.userInfo.name) {
-      this.router.navigate(['/user-particular'], {
-        queryParams: {
-          name: this.userInfo.name,
-          userId: this.event?.creatorId
-        }
-      });
+  
+  // 获取头像URL
+  getAvatarUrl(avatarPath?: string): string {
+    if (!avatarPath || avatarPath.trim() === '') {
+      return '/assets/icon/user.svg';
     }
+    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
+      return avatarPath;
+    }
+    return environment.apiBase + avatarPath;
   }
+  
   // 返回上一页
   goBack() {
     this.router.navigate(['/tabs/tab1']);
-  }
-
-  // 关注按钮点击事件
-  onFollow() {
-    console.log('关注按钮点击');
-  }
-
-  // 收藏按钮点击事件
-  onCollect() {
-    console.log('收藏按钮点击');
-  }
-
-  // 聊一聊按钮点击事件
-  onChat() {
-    console.log('聊一聊按钮点击');
   }
 }

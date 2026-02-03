@@ -1,0 +1,71 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <!-- 返回箭头 -->
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="chevron-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <!-- 页面标题 -->
+    <ion-title>用户详情</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <div class="detail-container">
+
+    <!-- 右侧内容区 -->
+    <div class="content-area">
+      <!-- 发布者信息 -->
+      <div class="publisher-info">
+        <div class="avatar-container">
+          <img
+            [src]="getAvatarUrl(userInfo?.avatar)"
+            alt="用户头像"
+            class="user-avatar"
+            >
+        </div>
+        <div class="publisher-text">
+          <div class="user-name-row">
+            <h3>{{ userInfo.name }}
+            <ion-badge [color]="getServiceRoleColor(userInfo.providerRole)" class="service-badge">
+              {{ getServiceRoleText(userInfo.providerRole) }}
+            </ion-badge>
+            </h3>
+          </div>
+          <p class="publisher-meta">
+            地址:{{ userInfo.location }}
+            <br>
+            买家评分: {{ (userInfo.buyerRanking || 0) }}分
+            <br>
+            服务评分：{{ userInfo.serviceRanking }} 分
+            <br>
+            服务次数：{{ userInfo.orderCount }} 次
+          </p>
+          <p class="user-introduction">个人介绍: {{ userInfo.introduction || '暂无介绍' }}</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</ion-content>
+<!-- ✅ 底部固定栏：与 ion-content 并列 -->
+<ion-footer>
+  <ion-toolbar>
+    <ion-row class="bottom-actions">
+      <ion-col>
+        <ion-button expand="block" fill="outline">
+          <ion-icon slot="start" name="heart-outline"></ion-icon>
+          关注
+        </ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button expand="block">
+          <ion-icon slot="start" name="chatbubble-outline"></ion-icon>
+          聊一聊
+        </ion-button>
+      </ion-col>
+    </ion-row>
+  </ion-toolbar>
+</ion-footer>
