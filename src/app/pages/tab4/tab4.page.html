@@ -21,38 +21,81 @@
   } @if (isLoggedIn) {
   <!-- 用户信息 -->
   <ion-card class="user-card">
-    <ion-item lines="none" class="user-header">
-      <ion-avatar slot="start" class="user-avatar">
-        @if (userInfo.avatar) {
-        <img [src]="getAssetUrl(userInfo.avatar)" alt="avatar" />
-        } @else {
-        <ion-icon name="person-circle"></ion-icon>
-        }
-      </ion-avatar>
-      <ion-label>
+    <!-- 头部区域：头像和基本信息 -->
+    <div class="user-header">
+      <div class="avatar-section">
+        <ion-avatar class="user-avatar">
+          @if (userInfo.avatar) {
+          <img [src]="getAssetUrl(userInfo.avatar)" alt="avatar" />
+          } @else {
+          <ion-icon name="person-circle"></ion-icon>
+          }
+        </ion-avatar>
+      </div>
+      <div class="user-basic-info">
         <div class="user-name-row">
-          <span class="user-name">{{ userInfo.name }}</span>
+          <h2 class="user-name">{{ userInfo.name }}</h2>
           <ion-badge
-            class="verified"
+            class="verified-badge"
             [color]="getVerificationColor(userInfo.isVerified)"
           >
             {{ userInfo.isVerified }}
           </ion-badge>
         </div>
-        <p class="user-meta">地址:{{ userInfo.location }}</p>
-        <p class="user-credit">买家评分: {{ (userInfo.buyerRanking || 0) }}</p>
-        <p class="user-credit">
-          服务评分: {{ (userInfo.serviceRanking || 0) }} · 服务总单数: {{
-          userInfo.orderCount || 0 }} · 服务等级: {{ userInfo.providerRole || 0
-          }}
-        </p>
-        <p class="user-credit">个人介绍: {{ userInfo.introduction }}</p>
-        <ion-button color="danger" (click)="logout()">
-          <ion-icon name="log-out"></ion-icon>
-          <span>登出</span>
-        </ion-button>
-      </ion-label>
-    </ion-item>
+        <div class="user-location">
+          <ion-icon name="location-outline"></ion-icon>
+          <span>{{ userInfo.location || '未设置位置' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 个人介绍 -->
+    <div class="user-intro-section">
+      <p class="user-intro">
+        {{ userInfo.introduction || '个人的介绍，等待以后再来探索吧！' }}
+      </p>
+    </div>
+
+    <!-- 评分信息 -->
+    <div class="user-ratings">
+      <div class="rating-item">
+        <ion-icon name="star" color="warning"></ion-icon>
+        <div class="rating-content">
+          <span class="rating-label">买家评分</span>
+          <span class="rating-value"
+            >{{ formatRating(userInfo.buyerRanking) }}</span
+          >
+        </div>
+      </div>
+      <div class="rating-item">
+        <ion-icon name="ribbon" color="primary"></ion-icon>
+        <div class="rating-content">
+          <span class="rating-label">服务评分</span>
+          <span class="rating-value"
+            >{{ formatRating(userInfo.serviceRanking) }}</span
+          >
+        </div>
+      </div>
+      <div class="rating-item">
+        <ion-icon name="briefcase" color="success"></ion-icon>
+        <div class="rating-content">
+          <span class="rating-label">服务单数</span>
+          <span class="rating-value">{{ userInfo.orderCount || 0 }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="user-button-group">
+      <ion-button fill="outline" size="small" (click)="openEditProfileModal()">
+        <ion-icon name="create-outline" slot="start"></ion-icon>
+        编辑资料
+      </ion-button>
+      <ion-button color="danger" fill="outline" size="small" (click)="logout()">
+        <ion-icon name="log-out" slot="start"></ion-icon>
+        登出
+      </ion-button>
+    </div>
     <div class="user-actions">
       <ion-button fill="outline" (click)="goToFollow()">
         <ion-icon name="heart-outline"></ion-icon>
@@ -169,7 +212,7 @@
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-      <ion-content class="edit-modal-content">
+      <ion-content [fullscreen]="true" class="edit-modal-content">
         <form [formGroup]="editForm">
           <ion-list lines="full">
             <ion-item>
@@ -277,6 +320,140 @@
               (click)="submitEdit()"
               [disabled]="isSavingEdit"
               >保存</ion-button
+            >
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- 用户信息编辑弹窗 -->
+  <ion-modal
+    [isOpen]="isEditProfileModalOpen"
+    (didDismiss)="closeEditProfileModal()"
+  >
+    <ng-template>
+      <ion-header [translucent]="true">
+        <ion-toolbar>
+          <ion-title>编辑个人资料</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeEditProfileModal()"
+              >关闭</ion-button
+            >
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content [fullscreen]="true" class="edit-profile-modal-content">
+        <form [formGroup]="editProfileForm">
+          <ion-list lines="full">
+            <!-- 头像上传 -->
+            <div class="avatar-upload-section">
+              <div class="avatar-preview">
+                @if (profileAvatarPreview) {
+                <img [src]="profileAvatarPreview" alt="头像预览" />
+                } @else if (userInfo.avatar) {
+                <img [src]="getAssetUrl(userInfo.avatar)" alt="当前头像" />
+                } @else {
+                <ion-icon name="person-circle"></ion-icon>
+                }
+              </div>
+              <div class="avatar-actions">
+                <ion-button size="small" (click)="triggerProfileAvatarInput()">
+                  {{ profileAvatarPreview || userInfo.avatar ? '更换头像' :
+                  '上传头像' }}
+                </ion-button>
+                @if (profileAvatarPreview || userInfo.avatar) {
+                <ion-button
+                  size="small"
+                  fill="outline"
+                  color="danger"
+                  (click)="removeProfileAvatar()"
+                >
+                  删除
+                </ion-button>
+                }
+              </div>
+              <input
+                #profileAvatarInput
+                type="file"
+                accept="image/*"
+                style="display: none"
+                (change)="onProfileAvatarSelected($event)"
+              />
+              <p class="avatar-hint">支持jpg/png，最大5MB</p>
+            </div>
+
+            <ion-item>
+              <ion-label position="floating">用户名 *</ion-label>
+              <ion-input
+                type="text"
+                formControlName="UserName"
+                placeholder="请输入用户名（2-20个字符）"
+                [maxlength]="20"
+              ></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">真实姓名 *</ion-label>
+              <ion-input
+                type="text"
+                formControlName="RealName"
+                placeholder="请输入真实姓名（2-20个字符）"
+                [maxlength]="20"
+              ></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">身份证号 *</ion-label>
+              <ion-input
+                type="text"
+                formControlName="IdCardNumber"
+                placeholder="请输入18位身份证号"
+                [maxlength]="18"
+              ></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">所在地 *</ion-label>
+              <ion-input
+                type="text"
+                formControlName="Location"
+                placeholder="例如：广西柳州"
+              ></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">出生日期 *</ion-label>
+              <ion-input type="date" formControlName="BirthDate"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">个人介绍</ion-label>
+              <ion-textarea
+                formControlName="Introduction"
+                placeholder="简单介绍一下自己吧（选填，最多200字）"
+                [maxlength]="200"
+                [autoGrow]="true"
+                rows="3"
+              ></ion-textarea>
+            </ion-item>
+          </ion-list>
+
+          <div class="hint-text">* 标记为必填项</div>
+
+          <div class="modal-actions">
+            <ion-button
+              type="button"
+              fill="outline"
+              color="medium"
+              (click)="closeEditProfileModal()"
+              >取消</ion-button
+            >
+            <ion-button
+              type="button"
+              (click)="submitProfileEdit()"
+              [disabled]="isSavingProfile"
+              >{{ isSavingProfile ? '保存中...' : '保存' }}</ion-button
             >
           </div>
         </form>

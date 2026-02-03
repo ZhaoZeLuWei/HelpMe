@@ -132,13 +132,15 @@ router.post(
       if (req.file) cleanupUploadedFiles([req.file]);
 
       // 处理MySQL唯一约束冲突错误
-      if (err.code === 'ER_DUP_ENTRY') {
-        if (err.message.includes('PhoneNumber')) {
+      if (err.code === "ER_DUP_ENTRY") {
+        if (err.message.includes("PhoneNumber")) {
           return res.status(409).json({ error: "该手机号已注册" });
-        } else if (err.message.includes('IdCardNumber')) {
+        } else if (err.message.includes("IdCardNumber")) {
           return res.status(409).json({ error: "该身份证号已被注册" });
         }
-        return res.status(409).json({ error: "注册信息重复，请检查手机号或身份证号" });
+        return res
+          .status(409)
+          .json({ error: "注册信息重复，请检查手机号或身份证号" });
       }
 
       // 其他数据库错误
@@ -196,7 +198,7 @@ router.get("/users/:id/profile", async (req, res) => {
   const userId = req.params.id;
   try {
     const [rows] = await pool.query(
-      `SELECT u.UserId, u.UserName, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction,
+      `SELECT u.UserId, u.UserName, u.RealName, u.IdCardNumber, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction, u.CreateTime,
               (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
               c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
        FROM Users u
@@ -214,6 +216,107 @@ router.get("/users/:id/profile", async (req, res) => {
   } catch (err) {
     console.error("DB query error (profile):", err);
     return res.status(500).json({ error: "获取用户资料失败" });
+  }
+});
+
+// 更新用户资料
+router.put("/users/:id/profile", async (req, res) => {
+  const userId = req.params.id;
+  const {
+    UserName,
+    RealName,
+    IdCardNumber,
+    Location,
+    BirthDate,
+    Introduction,
+    UserAvatar,
+  } = req.body || {};
+
+  // 验证必填字段
+  if (!UserName || !RealName || !IdCardNumber || !Location || !BirthDate) {
+    return res.status(400).json({ error: "请填写所有必填项" });
+  }
+
+  try {
+    // 检查用户是否存在
+    const [existing] = await pool.query(
+      "SELECT UserId FROM Users WHERE UserId = ? LIMIT 1",
+      [userId],
+    );
+
+    if (!existing || existing.length === 0) {
+      return res.status(404).json({ error: "用户不存在" });
+    }
+
+    // 检查身份证号是否被其他用户使用
+    const [existingIdCard] = await pool.query(
+      "SELECT UserId FROM Users WHERE IdCardNumber = ? AND UserId != ? LIMIT 1",
+      [IdCardNumber, userId],
+    );
+
+    if (existingIdCard && existingIdCard.length > 0) {
+      return res.status(409).json({ error: "该身份证号已被其他用户使用" });
+    }
+
+    // 构建更新语句
+    const updateFields = [];
+    const updateValues = [];
+
+    updateFields.push("UserName = ?");
+    updateValues.push(UserName);
+
+    updateFields.push("RealName = ?");
+    updateValues.push(RealName);
+
+    updateFields.push("IdCardNumber = ?");
+    updateValues.push(IdCardNumber);
+
+    updateFields.push("Location = ?");
+    updateValues.push(Location);
+
+    updateFields.push("BirthDate = ?");
+    updateValues.push(BirthDate);
+
+    updateFields.push("Introduction = ?");
+    updateValues.push(Introduction || null);
+
+    if (UserAvatar) {
+      updateFields.push("UserAvatar = ?");
+      updateValues.push(UserAvatar);
+    }
+
+    updateValues.push(userId);
+
+    // 执行更新
+    await pool.query(
+      `UPDATE Users SET ${updateFields.join(", ")} WHERE UserId = ?`,
+      updateValues,
+    );
+
+    // 获取更新后的用户信息
+    const [rows] = await pool.query(
+      `SELECT u.UserId, u.UserName, u.RealName, u.IdCardNumber, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction,
+              (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
+              c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
+       FROM Users u
+       LEFT JOIN Consumers c ON u.UserId = c.ConsumerId
+       LEFT JOIN Providers p ON u.UserId = p.ProviderId
+       WHERE u.UserId = ? LIMIT 1`,
+      [userId],
+    );
+
+    return res.json({ success: true, user: rows[0] });
+  } catch (err) {
+    console.error("DB query error (update profile):", err);
+
+    // 处理MySQL唯一约束冲突错误
+    if (err.code === "ER_DUP_ENTRY") {
+      if (err.message.includes("IdCardNumber")) {
+        return res.status(409).json({ error: "该身份证号已被其他用户使用" });
+      }
+    }
+
+    return res.status(500).json({ error: "更新用户资料失败" });
   }
 });
 
