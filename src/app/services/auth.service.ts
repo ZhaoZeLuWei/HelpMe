@@ -262,6 +262,37 @@ export class AuthService {
   logout() {
     this.setSession(null);
   }
+
+  async checkPhoneExists(phone: string): Promise<{ exists: boolean } | null> {
+    if (!phone) return null;
+
+    const url = `${this.API_BASE}/check-phone`;
+
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+
+      const data = await resp.json().catch(() => null);
+
+      if (!resp.ok) {
+        console.error('checkPhoneExists failed:', data);
+        return null;
+      }
+
+      if (data?.success && typeof data.exists === 'boolean') {
+        return { exists: data.exists };
+      }
+
+      return null;
+    } catch (err) {
+      console.error('checkPhoneExists error:', err);
+      return null;
+    }
+  }
+
   async getProviderProfile(userId: number): Promise<ProviderProfile | null> {
     try {
       const res = await fetch(
