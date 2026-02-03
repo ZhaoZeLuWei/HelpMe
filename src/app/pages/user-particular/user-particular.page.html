@@ -84,7 +84,8 @@
               </div>
             }
             @for (event of activeEvents; track event.EventId) {
-              <div class="event-item">
+              <!-- 添加 (click) 和 cursor 样式 -->
+              <div class="event-item" (click)="goToEventDetail(event)" style="cursor: pointer;">
                 <div class="event-info">
                   <h4>{{ event.EventTitle }}</h4>
                   <p class="event-category">{{ event.EventCategory }}</p>
@@ -132,7 +133,8 @@
               </div>
             }
             @for (activity of activityFeed; track activity.id) {
-              <div class="activity-item">
+              <!-- 添加 (click) 和 cursor 样式 -->
+              <div class="activity-item" (click)="goToEventDetail(activity)" style="cursor: pointer;">
                 <div class="activity-header">
                   <span class="activity-type">{{ activity.activityType }}</span>
                   <span class="activity-time">{{ formatDate(activity.date) }}</span>

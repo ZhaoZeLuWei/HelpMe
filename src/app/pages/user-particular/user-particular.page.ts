@@ -249,7 +249,23 @@ export class UserParticularPage implements OnInit {
     }
     return environment.apiBase + avatarPath;
   }
+// 跳转到活动详情页
+  goToEventDetail(event: any) {
+    // 优先使用 EventId，如果没有则使用 id
+    const eventId = event.EventId || event.id;
 
+    if (!eventId) {
+      console.error('Event ID not found:', event);
+      return;
+    }
+
+    this.router.navigate(['/particular'], {
+      queryParams: {
+        eventId: eventId,
+        title: event.EventTitle || event.title
+      }
+    });
+  }
   // 返回上一页
   goBack() {
     this.router.navigate(['/tabs/tab1']);

@@ -48,11 +48,10 @@ export class ParticularPage implements OnInit {
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
+      // 情况1：直接传了 event JSON 字符串
       if (params['event']) {
         try {
           this.event = JSON.parse(params['event']);
-
-          /* 修改为使用 loadUserFromStorage 方法 ===================== */
           if (this.event?.creatorId) {
             this.loadUserFromStorage(Number(this.event.creatorId));
           }
@@ -60,7 +59,59 @@ export class ParticularPage implements OnInit {
           console.error('解析事件数据失败:', error);
         }
       }
+      // 情况2：只传了 eventId，需要从后端加载
+      else if (params['eventId']) {
+        this.loadEventById(Number(params['eventId']));
+      }
     });
+  }
+
+// 根据 ID 加载活动详情
+// 根据 ID 加载活动详情
+  async loadEventById(eventId: number): Promise<void> {
+    try {
+      const resp = await fetch(`${this.apiBase}/events/${eventId}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data?.success && data.event) {
+          // 解析图片数组
+          let cardImage = null;
+          if (data.event.Photos) {
+            try {
+              const photos = JSON.parse(data.event.Photos);
+              cardImage = Array.isArray(photos) ? photos[0] : photos;
+            } catch {
+              cardImage = data.event.Photos;
+            }
+          }
+
+          // 创建符合 EventCardData 的对象
+          const eventData: EventCardData = {
+            id: data.event.EventId,
+            title: data.event.EventTitle,
+            address: data.event.Location,
+            price: data.event.Price,
+            demand: data.event.EventDetails,
+            createTime: data.event.CreateTime,
+            cardImage: cardImage,
+            creatorId: data.event.CreatorId,
+            name: '',
+            avatar: '',
+            icon: 'navigate-outline',
+            distance: '距500m'
+          };
+
+          this.event = eventData;
+
+          // 加载发布者信息
+          if (this.event.creatorId) {
+            await this.loadUserFromStorage(this.event.creatorId);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('加载活动详情失败:', e);
+    }
   }
 
   /* 新增：直接使用 tab4 的 loadUserFromStorage 方法 ===================== */
