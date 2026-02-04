@@ -13,10 +13,13 @@ export class ServeAPIService {
   //get verify list (all and simple)
   private adminVerifyUrl = `${this.baseUrl}/adminVerify`;
 
+
   private http = inject(HttpClient);
 
   // get all providers with verification status (admin)
   getAdminVerifyList(): Observable<any> {
     return this.http.get<any>(this.adminVerifyUrl);
   }
+
+
 }
