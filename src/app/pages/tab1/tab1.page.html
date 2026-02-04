@@ -1,33 +1,25 @@
 <div class="page-container">
-
-  <!-- 右上角语言切换按钮 -->
   <button class="lang-switch-btn" (click)="toggleLanguage()">
     <span class="material-icons">public</span>
-    <span>{{ currentLang }}</span>
+    <!-- 使用 getter 或 t.btnText -->
+    <span>{{ t.btnText }}</span>
   </button>
 
-  <!-- 1. 假搜索条：外观与 UniversalSearch 一致，但不可输入 -->
-  <div class="search-bar-wrapper" (click)="goToSearchPage()"><!-- 去到搜索页面，并自动聚焦到搜索框 -->
+  <div class="search-bar-wrapper" (click)="goToSearchPage()">
     <ion-searchbar
       [disabled]="true"
-      placeholder="点击搜索"
+      [placeholder]="t.searchPlaceholder"
       [animated]="true"
       show-clear-button="never">
     </ion-searchbar>
   </div>
 
-
-  <!-- 内容区域 -->
   <div class="content-area ion-padding">
-
     <!-- 求助大卡片 -->
     <div class="big-card request-card">
-      <h3 class="big-card-title">求助</h3>
+      <h3 class="big-card-title">{{ t.requestTitle }}</h3>
 
       <div class="small-card-grid">
-        <!-- === 修改开始：添加空状态判断 === -->
-
-        <!-- 情况1：有数据时，显示列表 -->
         <ng-container *ngIf="requestList.length > 0">
           <app-show-event
             *ngFor="let req of requestList; trackBy: trackById"
@@ -36,29 +28,23 @@
           </app-show-event>
         </ng-container>
 
-        <!-- 情况2：没数据时，显示提示框 -->
         <div *ngIf="requestList.length === 0" class="empty-state">
           <span class="material-icons">search_off</span>
-          <p>还没有求助事件</p>
+          <p>{{ t.noEvent }}</p>
         </div>
-
-        <!-- === 修改结束 === -->
       </div>
 
-      <!-- 更多按钮 -->
-      <button class="big-card-more-btn" (click)="goToTab2Search('request')"><!-- 只去到搜索页面-->
+      <button class="big-card-more-btn" (click)="goToTab2Search('request')">
         <div class="css-triangle"></div>
-        更多
+        {{ t.more }}
       </button>
     </div>
 
     <!-- 帮助大卡片 -->
     <div class="big-card help-card">
-      <h3 class="big-card-title">帮助</h3>
+      <h3 class="big-card-title">{{ t.helpTitle }}</h3>
 
       <div class="small-card-grid">
-
-        <!-- 有数据时，显示列表 -->
         <ng-container *ngIf="helpList.length > 0">
           <app-show-event
             *ngFor="let help of helpList; trackBy: trackById"
@@ -67,38 +53,31 @@
           </app-show-event>
         </ng-container>
 
-        <!-- 没数据时，显示提示框 -->
         <div *ngIf="helpList.length === 0" class="empty-state">
           <span class="material-icons">search_off</span>
-          <p>还没有帮助事件</p>
+          <p>{{ t.noHelp }}</p>
         </div>
-
-        <!-- === 修改结束 === -->
       </div>
 
-      <button class="big-card-more-btn" (click)="goToTab2Search('help')"><!-- 只去到搜索页面-->
+      <button class="big-card-more-btn" (click)="goToTab2Search('help')">
         <div class="css-triangle"></div>
-        更多
+        {{ t.more }}
       </button>
     </div>
 
-    <!-- 自定义美观弹窗 -->
+    <!-- 弹窗 -->
     <div class="custom-modal-overlay" *ngIf="showLangConfirmModal" (click)="cancelSwitchLanguage()">
       <div class="custom-modal-card" (click)="$event.stopPropagation()">
         <div class="modal-icon-circle">
           <span class="material-icons">language</span>
         </div>
-        <h3 class="modal-header">提示 / Alert</h3>
-        <p class="modal-body">
-          您确定要切换语言吗？<br>
-          <span class="sub-text">Are you sure you want to switch language?</span>
-        </p>
+        <h3 class="modal-header">{{ t.modalTitle }}</h3>
+        <p class="modal-body" [innerHTML]="t.modalBody"></p>
         <div class="modal-actions">
-          <button class="modal-btn cancel" (click)="cancelSwitchLanguage()">取消 / Cancel</button>
-          <button class="modal-btn confirm" (click)="confirmSwitchLanguage()">确定 / OK</button>
+          <button class="modal-btn cancel" (click)="cancelSwitchLanguage()">{{ t.cancel }}</button>
+          <button class="modal-btn confirm" (click)="confirmSwitchLanguage()">{{ t.confirm }}</button>
         </div>
       </div>
     </div>
-
   </div>
 </div>
