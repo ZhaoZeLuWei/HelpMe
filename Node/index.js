@@ -51,7 +51,7 @@ const io = new Server(server, {
   connectionStateRecovery:{},
   //cors allow connections
   cors: {
-    origin: 'http://localhost:8100',
+    origin: ['http://localhost:8100','http://localhost:4200'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   }
 });

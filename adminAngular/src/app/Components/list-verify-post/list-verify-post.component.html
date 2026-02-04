@@ -1,0 +1,29 @@
+<h2>人员认证列表（Admin）</h2>
+
+<table border="1" cellpadding="8">
+  <tr>
+    <th>Provider ID</th>
+    <th>Role</th>
+    <th>认证状态</th>
+    <th>操作</th>
+  </tr>
+
+  <tr *ngFor="let p of providers">
+    <td>{{ p.ProviderId }}</td>
+    <td>{{ p.ProviderRole }}</td>
+    <td>
+      <span [style.color]="p.IsVerified ? 'green' : 'red'">
+        {{ getVerifyText(p) }}
+      </span>
+    </td>
+    <td>
+      <button *ngIf="p.IsVerified === 0">
+        去审核
+      </button>
+
+      <button *ngIf="p.IsVerified === 1">
+        查看认证
+      </button>
+    </td>
+  </tr>
+</table>
