@@ -45,13 +45,6 @@
     </div>
   </div>
 
-  <div class="close-row">
-    <button class="close-btn" (click)="closeGuide()">
-      <ion-icon name="close"></ion-icon>
-    </button>
-    <ion-text color="medium" class="close-hint">{{ t.closeHint }}</ion-text>
-  </div>
-
   <!-- 求助发布弹窗 -->
   <ion-modal [isOpen]="showRequestModal" (didDismiss)="showRequestModal = false">
     <ng-template>
