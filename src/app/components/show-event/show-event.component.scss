@@ -120,7 +120,7 @@
 }
 
 .event-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #1e293b;
   white-space: nowrap;
@@ -138,9 +138,9 @@
 }
 
 .user-name {
-  font-size: 12px;                // 比标题 14px 小一点
-  color: #64748b;                 // 中性灰，区别于标题的 #1e293b
-  font-weight: 500;               // 用 500 替代 600，更细
+  font-size: 14px;                // 比标题 14px 小一点
+  color: #1e293b;                 // 中性灰，区别于标题的 #1e293b
+  font-weight: 600;               // 用 500 替代 600，更细
   white-space: nowrap;
 }
 

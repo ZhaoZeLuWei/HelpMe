@@ -320,4 +320,40 @@ router.put("/users/:id/profile", async (req, res) => {
   }
 });
 
+// 获取用户评价/评论列表（该用户作为被评价者收到的评论）
+router.get("/users/:id/comments", async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+        c.ReviewId AS id,
+        c.OrderId AS orderId,
+        c.AuthorId AS authorId,
+        u.UserName AS authorName,
+        u.UserAvatar AS authorAvatar,
+        c.TargetUserId AS targetUserId,
+        c.Score AS rating,
+        c.Text AS content,
+        c.Time AS createTime
+       FROM Comments c
+       JOIN Users u ON c.AuthorId = u.UserId
+       WHERE c.TargetUserId = ?
+       ORDER BY c.Time DESC
+       LIMIT 50`,
+      [userId]
+    );
+
+    return res.json({
+      success: true,
+      comments: rows || []
+    });
+  } catch (err) {
+    console.error("DB query error (user comments):", err);
+    return res.status(500).json({
+      success: false,
+      error: "Database query failed"
+    });
+  }
+});
+
 module.exports = router;
