@@ -39,6 +39,13 @@ router.get("/api/cards", async (req, res) => {
       sqlWhere = " WHERE e.EventType = ?";
       sqlParams = [eventType];
     }
+    const { search } = req.query;
+    if (search) {
+      sqlWhere += sqlWhere ? " AND" : " WHERE";
+      sqlWhere += " (e.EventDetails LIKE ? OR e.EventTitle LIKE ?)";
+      const searchPattern = `%${search}%`;
+      sqlParams.push(searchPattern, searchPattern);
+    }
 
     const [rows] = await pool.query(
       `

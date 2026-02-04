@@ -23,20 +23,30 @@
     <!-- 右侧内容区 -->
     <div class="content-area">
       <!-- 发布者信息 -->
-      <div class="publisher-info">
+      <div class="publisher-info" (click)="goToUserParticular()">
         <div class="avatar-container">
-          <img [src]="apiBase + (profile?.avatar || '/assets/icon/user.svg')"
-               alt="用户头像"
-               class="user-avatar">
+          <img
+            [src]="getAvatarUrl(userInfo?.avatar)"
+            alt="用户头像"
+            class="user-avatar"
+          >
         </div>
         <div class="publisher-text">
-          <h3>{{ event?.name }}</h3>
-          <p class="publisher-meta">
-            注册时间：{{ profile?.CreateTime }} |
-            服务评分：{{ profile?.serviceScore }} 分 |
-            服务次数：{{ profile?.orderCount }} 次
-          </p>
-        </div>
+        <h3>{{ userInfo.name || event?.name }}
+          <ion-badge [color]="getServiceRoleColor(userInfo.providerRole)" class="service-badge">
+            {{ getServiceRoleText(userInfo.providerRole) }}
+          </ion-badge>
+        </h3>
+        <p class="publisher-meta">
+          买家评分: {{ (userInfo.buyerRanking || 0) }} 分
+          <br>
+          服务评分：{{  (userInfo.serviceRanking || 0)  }} 分
+          <br>
+          服务次数：{{  (userInfo.orderCount || 0)  }} 次
+          <br>
+          注册时间：{{ userInfo.CreateTime  }}
+        </p>
+      </div>
       </div>
 
       <!-- 任务核心信息 -->

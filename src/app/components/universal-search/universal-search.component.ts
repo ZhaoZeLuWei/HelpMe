@@ -99,7 +99,8 @@ export class UniversalSearchComponent implements OnInit {
 
     return allEvents.filter(item => {
       // 1. 搜索词过滤（核心修复）
-      if (term && !item.demand?.toLowerCase().includes(term.toLowerCase())) {
+
+        if (term && !item.demand?.toLowerCase().includes(term.toLowerCase()) && !item.title?.toLowerCase().includes(term.toLowerCase())) {
         return false;
       }
 
@@ -157,6 +158,12 @@ export class UniversalSearchComponent implements OnInit {
       location: ''
     });
     this.confirmedSearchText.set(''); // 清空确认的搜索词
+    // 清除 URL 中的搜索参数
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      queryParamsHandling: 'merge'
+    });
   }
 
   onSearch() {

@@ -17,14 +17,14 @@
   <div class="user-info-row">
     <div class="user-avatar">
       <img
-        [src]="avatarUrl(event?.avatar)"
+        [src]="avatarUrl(event.avatar)"
         (error)="onAvatarError($event)"
         alt="用户头像"
         class="avatar-img-small"
       />
     </div>
     <div class="name-address-wrapper">
-      <div class="event-title">{{ event.title }}</div>
+
       <div class="user-info">
         <span class="user-name">{{ event.name }}</span>
         <span class="user-address">{{ event.address }}</span>
@@ -32,7 +32,7 @@
     </div>
   </div>
 
-  <div class="demand">{{ event.demand }}</div>
+  <div class="event-title">{{ event.title }}</div>
   <div class="card-footer">
     <span class="price">{{ event.price }}</span>
   </div>
