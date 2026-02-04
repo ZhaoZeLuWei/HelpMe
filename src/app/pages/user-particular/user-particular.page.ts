@@ -1,9 +1,10 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow, IonCol, IonTitle, IonBadge } from '@ionic/angular/standalone';
+import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow, IonCol, IonTitle, IonBadge, ModalController } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';  // 添加这行
+import { Location } from '@angular/common';
 import { environment } from 'src/environments/environment';
+import { AuthService } from 'src/app/services/auth.service';
 import { addIcons } from 'ionicons';
 import {
   chevronBackOutline,
@@ -37,7 +38,11 @@ export class UserParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
+  private authService = inject(AuthService);
+  private modalCtrl = inject(ModalController);
   readonly apiBase = environment.apiBase;
+
+  isCurrentUser: boolean = false;
 
   // 用户信息
   userInfo: any = {
@@ -88,8 +93,14 @@ export class UserParticularPage implements OnInit {
         this.loadActiveEvents(this.userId);
         this.loadUserComments(this.userId);
         this.loadActivityFeed(this.userId);
+        this.checkIsCurrentUser();
       }
     });
+  }
+
+  checkIsCurrentUser() {
+    const currentUserId = this.authService.currentUserId;
+    this.isCurrentUser = currentUserId !== null && this.userId !== null && currentUserId === this.userId;
   }
 
 // 添加以下方法
@@ -270,11 +281,40 @@ export class UserParticularPage implements OnInit {
   }
   // 返回上一页
   goBack() {
-    // 尝试返回上一页，如果没有历史则回首页
     if (window.history.length > 1) {
       this.location.back();
     } else {
       this.router.navigate(['/tabs/tab1']);
     }
+  }
+
+  async onChat() {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      console.log('请先登录');
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({
+        component: LoginPage
+      });
+      modal.onDidDismiss().then(() => {
+        const newUserId = this.authService.currentUserId;
+        if (newUserId) {
+          window.location.reload();
+        }
+      });
+      await modal.present();
+      return;
+    }
+
+    if (this.isCurrentUser) {
+      console.log('不能与自己聊天');
+      return;
+    }
+
+    const chatData = {
+      TargetUserId: this.userId,
+      PartnerId: currentUserId
+    };
+    console.log('聊天数据:', chatData);
   }
 }

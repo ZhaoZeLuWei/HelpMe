@@ -2,9 +2,11 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow,IonCol,IonBadge} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';  // 添加这行
+import { Location } from '@angular/common';
 import { EventCardData } from '../../components/show-event/show-event.component';
+import { ModalController } from '@ionic/angular/standalone';
 import { environment } from 'src/environments/environment';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-particular',
@@ -28,8 +30,12 @@ import { environment } from 'src/environments/environment';
 export class ParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private location = inject(Location);  // 添加这行
+  private location = inject(Location);
+  private authService = inject(AuthService);
+  private modalCtrl = inject(ModalController);
   readonly apiBase = environment.apiBase;
+
+  isCurrentUserCreator: boolean = false;
 
   // 新增 userInfo 对象，模拟队友的数据结构
   userInfo: any = {
@@ -95,6 +101,8 @@ export class ParticularPage implements OnInit {
           if (this.event?.creatorId) {
             this.loadUserFromStorage(this.event.creatorId);
           }
+          // 检查当前用户是否是事件创建者
+          this.checkUserIsCreator();
         }
       }
     } catch (error) {
@@ -240,8 +248,45 @@ export class ParticularPage implements OnInit {
     console.log('收藏按钮点击');
   }
 
-  // 聊一聊按钮点击事件
-  onChat() {
-    console.log('聊一聊按钮点击');
+  checkUserIsCreator() {
+    const currentUserId = this.authService.currentUserId;
+    const creatorId = this.event?.creatorId;
+    this.isCurrentUserCreator = currentUserId !== null && creatorId !== null && currentUserId === creatorId;
+  }
+
+  async onChat() {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      console.log('请先登录');
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({
+        component: LoginPage
+      });
+
+      // 监听 Modal 关闭
+      modal.onDidDismiss().then(() => {
+        // 重新检查用户登录状态
+        const newUserId = this.authService.currentUserId;
+        if (newUserId) {
+          // 登录成功，刷新页面数据
+          window.location.reload();
+        }
+      });
+
+      await modal.present();
+      return;
+    }
+
+    if (this.isCurrentUserCreator) {
+      console.log('不能与自己聊天');
+      return;
+    }
+
+    const chatData = {
+      EventId: this.event?.id,
+      CreaterId: this.event?.creatorId,
+      PartnerId: currentUserId
+    };
+    console.log('聊天数据:', chatData);
   }
 }
