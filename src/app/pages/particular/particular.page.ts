@@ -50,22 +50,56 @@ export class ParticularPage implements OnInit {
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
-      // 情况1：直接传了 event JSON 字符串
-      if (params['event']) {
-        try {
-          this.event = JSON.parse(params['event']);
-          if (this.event?.creatorId) {
-            this.loadUserFromStorage(Number(this.event.creatorId));
-          }
-        } catch (error) {
-          console.error('解析事件数据失败:', error);
-        }
-      }
-      // 情况2：只传了 eventId，需要从后端加载
-      else if (params['eventId']) {
-        this.loadEventById(Number(params['eventId']));
+      const eventId = params['eventId'];
+      if (eventId) {
+        // 根据eventId从后端获取完整数据
+        this.loadEventDetail(eventId);
       }
     });
+  }
+
+// 新增方法：根据ID获取事件详情
+  async loadEventDetail(eventId: string) {
+    try {
+      const resp = await fetch(`${this.apiBase}/events/${eventId}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data?.success && data?.event) {
+          const rawEvent = data.event;
+          // 解析图片
+          let cardImage = null;
+          if (rawEvent.Photos) {
+            try {
+              const photos = JSON.parse(rawEvent.Photos);
+              cardImage = Array.isArray(photos) ? photos[0] : photos;
+            } catch {
+              cardImage = rawEvent.Photos;
+            }
+          }
+          // 转换字段名以匹配 EventCardData
+          this.event = {
+            id: rawEvent.EventId,
+            title: rawEvent.EventTitle,
+            address: rawEvent.Location,
+            price: rawEvent.Price,
+            demand: rawEvent.EventDetails,
+            createTime: rawEvent.CreateTime,
+            cardImage: cardImage,
+            creatorId: rawEvent.CreatorId,
+            name: '',
+            avatar: '',
+            icon: 'navigate-outline',
+            distance: '距500m'
+          };
+          // 加载发布者信息
+          if (this.event?.creatorId) {
+            this.loadUserFromStorage(this.event.creatorId);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('加载事件详情失败:', error);
+    }
   }
 
 // 根据 ID 加载活动详情

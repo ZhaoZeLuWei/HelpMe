@@ -177,9 +177,8 @@ export class UniversalSearchComponent implements OnInit {
   }
 
   goToDetail(event: EventCardData) {
-    // 跳转到新创建的详情页面，传递完整的event对象
     this.router.navigate(['/particular'], {
-      queryParams: { event: JSON.stringify(event) }
+      queryParams: { eventId: event.id }
     });
   }
 
