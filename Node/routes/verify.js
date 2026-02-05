@@ -17,14 +17,39 @@ router.get("/adminVerify", async (req, res) => {
       SELECT
         p.ProviderId,
         p.ProviderRole,
-        CASE
-          WHEN v.VerificationStatus = 1 THEN 1
-          ELSE 0
+        p.OrderCount,
+        p.ServiceRanking,
+        u.UserName,
+        u.RealName,
+        v.VerificationId,
+        v.ServiceCategory,
+        v.VerificationStatus,
+        v.SubmissionTime,
+        v.PassingTime,
+        v.Results,
+
+        CASE 
+          WHEN EXISTS (
+            SELECT 1 
+            FROM Verifications v2 
+            WHERE v2.ProviderId = p.ProviderId 
+              AND v2.VerificationStatus = 1
+          ) THEN 1 
+          ELSE 0 
         END AS IsVerified
       FROM Providers p
-      LEFT JOIN Verifications v
-        ON p.ProviderId = v.ProviderId
-        AND v.VerificationStatus = 1
+      INNER JOIN Users u ON p.ProviderId = u.UserId
+      LEFT JOIN (
+        SELECT v1.*
+        FROM Verifications v1
+        INNER JOIN (
+          SELECT ProviderId, MAX(SubmissionTime) AS LatestSubmission
+          FROM Verifications
+          GROUP BY ProviderId
+        ) v2 ON v1.ProviderId = v2.ProviderId
+          AND v1.SubmissionTime = v2.LatestSubmission
+      ) v ON p.ProviderId = v.ProviderId
+      ORDER BY p.ProviderId
     `);
 
     res.json({
@@ -64,13 +89,8 @@ router.post(
   ),
 
   async (req, res) => {
-    const {
-      ServiceCategory,
-      RealName,
-      IdCardNumber,
-      Location,
-      Introduction,
-    } = req.body || {};
+    const { ServiceCategory, RealName, IdCardNumber, Location, Introduction } =
+      req.body || {};
 
     // 基础内容校验，从 JWT token 中提取 providerId
     const providerId = Number(req.user?.id);
@@ -261,5 +281,197 @@ router.post(
     }
   },
 );
+
+// 管理端：获取认证详情（包含用户信息和照片）
+router.get("/adminVerify/detail/:providerId", async (req, res) => {
+  const providerId = Number(req.params.providerId);
+
+  if (!Number.isInteger(providerId) || providerId <= 0) {
+    return res.status(400).json({ success: false, error: "无效的ProviderId" });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+
+    // 获取用户基本信息和最新认证记录（包含头像、简介、服务评分）
+    const [rows] = await conn.query(
+      `
+      SELECT 
+        u.UserId,
+        u.UserName,
+        u.RealName,
+        u.UserAvatar,
+        u.PhoneNumber,
+        u.IdCardNumber,
+        u.Location,
+        u.Introduction,
+        p.ProviderRole,
+        p.ServiceRanking,
+        v.VerificationId,
+        v.ServiceCategory,
+        v.VerificationStatus,
+        v.IdCardPhoto,
+        v.ProfessionPhoto,
+        v.SubmissionTime,
+        v.PassingTime,
+        v.Results
+      FROM Users u
+      LEFT JOIN Providers p ON u.UserId = p.ProviderId
+      LEFT JOIN Verifications v ON p.ProviderId = v.ProviderId
+      WHERE u.UserId = ?
+      ORDER BY v.SubmissionTime DESC
+      LIMIT 1
+    `,
+      [providerId],
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ success: false, error: "用户不存在" });
+    }
+
+    const detail = rows[0];
+
+    // 解析照片JSON，确保返回数组
+    if (detail.IdCardPhoto) {
+      try {
+        const parsed = JSON.parse(detail.IdCardPhoto);
+        detail.IdCardPhoto = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        // 如果不是JSON，将字符串包装成数组
+        detail.IdCardPhoto = [detail.IdCardPhoto];
+      }
+    } else {
+      detail.IdCardPhoto = [];
+    }
+
+    if (detail.ProfessionPhoto) {
+      try {
+        const parsed = JSON.parse(detail.ProfessionPhoto);
+        detail.ProfessionPhoto = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        // 如果不是JSON，将字符串包装成数组
+        detail.ProfessionPhoto = [detail.ProfessionPhoto];
+      }
+    } else {
+      detail.ProfessionPhoto = [];
+    }
+
+    res.json({
+      success: true,
+      data: detail,
+    });
+  } catch (err) {
+    console.error("获取认证详情失败:", err);
+    res.status(500).json({
+      success: false,
+      error: "服务器内部错误",
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// 管理端：审核通过
+router.post("/adminVerify/approve", async (req, res) => {
+  const { providerId, results } = req.body;
+
+  if (!providerId) {
+    return res.status(400).json({ success: false, error: "缺少providerId" });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // 更新最新的认证记录状态为通过
+    const [result] = await conn.query(
+      `
+      UPDATE Verifications
+      SET VerificationStatus = 1,
+          PassingTime = NOW(),
+          Results = ?
+      WHERE ProviderId = ?
+      ORDER BY SubmissionTime DESC
+      LIMIT 1
+    `,
+      [results || "审核通过", providerId],
+    );
+
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, error: "未找到认证记录" });
+    }
+
+    await conn.commit();
+    res.json({
+      success: true,
+      message: "审核通过成功",
+    });
+  } catch (err) {
+    if (conn) await conn.rollback().catch(console.error);
+    console.error("审核通过失败:", err);
+    res.status(500).json({
+      success: false,
+      error: "服务器内部错误",
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// 管理端：审核驳回
+router.post("/adminVerify/reject", async (req, res) => {
+  const { providerId, results } = req.body;
+
+  if (!providerId) {
+    return res.status(400).json({ success: false, error: "缺少providerId" });
+  }
+
+  if (!results || String(results).trim() === "") {
+    return res.status(400).json({ success: false, error: "驳回必须填写原因" });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // 更新最新的认证记录状态为驳回
+    const [result] = await conn.query(
+      `
+      UPDATE Verifications
+      SET VerificationStatus = 2,
+          PassingTime = NOW(),
+          Results = ?
+      WHERE ProviderId = ?
+      ORDER BY SubmissionTime DESC
+      LIMIT 1
+    `,
+      [results, providerId],
+    );
+
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, error: "未找到认证记录" });
+    }
+
+    await conn.commit();
+    res.json({
+      success: true,
+      message: "审核驳回成功",
+    });
+  } catch (err) {
+    if (conn) await conn.rollback().catch(console.error);
+    console.error("审核驳回失败:", err);
+    res.status(500).json({
+      success: false,
+      error: "服务器内部错误",
+    });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 
 module.exports = router;

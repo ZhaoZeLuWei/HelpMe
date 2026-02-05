@@ -21,6 +21,11 @@ export class ServeAPIService {
 
   private http = inject(HttpClient);
 
+  // 获取基础URL
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   // ========== 认证审核相关 ==========
 
   // 获取所有providers及其认证状态（用于人员管理列表）
