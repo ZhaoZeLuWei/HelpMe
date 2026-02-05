@@ -311,10 +311,30 @@ export class UserParticularPage implements OnInit {
       return;
     }
 
+
     const chatData = {
       TargetUserId: this.userId,
       PartnerId: currentUserId
     };
     console.log('聊天数据:', chatData);
+  }
+  async onFollow() {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      console.log('请先登录');
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({
+        component: LoginPage
+      });
+      modal.onDidDismiss().then(() => {
+        const newUserId = this.authService.currentUserId;
+        if (newUserId) {
+          window.location.reload();
+        }
+      });
+      await modal.present();
+      return;
+    }
+    console.log('关注按钮点击');
   }
 }

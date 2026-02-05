@@ -239,12 +239,43 @@ export class ParticularPage implements OnInit {
   }
 
   // 关注按钮点击事件
-  onFollow() {
+  async onFollow() {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      console.log('请先登录');
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({
+        component: LoginPage
+      });
+      modal.onDidDismiss().then(() => {
+        const newUserId = this.authService.currentUserId;
+        if (newUserId) {
+          window.location.reload();
+        }
+      });
+      await modal.present();
+      return;
+    }
     console.log('关注按钮点击');
   }
 
-  // 收藏按钮点击事件
-  onCollect() {
+  async onCollect() {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      console.log('请先登录');
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({
+        component: LoginPage
+      });
+      modal.onDidDismiss().then(() => {
+        const newUserId = this.authService.currentUserId;
+        if (newUserId) {
+          window.location.reload();
+        }
+      });
+      await modal.present();
+      return;
+    }
     console.log('收藏按钮点击');
   }
 
