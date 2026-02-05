@@ -14,7 +14,8 @@
   }
   @if (showChat) {
     <ion-list>
-      <ion-item [button]="true">
+<!--      这里是每一个用户登陆后对应的通知消息-->
+      <ion-item [button]="true" (click)="goChat(systemRoom)">
         <ion-avatar slot="start">
           <img src="../../../assets/icon/notification.svg" alt="notification" />
         </ion-avatar>
@@ -29,7 +30,7 @@
 
         <ion-badge slot="end" color="danger">0</ion-badge>
       </ion-item>
-
+<!-- 这里通过读取已存储的聊天列表来创建聊天（注：目前还没有更新ts中通过api获取chatList）-->
       @for (user of chatRooms; track user.name) {
         <ion-item [button]="true" (click)="goChat(user)">
           <ion-avatar slot="start">
