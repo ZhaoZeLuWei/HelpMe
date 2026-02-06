@@ -3,7 +3,7 @@ const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 const { authRequired } = require("./auth.js");
-
+const Message = require('../models/Message');
 const router = express.Router();
 
 // 图片上传接口（仅上传，不入库）
@@ -192,11 +192,21 @@ router.post(
       );
 
       await conn.commit();
-      return res.json({
-        success: true,
-        EventId: result.insertId,
-        paths: photoPaths,
-      });
+
+     await Message.create({
+      roomId: `system_${creatorId}`, 
+      text: `您的订单：“${EventTitle}”发布成功！正在寻找服务商...`, 
+      senderId: creatorId,
+      userName: "系统通知",
+      sendTime: new Date(),
+    }).catch(err => console.error("写入系统消息失败:", err));
+
+    return res.json({
+      success: true,
+      EventId: result.insertId,
+      paths: photoPaths,
+    });
+
     } catch (err) {
       console.error("发布事件数据库错误:", err);
       if (conn) {
@@ -350,7 +360,17 @@ router.put("/events/:id", authRequired, async (req, res) => {
     );
 
     await conn.commit();
+
+    await Message.create({
+      roomId: `system_${creatorId}`,
+      text: `您的订单：“${EventTitle}”信息修改成功。`, 
+      senderId: creatorId,
+      userName: "系统通知",
+      sendTime: new Date(),
+    }).catch(err => console.error("写入系统消息失败:", err));
+
     return res.json({ success: true });
+
   } catch (err) {
     if (conn) {
       await conn.rollback().catch(console.error);
@@ -371,14 +391,13 @@ router.delete("/events/:id", authRequired, async (req, res) => {
     return res.status(400).json({ success: false, error: "无效的事件ID" });
   }
 
-  let conn;
+   let conn;
   try {
     conn = await pool.getConnection();
     await conn.beginTransaction();
 
-    // 1. 检查事件是否存在且验证创建者（如需要）
     const [checkRows] = await conn.query(
-      "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",
+      "SELECT EventId, EventTitle FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",
       [eventId, creatorId],
     );
 
@@ -389,16 +408,29 @@ router.delete("/events/:id", authRequired, async (req, res) => {
         .json({ success: false, error: "事件不存在或无权删除" });
     }
 
-    // 2. 删除关联的订单
+    // 提取出标题
+    const deletedTitle = checkRows[0].EventTitle;
+
+    // 删除关联的订单
     await conn.query("DELETE FROM Orders WHERE EventId = ?", [eventId]);
 
-    // 3. 删除事件本身
+    // 删除事件本身
     const [delResult] = await conn.query(
       "DELETE FROM Events WHERE EventId = ?",
       [eventId],
     );
 
     await conn.commit();
+
+    //使用查到的 deletedTitle
+    await Message.create({
+      roomId: `system_${creatorId}`,
+      text: `您的订单：“${deletedTitle}”已成功删除。`, 
+      senderId: creatorId,
+      userName: "系统通知",
+      sendTime: new Date(),
+    }).catch(err => console.error("写入系统消息失败:", err));
+
     return res.json({
       success: true,
       deleted: true,
