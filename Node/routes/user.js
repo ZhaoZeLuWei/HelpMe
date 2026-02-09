@@ -340,19 +340,180 @@ router.get("/users/:id/comments", async (req, res) => {
        WHERE c.TargetUserId = ?
        ORDER BY c.Time DESC
        LIMIT 50`,
-      [userId]
+      [userId],
     );
 
     return res.json({
       success: true,
-      comments: rows || []
+      comments: rows || [],
     });
   } catch (err) {
     console.error("DB query error (user comments):", err);
     return res.status(500).json({
       success: false,
-      error: "Database query failed"
+      error: "Database query failed",
     });
+  }
+});
+
+// 管理端：获取所有用户列表（包含买家评分、服务评分、服务单数）
+router.get("/admin/users", async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        u.UserId,
+        u.UserName,
+        u.RealName,
+        u.PhoneNumber,
+        u.Location,
+        IFNULL(c.BuyerRanking, 0) AS BuyerRanking,
+        IFNULL(p.ServiceRanking, 0) AS ServiceRanking,
+        IFNULL(p.OrderCount, 0) AS OrderCount,
+        CASE 
+          WHEN p.ProviderId IS NOT NULL THEN 1
+          ELSE 0
+        END AS IsProvider
+      FROM Users u
+      LEFT JOIN Consumers c ON u.UserId = c.ConsumerId
+      LEFT JOIN Providers p ON u.UserId = p.ProviderId
+      ORDER BY u.CreateTime DESC
+    `);
+
+    return res.json({
+      success: true,
+      users: rows,
+    });
+  } catch (err) {
+    console.error("DB query error (admin users list):", err);
+    return res.status(500).json({
+      success: false,
+      error: "获取用户列表失败",
+    });
+  }
+});
+
+// 管理端：获取用户完整信息
+router.get("/admin/users/:id", async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    const [rows] = await pool.query(
+      `
+      SELECT 
+        u.UserId, 
+        u.UserName, 
+        u.RealName, 
+        u.IdCardNumber, 
+        u.PhoneNumber, 
+        u.UserAvatar, 
+        u.Location, 
+        u.BirthDate, 
+        u.Introduction, 
+        u.CreateTime,
+        (SELECT VerificationStatus FROM Verifications v 
+         WHERE v.ProviderId = u.UserId 
+         ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
+        c.BuyerRanking, 
+        p.ProviderRole, 
+        p.OrderCount, 
+        p.ServiceRanking
+      FROM Users u
+      LEFT JOIN Consumers c ON u.UserId = c.ConsumerId
+      LEFT JOIN Providers p ON u.UserId = p.ProviderId
+      WHERE u.UserId = ? 
+      LIMIT 1
+    `,
+      [userId],
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "用户不存在",
+      });
+    }
+
+    return res.json({
+      success: true,
+      user: rows[0],
+    });
+  } catch (err) {
+    console.error("DB query error (admin user detail):", err);
+    return res.status(500).json({
+      success: false,
+      error: "获取用户详情失败",
+    });
+  }
+});
+
+// 管理端：删除用户
+router.delete("/admin/users/:id", async (req, res) => {
+  const userId = req.params.id;
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // 检查用户是否存在
+    const [userCheck] = await conn.query(
+      "SELECT UserId FROM Users WHERE UserId = ? LIMIT 1",
+      [userId],
+    );
+
+    if (!userCheck || userCheck.length === 0) {
+      await conn.rollback();
+      return res.status(404).json({
+        success: false,
+        error: "用户不存在",
+      });
+    }
+
+    // 删除用户评论（作为评论者）
+    await conn.query("DELETE FROM Comments WHERE AuthorId = ?", [userId]);
+
+    // 删除用户收到的评论（作为被评论者）
+    await conn.query("DELETE FROM Comments WHERE TargetUserId = ?", [userId]);
+
+    // 删除用户的订单（作为消费者）
+    await conn.query("DELETE FROM Orders WHERE ConsumerId = ?", [userId]);
+
+    // 删除用户的订单（作为服务提供者）
+    await conn.query("DELETE FROM Orders WHERE ProviderId = ?", [userId]);
+
+    // 删除用户发布的事件
+    await conn.query("DELETE FROM Events WHERE CreatorId = ?", [userId]);
+
+    // 删除用户的认证记录
+    await conn.query("DELETE FROM Verifications WHERE ProviderId = ?", [
+      userId,
+    ]);
+
+    // 删除Providers记录（如果存在）
+    await conn.query("DELETE FROM Providers WHERE ProviderId = ?", [userId]);
+
+    // 删除Consumers记录（如果存在）
+    await conn.query("DELETE FROM Consumers WHERE ConsumerId = ?", [userId]);
+
+    // 最后删除用户记录
+    await conn.query("DELETE FROM Users WHERE UserId = ?", [userId]);
+
+    await conn.commit();
+    return res.json({
+      success: true,
+      message: "用户删除成功",
+    });
+  } catch (err) {
+    if (conn) {
+      await conn.rollback().catch(console.error);
+    }
+    console.error("DB query error (admin delete user):", err);
+    return res.status(500).json({
+      success: false,
+      error: "删除用户失败",
+    });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
