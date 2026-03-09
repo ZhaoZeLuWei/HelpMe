@@ -3,6 +3,7 @@
 <table border="1" cellpadding="8">
   <tr>
     <th>Provider ID</th>
+    <th>用户名</th>
     <th>Role</th>
     <th>认证状态</th>
     <th>操作</th>
@@ -10,20 +11,130 @@
 
   <tr *ngFor="let p of providers">
     <td>{{ p.ProviderId }}</td>
-    <td>{{ p.ProviderRole }}</td>
+    <td>{{ p.UserName }}</td>
+    <td>{{ getProviderRoleText(p.ProviderRole) }}</td>
     <td>
-      <span [style.color]="p.IsVerified ? 'green' : 'red'">
+      <span class="status-badge" [ngClass]="getVerifyClass(p)">
         {{ getVerifyText(p) }}
       </span>
     </td>
     <td>
-      <button *ngIf="p.IsVerified === 0">
-        去审核
-      </button>
-
-      <button *ngIf="p.IsVerified === 1">
-        查看认证
-      </button>
+      <button (click)="viewDetail(p.ProviderId)">查看详情</button>
     </td>
   </tr>
 </table>
+
+<!-- 详情弹窗 -->
+<div class="modal" *ngIf="showDetailModal" (click)="closeDetail()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <span class="close" (click)="closeDetail()">&times;</span>
+
+    <h2>认证详情</h2>
+
+    <div *ngIf="currentDetail">
+      <!-- 基本信息 -->
+      <div class="info-section basic-info">
+        <h3>基本信息</h3>
+        <div class="basic-row">
+          <img
+            *ngIf="currentDetail.UserAvatar"
+            [src]="baseUrl + currentDetail.UserAvatar"
+            alt="头像"
+            class="avatar"
+          />
+          <div class="basic-meta">
+            <p><strong>用户ID:</strong> {{ currentDetail.UserId }}</p>
+            <p><strong>用户名:</strong> {{ currentDetail.UserName }}</p>
+            <p><strong>真实姓名:</strong> {{ currentDetail.RealName }}</p>
+            <p><strong>手机号:</strong> {{ currentDetail.PhoneNumber }}</p>
+            <p><strong>身份证号:</strong> {{ currentDetail.IdCardNumber }}</p>
+            <p><strong>所在地:</strong> {{ currentDetail.Location }}</p>
+            <p>
+              <strong>服务类型（身份）:</strong>
+              {{ getProviderRoleText(currentDetail.ProviderRole) }}
+            </p>
+            <p *ngIf="currentDetail.ServiceCategory !== undefined">
+              <strong>认证申请类别:</strong>
+              {{ getServiceCategoryText(currentDetail.ServiceCategory) }}
+            </p>
+            <p *ngIf="currentDetail.ServiceRanking !== undefined">
+              <strong>服务评分:</strong> {{ currentDetail.ServiceRanking }}
+            </p>
+            <p *ngIf="currentDetail.Introduction">
+              <strong>简介:</strong> {{ currentDetail.Introduction }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 认证信息 -->
+      <div class="info-section">
+        <h3>认证信息</h3>
+        <p>
+          <strong>认证状态:</strong>
+          <span class="status-badge" [ngClass]="getVerifyClass(currentDetail)">
+            {{ getStatusText(currentDetail.VerificationStatus) }}
+          </span>
+        </p>
+        <p *ngIf="currentDetail.SubmissionTime">
+          <strong>提交时间:</strong> {{ currentDetail.SubmissionTime }}
+        </p>
+        <p *ngIf="currentDetail.PassingTime">
+          <strong>审核时间:</strong> {{ currentDetail.PassingTime }}
+        </p>
+        <p *ngIf="currentDetail.Results">
+          <strong>审核结果:</strong> {{ currentDetail.Results }}
+        </p>
+      </div>
+
+      <!-- 身份证照片 -->
+      <div class="info-section" *ngIf="currentDetail.IdCardPhoto">
+        <h3>身份证照片</h3>
+        <div class="photo-grid">
+          <img
+            *ngFor="let photo of currentDetail.IdCardPhoto"
+            [src]="baseUrl + photo"
+            alt="身份证照片"
+            class="photo-item"
+          />
+        </div>
+      </div>
+
+      <!-- 职业证书照片 -->
+      <div class="info-section" *ngIf="currentDetail.ProfessionPhoto">
+        <h3>职业证书照片</h3>
+        <div class="photo-grid">
+          <img
+            *ngFor="let photo of currentDetail.ProfessionPhoto"
+            [src]="baseUrl + photo"
+            alt="职业证书照片"
+            class="photo-item"
+          />
+        </div>
+      </div>
+
+      <!-- 审核操作 -->
+      <div class="info-section" *ngIf="currentDetail.VerificationStatus === 0">
+        <h3>审核操作</h3>
+        <div class="review-form">
+          <label for="reviewComment">审核意见:</label>
+          <textarea
+            id="reviewComment"
+            [(ngModel)]="reviewComment"
+            rows="4"
+            placeholder="请输入审核意见（驳回时必填）"
+          ></textarea>
+
+          <div class="button-group">
+            <button class="btn-approve" (click)="approveVerification()">
+              审核通过
+            </button>
+            <button class="btn-reject" (click)="rejectVerification()">
+              审核驳回
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
