@@ -195,7 +195,7 @@ router.post(
 
      await Message.create({
       roomId: `system_${creatorId}`, 
-      text: `您的订单：“${EventTitle}”发布成功！正在寻找服务商...`, 
+      text: `您的订单：“${EventTitle}”发布成功！请耐心等待...`, 
       senderId: creatorId,
       userName: "系统通知",
       sendTime: new Date(),
