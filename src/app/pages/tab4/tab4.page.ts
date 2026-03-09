@@ -28,6 +28,11 @@ import {
   imageOutline,
   addCircleOutline,
   closeCircle,
+  createOutline,
+  cameraOutline,
+  locationOutline,
+  ribbon,
+  briefcase,
 } from 'ionicons/icons';
 
 import {
@@ -103,8 +108,39 @@ export class Tab4Page implements OnDestroy {
   @ViewChild('editFileInput')
   editFileInput!: ElementRef<HTMLInputElement>;
 
+  @ViewChild('profileAvatarInput')
+  profileAvatarInput!: ElementRef<HTMLInputElement>;
+
   isLoggedIn = false;
   private readonly _sub: Subscription;
+
+  // 用户信息编辑相关
+  isEditProfileModalOpen = false;
+  isSavingProfile = false;
+  profileAvatarPreview: string | null = null;
+  profileAvatarFile: File | null = null;
+  editProfileForm: FormGroup = this.fb.group({
+    UserName: [
+      '',
+      [Validators.required, Validators.minLength(2), Validators.maxLength(20)],
+    ],
+    RealName: [
+      '',
+      [Validators.required, Validators.minLength(2), Validators.maxLength(20)],
+    ],
+    IdCardNumber: [
+      '',
+      [
+        Validators.required,
+        Validators.pattern(
+          /^[1-9]\d{5}(18|19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{3}[0-9Xx]$/,
+        ),
+      ],
+    ],
+    Location: ['', Validators.required],
+    BirthDate: ['', Validators.required],
+    Introduction: ['', Validators.maxLength(200)],
+  });
 
   // 删除确认弹窗状态
   isDeleteAlertOpen = false;
@@ -174,6 +210,11 @@ export class Tab4Page implements OnDestroy {
       imageOutline,
       addCircleOutline,
       closeCircle,
+      createOutline,
+      cameraOutline,
+      locationOutline,
+      ribbon,
+      briefcase,
     });
 
     // 订阅登录状态
@@ -305,6 +346,13 @@ export class Tab4Page implements OnDestroy {
     await modal.present();
   }
 
+  async openRegisterModal() {
+    const modal = await this.modalController.create({
+      component: (await import('../register/register.page')).RegisterPage,
+    });
+    await modal.present();
+  }
+
   editTask(taskId: number) {
     void this.openEditModal(taskId);
   }
@@ -351,6 +399,14 @@ export class Tab4Page implements OnDestroy {
 
   logout() {
     this.auth.logout(); // 登出会触发状态变更
+    this.toastController
+      .create({
+        message: '已成功登出',
+        duration: 750,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      })
+      .then((toast) => toast.present());
   }
 
   ngOnDestroy(): void {
@@ -371,6 +427,9 @@ export class Tab4Page implements OnDestroy {
       location: '',
       avatar: '',
       introduction: '',
+      realName: '',
+      idCardNumber: '',
+      birthDate: '',
       stats: { favorites: 0, views: 0, follows: 0 },
     };
   }
@@ -385,27 +444,41 @@ export class Tab4Page implements OnDestroy {
 
   // 统一更新用户信息的工具方法
   private updateUserFromData(data: any): void {
-    this.userInfo.name = data.UserName || '';
-    this.userInfo.location = data.Location || '';
-    this.userInfo.introduction = data.Introduction || '';
-    this.userInfo.avatar = data.UserAvatar || '';
-    this.userInfo.buyerRanking = data.BuyerRanking ?? 0;
-    this.userInfo.providerRole = data.ProviderRole ?? 0;
-    this.userInfo.orderCount = data.OrderCount ?? 0;
-    this.userInfo.serviceRanking = data.ServiceRanking ?? 0;
+    this.userInfo.name = data.UserName || data.userName || '';
+    this.userInfo.location = data.Location || data.location || '';
+    this.userInfo.introduction = data.Introduction || data.introduction || '';
+    this.userInfo.avatar = data.UserAvatar || data.userAvatar || '';
+    this.userInfo.buyerRanking =
+      Number(data.BuyerRanking || data.buyerRanking) || 0;
+    this.userInfo.providerRole =
+      Number(data.ProviderRole || data.providerRole) || 0;
+    this.userInfo.orderCount = Number(data.OrderCount || data.orderCount) || 0;
+    this.userInfo.serviceRanking =
+      Number(data.ServiceRanking || data.serviceRanking) || 0;
+    this.userInfo.realName = data.RealName || data.realName || '';
+    this.userInfo.idCardNumber = data.IdCardNumber || data.idCardNumber || '';
+    this.userInfo.birthDate = data.BirthDate || data.birthDate || '';
 
-    const vs = data.VerificationStatus;
+    const vs = data.VerificationStatus ?? data.verificationStatus;
     if (vs === 1) this.userInfo.isVerified = '已认证';
     else if (vs === 2) this.userInfo.isVerified = '被驳回';
     else if (vs === 0) this.userInfo.isVerified = '待审核';
     else this.userInfo.isVerified = '未认证';
   }
 
+  // 格式化评分显示
+  formatRating(value: any): string {
+    const num = Number(value) || 0;
+    return num.toFixed(1);
+  }
+
   // 从 localStorage 加载用户
   async loadUserFromStorage(): Promise<void> {
     try {
       const raw = localStorage.getItem('user');
-      if (!raw) return;
+      if (!raw) {
+        return;
+      }
 
       const u = JSON.parse(raw);
       const id = u.UserId || u.userId || u.id;
@@ -703,5 +776,229 @@ export class Tab4Page implements OnDestroy {
   getAssetUrl(path: string): string {
     if (!path) return '';
     return path.startsWith('http') ? path : `${this.API_BASE}${path}`;
+  }
+
+  // 用户信息编辑相关方法
+
+  openEditProfileModal(): void {
+    this.editProfileForm.reset({
+      UserName: this.userInfo.name || '',
+      RealName: this.userInfo.realName || '',
+      IdCardNumber: this.userInfo.idCardNumber || '',
+      Location: this.userInfo.location || '',
+      BirthDate: this.userInfo.birthDate || '',
+      Introduction: this.userInfo.introduction || '',
+    });
+    this.profileAvatarPreview = null;
+    this.profileAvatarFile = null;
+    this.isEditProfileModalOpen = true;
+  }
+
+  closeEditProfileModal(): void {
+    this.isEditProfileModalOpen = false;
+    this.profileAvatarPreview = null;
+    this.profileAvatarFile = null;
+    this.editProfileForm.reset();
+  }
+
+  triggerProfileAvatarInput(): void {
+    this.profileAvatarInput?.nativeElement.click();
+  }
+
+  onProfileAvatarSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      void this.presentDeleteToast('请选择图片文件');
+      return;
+    }
+
+    // 检查文件大小（5MB）
+    if (file.size > 5 * 1024 * 1024) {
+      void this.presentDeleteToast('图片大小不能超过5MB');
+      return;
+    }
+
+    this.profileAvatarFile = file;
+    this.profileAvatarPreview = URL.createObjectURL(file);
+    input.value = '';
+  }
+
+  removeProfileAvatar(): void {
+    if (this.profileAvatarPreview) {
+      URL.revokeObjectURL(this.profileAvatarPreview);
+    }
+    this.profileAvatarPreview = null;
+    this.profileAvatarFile = null;
+    // 清理文件输入框
+    if (this.profileAvatarInput?.nativeElement) {
+      this.profileAvatarInput.nativeElement.value = '';
+    }
+  }
+
+  async submitProfileEdit(): Promise<void> {
+    if (this.editProfileForm.invalid) {
+      const errors: string[] = [];
+      if (this.editProfileForm.get('UserName')?.invalid)
+        errors.push('用户名必填（2-20个字符）');
+      if (this.editProfileForm.get('RealName')?.invalid)
+        errors.push('真实姓名必填（2-20个字符）');
+      if (this.editProfileForm.get('IdCardNumber')?.invalid)
+        errors.push('身份证号格式不正确');
+      if (this.editProfileForm.get('Location')?.invalid)
+        errors.push('所在地必填');
+      if (this.editProfileForm.get('BirthDate')?.invalid)
+        errors.push('出生日期必填');
+      if (this.editProfileForm.get('Introduction')?.invalid)
+        errors.push('个人介绍最多200字');
+      await this.presentDeleteToast(errors.join('，'));
+      return;
+    }
+
+    if (!this.currentUserId) {
+      await this.presentDeleteToast('未登录，无法保存');
+      return;
+    }
+
+    if (this.isSavingProfile) return;
+    this.isSavingProfile = true;
+
+    let avatarPath: string | null = null;
+
+    try {
+      // 如果有新头像，先上传
+      if (this.profileAvatarFile) {
+        avatarPath = await this.uploadProfileAvatar();
+        if (!avatarPath) {
+          this.isSavingProfile = false;
+          return;
+        }
+      }
+
+      const payload: any = {
+        UserName: this.editProfileForm.value.UserName,
+        RealName: this.editProfileForm.value.RealName,
+        IdCardNumber: this.editProfileForm.value.IdCardNumber,
+        Location: this.editProfileForm.value.Location,
+        BirthDate: this.editProfileForm.value.BirthDate,
+        Introduction: this.editProfileForm.value.Introduction || '',
+      };
+
+      if (avatarPath) {
+        payload.UserAvatar = avatarPath;
+      }
+
+      const resp = await fetch(
+        `${this.API_BASE}/users/${this.currentUserId}/profile`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.auth.getAuthHeader(),
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const data = await resp.json().catch(() => null);
+
+      if (!resp.ok || !data?.success) {
+        const msg =
+          data?.error ||
+          data?.msg ||
+          (resp.status === 401
+            ? '未登录或登录已过期'
+            : `保存失败（${resp.status}）`);
+
+        // 如果更新用户信息失败，且已经上传了头像，则删除已上传的头像
+        if (avatarPath) {
+          await this.deleteUploadedFile(avatarPath);
+        }
+
+        await this.presentDeleteToast(msg);
+        return;
+      }
+
+      // 更新本地用户信息
+      this.userInfo.name = payload.UserName;
+      this.userInfo.realName = payload.RealName;
+      this.userInfo.idCardNumber = payload.IdCardNumber;
+      this.userInfo.location = payload.Location;
+      this.userInfo.birthDate = payload.BirthDate;
+      this.userInfo.introduction = payload.Introduction;
+      if (avatarPath) {
+        this.userInfo.avatar = avatarPath;
+      }
+
+      // 更新 localStorage
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      storedUser.UserName = payload.UserName;
+      storedUser.RealName = payload.RealName;
+      storedUser.IdCardNumber = payload.IdCardNumber;
+      storedUser.Location = payload.Location;
+      storedUser.BirthDate = payload.BirthDate;
+      storedUser.Introduction = payload.Introduction;
+      if (avatarPath) {
+        storedUser.UserAvatar = avatarPath;
+      }
+      localStorage.setItem('user', JSON.stringify(storedUser));
+
+      await this.presentDeleteToast('保存成功');
+      this.closeEditProfileModal();
+    } catch (e) {
+      console.error('submitProfileEdit error', e);
+
+      // 如果出现异常且已经上传了头像，则删除已上传的头像
+      if (avatarPath) {
+        await this.deleteUploadedFile(avatarPath);
+      }
+
+      await this.presentDeleteToast('网络错误，稍后重试');
+    } finally {
+      this.isSavingProfile = false;
+    }
+  }
+
+  private async uploadProfileAvatar(): Promise<string | null> {
+    if (!this.profileAvatarFile) return null;
+
+    const fd = new FormData();
+    fd.append('images', this.profileAvatarFile);
+
+    try {
+      const resp = await fetch(`${this.API_BASE}/upload/images`, {
+        method: 'POST',
+        body: fd,
+      });
+
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.success || !Array.isArray(data.paths)) {
+        await this.presentDeleteToast(data?.error || '头像上传失败');
+        return null;
+      }
+
+      return data.paths[0] || null;
+    } catch (e) {
+      console.error('uploadProfileAvatar error', e);
+      await this.presentDeleteToast('头像上传失败，请稍后重试');
+      return null;
+    }
+  }
+
+  // 删除已上传的文件（当更新用户信息失败时回滚）
+  private async deleteUploadedFile(filePath: string): Promise<void> {
+    try {
+      await fetch(`${this.API_BASE}/upload/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ path: filePath }),
+      });
+    } catch (e) {
+      console.error('deleteUploadedFile error', e);
+    }
   }
 }

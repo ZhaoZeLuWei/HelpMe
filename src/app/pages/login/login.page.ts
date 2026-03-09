@@ -49,7 +49,37 @@ export class LoginPage {
 
     if (this.sendCooldown() > 0) return;
 
-    // 模拟发送
+    const phone = this.form.controls.phone.value || '';
+
+    // 先检查手机号是否已注册（登录页面需要手机号已注册）
+    this.sending.set(true);
+    const checkResult = await this.auth.checkPhoneExists(phone);
+
+    if (!checkResult) {
+      this.sending.set(false);
+      const toast = await this.toastCtrl.create({
+        message: '无法验证手机号，请稍后重试',
+        duration: 1500,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await toast.present();
+      return;
+    }
+
+    if (!checkResult.exists) {
+      this.sending.set(false);
+      const toast = await this.toastCtrl.create({
+        message: '该手机号未注册，请先注册',
+        duration: 1500,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await toast.present();
+      return;
+    }
+
+    // 手机号已注册，发送验证码
     const toast = await this.toastCtrl.create({
       message: '验证码已发送，验证码为1234',
       duration: 750,
@@ -59,7 +89,6 @@ export class LoginPage {
     await toast.present();
 
     this.sendCooldown.set(60);
-    this.sending.set(true);
     const timer = setInterval(() => {
       const next = this.sendCooldown() - 1;
       this.sendCooldown.set(next);

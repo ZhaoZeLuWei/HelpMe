@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { NavController } from '@ionic/angular';
+import { LanguageService } from '../../services/language.service';
 import {
   IonTabs,
   IonTabBar,
@@ -28,11 +29,13 @@ import {
 export class TabsPage {
   public router = inject(Router);
   private navCtrl = inject(NavController);
+  private langService = inject(LanguageService);
+// 定义导航栏翻译对象，初始为中文
+  navText = this.langService.getTranslations('zh').nav;
 
   isTab5Active = false;
 
   constructor() {
-    //use these icons, need name here and then use the name in HTML
     addIcons({
       'home-outline': homeOutline,
       'search-outline': searchOutline,
@@ -41,8 +44,12 @@ export class TabsPage {
       add: add,
       close: close,
     });
-  }
 
+    // 监听语言变化
+    this.langService.currentLang$.subscribe(lang => {
+      this.navText = this.langService.getTranslations(lang).nav;
+    });
+  }
   onTab5Click(): void {
     if (this.isTab5Active) {
       // 关闭tab5，返回上一个页面

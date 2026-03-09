@@ -1,0 +1,88 @@
+
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.sidebar {
+  width: 220px;
+  background-color: #1E3A8A;
+  color: #fff;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #f9fafb;
+  padding: 40px 0;
+  overflow-y: auto;
+}
+
+.main-content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 60px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.main-content app-create-event {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar .logo {
+  font-size: 20px;
+  margin-bottom: 30px;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar li {
+  margin-bottom: 15px;
+}
+
+.sidebar a {
+  text-decoration: none;
+  color: #E0E7FF;
+  font-weight: 500;
+  padding: 8px 10px;
+  display: block;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.sidebar a:hover {
+  background-color: #3B82F6;
+}
+
+.sidebar a.active {
+  background-color: #2563EB;
+  color: #fff;
+}
+
+.content {
+  flex: 1;
+  padding: 50px 80px;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}

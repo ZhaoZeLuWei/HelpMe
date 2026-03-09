@@ -10,7 +10,6 @@ import { CommonModule } from '@angular/common';
 import {
   IonHeader,
   IonToolbar,
-  IonTitle,
   IonContent,
   IonSearchbar,
 } from '@ionic/angular/standalone';
@@ -35,7 +34,6 @@ import { SearchStateService } from '../../services/search-state.service';
     CommonModule,
     IonHeader,
     IonToolbar,
-    IonTitle,
     IonContent,
     IonSearchbar,
     UniversalSearchComponent,
@@ -64,7 +62,12 @@ export class Tab2Page implements OnInit, AfterViewInit {
     this.route.queryParams.subscribe(params => {
       this.currentType = params['type'] || null;
       const keyword = params['search'] || '';
-      this.loadEvents(keyword);          // 把关键词传进去
+
+      // 只在第一次或者关键词变化时加载数据
+      const currentKeyword = this.route.snapshot.queryParams['search'] || '';
+      if (keyword !== currentKeyword || !this.eventsData().length) {
+        this.loadEvents(keyword);          // 把关键词传进去
+      }
 
       // 聚焦逻辑（可选）
       if (params['focusSearch']) {
@@ -88,14 +91,18 @@ export class Tab2Page implements OnInit, AfterViewInit {
   }
 
   /* 统一加载：根据关键词和分类决定接口 */
-  private loadEvents(keyword?: string) {
+  private loadEvents(keyword?: string, skipUpdate?: boolean) {
+    // 直接从当前路由获取参数，而不是使用保存的 this.currentType
+    const currentParams = this.route.snapshot.queryParams;
+    const realType = currentParams['type'] || null;
+
     // 构建查询参数
     const params = new URLSearchParams();
     if (keyword) {
       params.append('search', encodeURIComponent(keyword));
     }
-    if (this.currentType) {
-      params.append('type', this.currentType);
+    if (realType) {
+      params.append('type', realType);
     }
 
     // 构建URL
@@ -118,11 +125,11 @@ export class Tab2Page implements OnInit, AfterViewInit {
           createTime: item.createTime,
           avatar: item.avatar,
         }));
+
         this.eventsData.set(transformed);   // signal 自动触发视图更新
       })
       .catch(err => console.error('Tab2 加载失败', err));
   }
-
   /* 跳转到搜索页面 */
   navigateToSearch() {
     this.router.navigate(['/search'], {

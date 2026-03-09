@@ -45,6 +45,8 @@ import {
 
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
+import { LanguageService } from '../../services/language.service'
+
 
 @Component({
   selector: 'app-tab5',
@@ -116,18 +118,28 @@ export class Tab5Page implements OnInit {
   private navCtrl = inject(NavController);
   private toastCtrl = inject(ToastController);
   private auth = inject(AuthService);
+  private langService = inject(LanguageService);
+
+  // 翻译对象
+  t = this.langService.getTranslations('zh').tab5;
 
   constructor() {
     addIcons({
-      close,
-      handLeftOutline,
-      heartOutline,
+      close, 
+      handLeftOutline, 
+      heartOutline, 
       shieldCheckmarkOutline,
-      imageOutline,
-      addCircleOutline,
+      imageOutline, 
+      addCircleOutline, 
       closeCircle,
     });
+
+    //监听语言变化 
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).tab5;
+    });
   }
+
 
   ngOnInit(): void {
     this.requestForm = this.fb.group({

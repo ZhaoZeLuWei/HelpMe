@@ -1,0 +1,171 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>注册</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="closeModal()">关闭</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="register-content" [fullscreen]="true">
+  <!-- 第一步：验证手机号 -->
+  @if (step() === 'verify') {
+  <div class="step-container">
+    <h2>验证手机号</h2>
+    <p class="step-desc">请输入您的手机号并获取验证码</p>
+
+    <form [formGroup]="verifyForm">
+      <ion-list>
+        <ion-item>
+          <ion-label position="floating">手机号 </ion-label>
+          <ion-input
+            type="tel"
+            inputmode="numeric"
+            formControlName="phone"
+            [maxlength]="11"
+            placeholder="请输入手机号"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="floating">验证码</ion-label>
+          <ion-input
+            type="tel"
+            inputmode="numeric"
+            formControlName="code"
+            [maxlength]="4"
+            placeholder="请输入验证码"
+          ></ion-input>
+          <ion-button
+            slot="end"
+            size="small"
+            (click)="sendCode()"
+            [disabled]="sendCooldown() > 0"
+          >
+            @if (sendCooldown() === 0) { 发送验证码 } @if (sendCooldown() > 0) {
+            {{ sendCooldown() }}s }
+          </ion-button>
+        </ion-item>
+      </ion-list>
+
+      <div class="actions">
+        <ion-button expand="block" (click)="nextStep()"> 下一步 </ion-button>
+      </div>
+    </form>
+
+    <div class="hint">提示：测试验证码为 1234</div>
+  </div>
+  }
+
+  <!-- 第二步：填写用户信息 -->
+  @if (step() === 'info') {
+  <div class="step-container">
+    <h2>完善个人信息</h2>
+    <p class="step-desc">请填写您的基本信息</p>
+
+    <form [formGroup]="infoForm" (ngSubmit)="submit()">
+      <ion-list>
+        <!-- 头像上传 -->
+        <div class="avatar-upload-section">
+          <div class="avatar-preview">
+            @if (avatarPreview) {
+            <img [src]="avatarPreview" alt="头像预览" />
+            } @else {
+            <img [src]="defaultAvatar" alt="默认头像" />
+            }
+          </div>
+          <div class="avatar-actions">
+            <ion-button size="small" (click)="triggerAvatarPicker()">
+              {{ avatarPreview ? '更换头像' : '上传头像' }}
+            </ion-button>
+            @if (avatarPreview) {
+            <ion-button
+              size="small"
+              fill="outline"
+              color="danger"
+              (click)="removeAvatar()"
+            >
+              删除
+            </ion-button>
+            }
+          </div>
+          <input
+            #avatarInput
+            type="file"
+            accept="image/*"
+            style="display: none"
+            (change)="onAvatarSelected($event)"
+          />
+          <p class="avatar-hint">未上传将使用默认头像，支持jpg/png，最大5MB</p>
+        </div>
+
+        <ion-item>
+          <ion-label position="floating">用户名 *</ion-label>
+          <ion-input
+            type="text"
+            formControlName="userName"
+            placeholder="请输入用户名（2-20个字符）"
+            [maxlength]="20"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="floating">真实姓名 *</ion-label>
+          <ion-input
+            type="text"
+            formControlName="realName"
+            placeholder="请输入真实姓名（2-20个字符）"
+            [maxlength]="20"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="floating">身份证号 *</ion-label>
+          <ion-input
+            type="text"
+            formControlName="idCardNumber"
+            placeholder="请输入18位身份证号"
+            [maxlength]="18"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="floating">所在地 *</ion-label>
+          <ion-input
+            type="text"
+            formControlName="location"
+            placeholder="例如：广西柳州"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="floating">出生日期 *</ion-label>
+          <ion-input type="date" formControlName="birthDate"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="floating">个人介绍</ion-label>
+          <ion-textarea
+            formControlName="introduction"
+            placeholder="简单介绍一下自己吧（选填，最多200字）"
+            [maxlength]="200"
+            [autoGrow]="true"
+            rows="3"
+          ></ion-textarea>
+        </ion-item>
+      </ion-list>
+
+      <div class="actions">
+        <ion-button expand="block" fill="outline" (click)="backToVerify()">
+          上一步
+        </ion-button>
+        <ion-button expand="block" type="submit" [disabled]="registering()">
+          @if (registering()) { 注册中... } @else { 完成注册 }
+        </ion-button>
+      </div>
+    </form>
+
+    <div class="hint">* 标记为必填项</div>
+  </div>
+  }
+</ion-content>
