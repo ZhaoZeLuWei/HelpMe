@@ -21,17 +21,19 @@
   </div>
 </ion-content>
 
-<ion-footer>
-  <ion-toolbar>
-    <ion-item lines="none">
-      <ion-input
-        [formControl]="messageInput"
-        placeholder="输入消息..."
-        (keyup.enter)="sendMessage()">
-      </ion-input>
-      <ion-button slot="end" fill="clear" (click)="sendMessage()">
-        发送
-      </ion-button>
-    </ion-item>
-  </ion-toolbar>
-</ion-footer>
+@if (showChat) {
+  <ion-footer>
+    <ion-toolbar>
+      <ion-item lines="none">
+        <ion-input
+          [formControl]="messageInput"
+          placeholder="输入消息..."
+          (keyup.enter)="sendMessage()">
+        </ion-input>
+        <ion-button slot="end" fill="clear" (click)="sendMessage()">
+          发送
+        </ion-button>
+      </ion-item>
+    </ion-toolbar>
+  </ion-footer>
+}

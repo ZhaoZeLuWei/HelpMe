@@ -16,7 +16,6 @@ import {
 import {Router} from '@angular/router';
 import {NavController, ToastController} from '@ionic/angular';
 
-
 @Component({
   selector: 'app-tab3',
   templateUrl: 'tab3.page.html',
@@ -44,6 +43,7 @@ export class Tab3Page implements OnInit {
   //variables
   getUser: any;
   showChat: boolean | undefined;
+  systemRoom : any = null;
 
   ngOnInit() {
     this.showChat = false;
@@ -54,7 +54,25 @@ export class Tab3Page implements OnInit {
     //init each time
     this.showChat = false;// web page HTML show check
     this.getUser = this.auth.currentUser;// user get check
+    console.log(this.getUser);
+    const sysRoom = `system_${this.getUser.UserId}`;
+    if(this.getUser){
+      this.initSystemRoom(sysRoom);
+    }
     this.checkAuth();// do checking
+
+  }
+
+  //根据登陆用户信息来进入对应用户的通知聊天房间
+  private initSystemRoom(sysRoom:any) {
+    this.systemRoom = {
+      roomId: sysRoom, // 现在这里不会是 undefined 了
+      name: '系统通知',
+      avatar: 'assets/icon/notification.svg',
+      lastMsg: '暂无新通知',
+      count: 0,
+      type: 'system'
+    }
   }
 
   private async checkAuth(){
@@ -89,10 +107,13 @@ export class Tab3Page implements OnInit {
     { roomId:'room_001',name: 'User2-Room1', time: '14:30', lastMsg: '你好', count: 2, avatar: 'assets/icon/user.svg' },
   ];
 
+
   //go to the chat with router
   goChat(user: any) {
     this.navCtrl.navigateForward(['/chat-detail', user.roomId], {
       state: { targetUser: user }
     });
   }
+
+
 }

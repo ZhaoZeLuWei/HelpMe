@@ -13,7 +13,7 @@ const testRoutes = require("./routes/test.js");
 const userRoutes = require("./routes/user.js");
 const eventRoutes = require("./routes/event.js");
 const verifyRoutes = require("./routes/verify.js");
-const orderRoutes = require("./routes/order.js");
+//const orderRoutes = require("./routes/order.js");
 const reviewRoutes = require("./routes/review.js");
 const chatRoutes = require("./routes/chat.js");
 
@@ -26,7 +26,7 @@ app.use("/test", testRoutes);
 app.use(userRoutes);
 app.use(eventRoutes);
 app.use(verifyRoutes);
-app.use(orderRoutes);
+//app.use(orderRoutes);
 app.use(reviewRoutes);
 app.use(chatRoutes);
 

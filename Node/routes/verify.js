@@ -5,6 +5,7 @@ const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 const { authRequired } = require("./auth.js");
 
+const Message = require('../models/Message');
 const router = express.Router();
 
 //GET 获取所有申请记录（仅包含通过和待审核) by Zewei 2-3
@@ -238,6 +239,8 @@ router.post(
         idCardPaths,
         certPaths,
       });
+
+
     } catch (err) {
       console.error("认证提交数据库错误:", err);
       if (conn) {
@@ -257,6 +260,14 @@ router.post(
       }
       return res.status(500).json({ success: false, error: "服务器内部错误" });
     } finally {
+      Message.create({
+        roomId: `system_${providerId}`,
+        text: "您的认证信息已更新，状态为待审核",
+        senderId: providerId,
+        userName: "系统通知",
+        sendTime: new Date(),
+      }).catch(err => console.error("写入系统消息失败:", err));
+
       if (conn) conn.release();
     }
   },

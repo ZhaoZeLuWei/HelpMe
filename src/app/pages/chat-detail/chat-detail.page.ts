@@ -1,4 +1,4 @@
-import {Component, OnDestroy, OnInit, signal, inject} from '@angular/core';
+import {Component, OnDestroy, OnInit, signal, inject, booleanAttribute} from '@angular/core';
 import {io} from 'socket.io-client';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -63,6 +63,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   roomId:string = "";
   getUserFromService: any;
   serverOffset = 0;
+  showChat:boolean = true;
 
   //input checking before it send to node
   messageInput = new FormControl('', {
@@ -80,6 +81,11 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     if (state && state.targetUser) {
       this.roomInfoTab3 = state.targetUser;
       this.roomId = this.roomInfoTab3.roomId;
+    }
+
+    //如果获取到是system类的房间，不显示底部的聊天栏
+    if (state.targetUser.type === 'system') {
+      this.showChat = false;
     }
     this.loadHistory(this.roomId);
 
@@ -167,7 +173,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     if (checkMsg && checkMsg.trim()) {
       // only send text; server will attach sender identity
       this.socket.emit('chat message', {
-        text: checkMsg
+        text: checkMsg,
       });
       this.messageInput.reset();
     }
