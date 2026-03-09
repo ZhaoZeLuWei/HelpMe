@@ -12,7 +12,7 @@ import { ShowEventComponent } from '../../components/show-event/show-event.compo
 import { UniversalSearchComponent } from '../../components/universal-search/universal-search.component';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
-import { LanguageService } from '../../services/language.service'; 
+import { LanguageService } from '../../services/language.service';
 
 // 卡片数据接口
 interface CardItem {
@@ -55,7 +55,7 @@ export class Tab1Page implements OnInit {
 
    // 页面翻译对象
   t = this.langService.getTranslations('zh').tab1;
-  
+
   // 按钮显示的文字（从t对象取）
   get currentLangBtnText() {
     return this.t.btnText;
@@ -76,7 +76,7 @@ ngOnInit() {
     // --- 保留你原有的数据加载逻辑 ---
     this.getCardData('request').subscribe((data) => {
       this.requestList = data;
-      this.updateEventData(); 
+      this.updateEventData();
     });
     this.getCardData('help').subscribe((data) => {
       this.helpList = data;
@@ -191,7 +191,7 @@ ngOnInit() {
     console.log('点击了小卡片：', item.name, 'ID：', item.id);
     // 跳转到详情页面，传递完整的item对象
     this.router.navigate(['/particular'], {
-      queryParams: { event: JSON.stringify(item) }
+      queryParams: { eventId: item.id }
     });
   }
 

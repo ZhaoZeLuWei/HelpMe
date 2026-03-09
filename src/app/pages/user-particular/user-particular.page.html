@@ -67,7 +67,7 @@
           [class.active]="activeTab === 'activity-feed'"
           (click)="switchTab('activity-feed')"
         >
-          动态
+          历史活动
         </div>
       </div>
 
@@ -156,17 +156,17 @@
   <ion-toolbar>
     <ion-row class="bottom-actions">
       <ion-col>
-        <ion-button expand="block" fill="outline">
+        <ion-button expand="block" fill="outline" (click)="onFollow()">
           <ion-icon slot="start" name="heart-outline"></ion-icon>
           关注
         </ion-button>
       </ion-col>
-      <ion-col>
-        <ion-button expand="block">
-          <ion-icon slot="start" name="chatbubble-outline"></ion-icon>
-          聊一聊
-        </ion-button>
-      </ion-col>
+        <ion-col>
+          <ion-button expand="block" (click)="onChat()">
+            <ion-icon slot="start" name="chatbubble-outline"></ion-icon>
+            {{ isCurrentUser ? '不能与自己聊天' : '聊一聊' }}
+          </ion-button>
+        </ion-col>
     </ion-row>
   </ion-toolbar>
 </ion-footer>

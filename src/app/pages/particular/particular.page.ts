@@ -2,9 +2,11 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow,IonCol,IonBadge} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';  // 添加这行
+import { Location } from '@angular/common';
 import { EventCardData } from '../../components/show-event/show-event.component';
+import { ModalController } from '@ionic/angular/standalone';
 import { environment } from 'src/environments/environment';
+import { AuthService } from 'src/app/services/auth.service';
 
 @Component({
   selector: 'app-particular',
@@ -28,8 +30,12 @@ import { environment } from 'src/environments/environment';
 export class ParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private location = inject(Location);  // 添加这行
+  private location = inject(Location);
+  private authService = inject(AuthService);
+  private modalCtrl = inject(ModalController);
   readonly apiBase = environment.apiBase;
+
+  isCurrentUserCreator: boolean = false;
 
   // 新增 userInfo 对象，模拟队友的数据结构
   userInfo: any = {
@@ -50,22 +56,58 @@ export class ParticularPage implements OnInit {
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
-      // 情况1：直接传了 event JSON 字符串
-      if (params['event']) {
-        try {
-          this.event = JSON.parse(params['event']);
-          if (this.event?.creatorId) {
-            this.loadUserFromStorage(Number(this.event.creatorId));
-          }
-        } catch (error) {
-          console.error('解析事件数据失败:', error);
-        }
-      }
-      // 情况2：只传了 eventId，需要从后端加载
-      else if (params['eventId']) {
-        this.loadEventById(Number(params['eventId']));
+      const eventId = params['eventId'];
+      if (eventId) {
+        // 根据eventId从后端获取完整数据
+        this.loadEventDetail(eventId);
       }
     });
+  }
+
+// 新增方法：根据ID获取事件详情
+  async loadEventDetail(eventId: string) {
+    try {
+      const resp = await fetch(`${this.apiBase}/events/${eventId}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data?.success && data?.event) {
+          const rawEvent = data.event;
+          // 解析图片
+          let cardImage = null;
+          if (rawEvent.Photos) {
+            try {
+              const photos = JSON.parse(rawEvent.Photos);
+              cardImage = Array.isArray(photos) ? photos[0] : photos;
+            } catch {
+              cardImage = rawEvent.Photos;
+            }
+          }
+          // 转换字段名以匹配 EventCardData
+          this.event = {
+            id: rawEvent.EventId,
+            title: rawEvent.EventTitle,
+            address: rawEvent.Location,
+            price: rawEvent.Price,
+            demand: rawEvent.EventDetails,
+            createTime: rawEvent.CreateTime,
+            cardImage: cardImage,
+            creatorId: rawEvent.CreatorId,
+            name: '',
+            avatar: '',
+            icon: 'navigate-outline',
+            distance: '距500m'
+          };
+          // 加载发布者信息
+          if (this.event?.creatorId) {
+            this.loadUserFromStorage(this.event.creatorId);
+          }
+          // 检查当前用户是否是事件创建者
+          this.checkUserIsCreator();
+        }
+      }
+    } catch (error) {
+      console.error('加载事件详情失败:', error);
+    }
   }
 
 // 根据 ID 加载活动详情
@@ -197,17 +239,85 @@ export class ParticularPage implements OnInit {
   }
 
   // 关注按钮点击事件
-  onFollow() {
+  async onFollow() {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      console.log('请先登录');
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({
+        component: LoginPage
+      });
+      modal.onDidDismiss().then(() => {
+        const newUserId = this.authService.currentUserId;
+        if (newUserId) {
+          window.location.reload();
+        }
+      });
+      await modal.present();
+      return;
+    }
     console.log('关注按钮点击');
   }
 
-  // 收藏按钮点击事件
-  onCollect() {
+  async onCollect() {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      console.log('请先登录');
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({
+        component: LoginPage
+      });
+      modal.onDidDismiss().then(() => {
+        const newUserId = this.authService.currentUserId;
+        if (newUserId) {
+          window.location.reload();
+        }
+      });
+      await modal.present();
+      return;
+    }
     console.log('收藏按钮点击');
   }
 
-  // 聊一聊按钮点击事件
-  onChat() {
-    console.log('聊一聊按钮点击');
+  checkUserIsCreator() {
+    const currentUserId = this.authService.currentUserId;
+    const creatorId = this.event?.creatorId;
+    this.isCurrentUserCreator = currentUserId !== null && creatorId !== null && currentUserId === creatorId;
+  }
+
+  async onChat() {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      console.log('请先登录');
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({
+        component: LoginPage
+      });
+
+      // 监听 Modal 关闭
+      modal.onDidDismiss().then(() => {
+        // 重新检查用户登录状态
+        const newUserId = this.authService.currentUserId;
+        if (newUserId) {
+          // 登录成功，刷新页面数据
+          window.location.reload();
+        }
+      });
+
+      await modal.present();
+      return;
+    }
+
+    if (this.isCurrentUserCreator) {
+      console.log('不能与自己聊天');
+      return;
+    }
+
+    const chatData = {
+      EventId: this.event?.id,
+      CreaterId: this.event?.creatorId,
+      PartnerId: currentUserId
+    };
+    console.log('聊天数据:', chatData);
   }
 }
