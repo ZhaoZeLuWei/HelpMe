@@ -53,10 +53,12 @@ export class Tab3Page implements OnInit {
   ionViewWillEnter() {
     //init each time
     this.showChat = false;// web page HTML show check
+
     this.getUser = this.auth.currentUser;// user get check
     console.log(this.getUser);
-    const sysRoom = `system_${this.getUser.UserId}`;
+
     if(this.getUser){
+      const sysRoom = `system_${this.getUser.UserId}`;
       this.initSystemRoom(sysRoom);
     }
     this.checkAuth();// do checking
@@ -82,8 +84,8 @@ export class Tab3Page implements OnInit {
       //简单粗暴的跳转到了登陆页 需要优化login page 1-23
       //wait to show toast at top and let user read the html contents then do navigation
       await this.loginToast();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      this.navCtrl.navigateRoot('/tabs/tab4');
+      await new Promise(resolve => setTimeout(resolve, 200));
+      this.navCtrl.navigateRoot('/tabs/tab4', {animated: true});
     }  else {
       this.showChat = true;
     }
