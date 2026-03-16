@@ -15,6 +15,7 @@ import {
   } from '@ionic/angular/standalone';
 import {Router} from '@angular/router';
 import {NavController, ToastController} from '@ionic/angular';
+import {sad} from "ionicons/icons";
 
 @Component({
   selector: 'app-tab3',
@@ -44,26 +45,71 @@ export class Tab3Page implements OnInit {
   getUser: any;
   showChat: boolean | undefined;
   systemRoom : any = null;
+  //init chat rooms (nothing)
+  chatRooms: any[] = [];
 
   ngOnInit() {
     this.showChat = false;
     console.log(this.getUser);
   }
 
-
   ionViewWillEnter() {
     //init each time
     this.showChat = false;// web page HTML show check
-
     this.getUser = this.auth.currentUser;// user get check
     console.log(this.getUser);
 
     if(this.getUser){
+      //init system room
       const sysRoom = `system_${this.getUser.UserId}`;
       this.initSystemRoom(sysRoom);
+
+      //get all rooms with the target user
+      this.loadUserRooms(this.getUser.UserId);
+      console.log(this.chatRooms);
     }
     this.checkAuth();// do checking
+  }
 
+  //line 67 68 use api to get all list?
+  async loadUserRooms(userId: number) {
+    try {
+      const query = new URLSearchParams({ userId: String(userId) }).toString();
+      const resp = await fetch(`http://localhost:3000/api/rooms/list?${query}`);
+      const data = await resp.json();
+      console.log(data);
+
+      if (data?.success && Array.isArray(data.data?.rooms)) {
+        this.chatRooms = data.data.rooms.map((room: any) => {
+          let name = '';
+          let avatar = '';
+
+          if (room.type === 'system' || room._id.startsWith('system_')) {
+            name = '系统通知';
+            avatar = 'assets/icon/notification.svg';
+          } else {
+            name = `用户 ${room.partnerId}`; // 或者后续调用用户接口获取真实昵称
+            avatar = 'assets/icon/user.svg';
+          }
+
+          return {
+            roomId: room._id,
+            name,
+            lastMsg: room.lastMsg || '暂无消息', // 注意这里是 lastMsg，不是 lastMessage
+            count: room.unreadCount || 0,
+            avatar,
+            type: room.type || 'user',
+            updatedAt: room.updatedAt
+          };
+        });
+
+        // 可选：按更新时间排序
+        this.chatRooms.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        this.showChat = true;
+      }
+    } catch (err) {
+      console.error('加载聊天房间失败', err);
+    }
   }
 
   //根据登陆用户信息来进入对应用户的通知聊天房间
@@ -104,19 +150,10 @@ export class Tab3Page implements OnInit {
     await toast.present();
   }
 
-  //add room_id 1-2 注意这里的数据结构全部为模拟作用，并非实际情况，用户聊天数据库+ mysql对接待设计
-  chatRooms = [
-    { roomId:'room_001',name: 'User1-Room1', time: '13:29', lastMsg: 'Hello World', count: 1, avatar: 'assets/icon/user.svg' },
-    { roomId:'room_001',name: 'User2-Room1', time: '14:30', lastMsg: '你好', count: 2, avatar: 'assets/icon/user.svg' },
-  ];
-
-
   //go to the chat with router
   goChat(user: any) {
     this.navCtrl.navigateForward(['/chat-detail', user.roomId], {
       state: { targetUser: user }
     });
   }
-
-
 }
