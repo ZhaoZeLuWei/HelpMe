@@ -11,7 +11,8 @@ import {
   calendarOutline,
   chatbubbleOutline,
   timeOutline,
-  heartOutline
+  heartOutline,
+  homeOutline  // 添加这行
 } from 'ionicons/icons';
 
 @Component({
@@ -77,7 +78,8 @@ export class UserParticularPage implements OnInit {
       calendarOutline,
       chatbubbleOutline,
       timeOutline,
-      heartOutline
+      heartOutline,
+      homeOutline  // 添加这行
     });
   }
 
@@ -287,6 +289,9 @@ export class UserParticularPage implements OnInit {
       this.router.navigate(['/tabs/tab1']);
     }
   }
+  goHome() {
+  this.router.navigate(['/tabs/tab1']);
+}
 
   async onChat() {
     const currentUserId = this.authService.currentUserId;
