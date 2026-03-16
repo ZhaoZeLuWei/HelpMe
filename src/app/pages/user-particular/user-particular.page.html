@@ -52,11 +52,11 @@
           </p>
           <p class="user-introduction">个人介绍: {{ userInfo.introduction || '暂无介绍' }}</p>
         </div>
-        <!-- 关注按钮移到右侧 -->
+        <!-- 关注/编辑按钮 -->
         <div class="follow-button-container" (click)="$event.stopPropagation()">
-          <ion-button fill="outline" size="small" (click)="onFollow()">
-            <ion-icon slot="start" name="heart-outline"></ion-icon>
-                关注
+          <ion-button fill="outline" size="small" (click)="isCurrentUser ? goToEditProfile() : onFollow()">
+            <ion-icon slot="start" [name]="isCurrentUser ? 'create-outline' : 'heart-outline'"></ion-icon>
+            {{ isCurrentUser ? '编辑' : '关注' }}
           </ion-button>
         </div>
       </div>
@@ -165,22 +165,4 @@
     </div>
   </div>
 </ion-content>
-<!-- ✅ 底部固定栏：与 ion-content 并列 -->
-<ion-footer>
-  <ion-toolbar>
-    <ion-row class="bottom-actions">
-      <ion-col>
-        <ion-button expand="block" fill="outline" (click)="onFollow()">
-          <ion-icon slot="start" name="heart-outline"></ion-icon>
-          关注
-        </ion-button>
-      </ion-col>
-        <ion-col>
-          <ion-button expand="block" (click)="onChat()">
-            <ion-icon slot="start" name="chatbubble-outline"></ion-icon>
-            {{ isCurrentUser ? '不能与自己聊天' : '聊一聊' }}
-          </ion-button>
-        </ion-col>
-    </ion-row>
-  </ion-toolbar>
-</ion-footer>
+

@@ -224,15 +224,19 @@ export class ParticularPage implements OnInit {
   }
 // 新增：跳转到用户详情页面
   goToUserParticular() {
-    if (this.userInfo.name) {
-      this.router.navigate(['/user-particular'], {
-        queryParams: {
-          name: this.userInfo.name,
-          userId: this.event?.creatorId
-        }
-      });
-    }
+  if (this.isCurrentUserCreator) {
+    // 如果是自己的活动，直接跳转到个人中心
+    this.router.navigate(['/tabs/tab4']);
+  } else if (this.userInfo.name) {
+    // 如果是其他用户的活动，跳转到用户详情页
+    this.router.navigate(['/user-particular'], {
+      queryParams: {
+        name: this.userInfo.name,
+        userId: this.event?.creatorId
+      }
+    });
   }
+}
   // 返回上一页
   goBack() {
     // 尝试返回上一页，如果没有历史则回首页
