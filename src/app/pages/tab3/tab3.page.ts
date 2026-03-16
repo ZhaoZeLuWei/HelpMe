@@ -50,6 +50,7 @@ export class Tab3Page implements OnInit {
     console.log(this.getUser);
   }
 
+
   ionViewWillEnter() {
     //init each time
     this.showChat = false;// web page HTML show check

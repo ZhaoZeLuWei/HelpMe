@@ -78,13 +78,17 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
     //init room id from chat list page ,and use it to load all msg from this room
     const state = history.state;
-    if (state && state.targetUser) {
+    if (state?.targetUser) {
       this.roomInfoTab3 = state.targetUser;
       this.roomId = this.roomInfoTab3.roomId;
     }
+    //add else if ( for event detail page create a chat room 3-16)
+    else if (state?.roomId){
+      this.roomId = state.roomId;
+    }
 
     //如果获取到是system类的房间，不显示底部的聊天栏
-    if (state.targetUser.type === 'system') {
+    if (state?.targetUser?.type === 'system') {
       this.showChat = false;
     }
     this.loadHistory(this.roomId);

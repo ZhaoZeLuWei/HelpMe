@@ -4,9 +4,8 @@ const RoomSchema = new mongoose.Schema({
   _id: {
     type: String,
    required: true,
-    unique: true 
    },
-  
+
   // 关联的事件ID
   eventId: {
     type: Number,

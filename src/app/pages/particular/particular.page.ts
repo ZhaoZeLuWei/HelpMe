@@ -7,6 +7,7 @@ import { EventCardData } from '../../components/show-event/show-event.component'
 import { ModalController } from '@ionic/angular/standalone';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
+import {NavController} from "@ionic/angular";
 
 @Component({
   selector: 'app-particular',
@@ -31,8 +32,11 @@ export class ParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
+  //JWT
   private authService = inject(AuthService);
   private modalCtrl = inject(ModalController);
+  //nav controller
+  private navCtrl = inject(NavController);
   readonly apiBase = environment.apiBase;
 
   isCurrentUserCreator: boolean = false;
@@ -51,6 +55,7 @@ export class ParticularPage implements OnInit {
     stats: { favorites: 0, views: 0, follows: 0 },
     CreateTime: '' // 注册时间
   };
+
 
   event: EventCardData | null = null;
 
@@ -285,6 +290,7 @@ export class ParticularPage implements OnInit {
     this.isCurrentUserCreator = currentUserId !== null && creatorId !== null && currentUserId === creatorId;
   }
 
+  //创建聊天函数 -ZeweiXia 3-16
   async onChat() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
@@ -313,11 +319,18 @@ export class ParticularPage implements OnInit {
       return;
     }
 
+    //前段收集好数据准备传递创建聊天 3-16
     const chatData = {
-      EventId: this.event?.id,
-      CreaterId: this.event?.creatorId,
-      PartnerId: currentUserId
+      eventId: this.event?.id,
+      //点击的人的id
+      creatorId: currentUserId,
+      //发布事件的人的id
+      partnerId: this.event?.creatorId,
+
     };
-    console.log('聊天数据:', chatData);
+    const roomId = `${chatData.eventId}_${chatData.creatorId}_${chatData.partnerId}`;
+    this.navCtrl.navigateForward(`/chat-detail/${roomId}`, {
+      state: { roomId: roomId }
+    });
   }
 }

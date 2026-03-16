@@ -126,28 +126,49 @@ const getRoomList = async (queryParams) => {
 };
 
 module.exports.registerChatHandler = (io, socket) => {
-  //join the room
-  const joinRoom = (roomId) => {
+  //join the room 加入聊天房间代码
+  const joinRoom = async (roomId) => {
     //Node已经通过JWT获取了登陆用户的身份，并传递到客户端
     socket.emit('myself', socket.user);
 
     if (!roomId) return;
-    socket.join(roomId);
+    try {
+      let room = await Room.findById(roomId);
+      if (!room) {
 
-    //share the room id to all socket functions!
-    socket.currentRoom = roomId;
+        const parts = roomId.split('_');
 
-    const joined = `connect to room ${roomId} SUCCESS ✅`;
-    console.log(joined);
+        const eventId = parseInt(parts[0], 10);
+        const creatorId = parseInt(parts[1], 10);
+        const partnerId = parseInt(parts[2], 10);
 
-    //send connectSuccess Msg
-    io.to(roomId).emit('connectSuccess', {
-        text: joined,
-        senderId: 'system_bot',
-        userName: '系统通知',
-        sendTime: new Date(),
+        room = await Room.create({
+          _id: roomId,
+          eventId,
+          creatorId,
+          partnerId
+        });
+
+        console.log(`Room created in MongoDB: ${roomId}`);
       }
-    );
+      socket.join(roomId);
+
+      //share the room id to all socket functions!
+      socket.currentRoom = roomId;
+      const joined = `connect to room ${roomId} SUCCESS ✅`;
+      console.log(joined);
+
+      //send connectSuccess Msg
+      io.to(roomId).emit('connectSuccess', {
+          text: joined,
+          senderId: 'system_bot',
+          userName: '系统通知',
+          sendTime: new Date(),
+        }
+      );
+    } catch (error) {
+      console.log('joinRoom or CREATE room error:', error);
+    }
   }
 
   //get the msg from client
@@ -174,6 +195,7 @@ module.exports.registerChatHandler = (io, socket) => {
       console.log(`[${messageData.timestamp}] ${messageData.userName}: ${messageData.text}`);
 
       //📃write into MongoDB 1-16
+      //这里调用了数据结构，通过api写入？
       await Message.create(messageData);
 
       //转发给对应房间号的客户端1-16
@@ -184,7 +206,6 @@ module.exports.registerChatHandler = (io, socket) => {
     }
   }
 
-  //监听器
   socket.on('joinRoom', joinRoom);
   socket.on('chat message', handleChatMsg);
 }
