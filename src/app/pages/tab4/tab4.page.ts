@@ -107,6 +107,7 @@ export class Tab4Page implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
 
+
   @ViewChild('editFileInput')
   editFileInput!: ElementRef<HTMLInputElement>;
 
@@ -232,12 +233,20 @@ export class Tab4Page implements OnDestroy {
 
   // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
   async ionViewWillEnter() {
-    // 监听查询参数
-  this.route.queryParams.subscribe(params => {
+      // 监听查询参数
+  this.route.queryParams.subscribe((params: any) => {
     if (params['edit'] === 'profile') {
       this.openEditProfileModal();
     }
+    // 新增：处理编辑事件参数
+    if (params['editEvent']) {
+      const eventId = Number(params['editEvent']);
+      if (!isNaN(eventId)) {
+        this.openEditModal(eventId);
+      }
+    }
   });
+
     if (this.isLoggedIn) {
       await this.loadUserFromStorage();
     }
@@ -729,6 +738,7 @@ export class Tab4Page implements OnDestroy {
       this.isSavingEdit = false;
     }
   }
+  
 
   private async uploadEditPhotos(): Promise<string[] | null> {
     if (this.editNewPhotos.length === 0) return [];

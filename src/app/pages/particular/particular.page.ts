@@ -1,13 +1,18 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow,IonCol,IonBadge} from '@ionic/angular/standalone';
+import { 
+  IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, 
+  IonFooter, IonRow, IonCol, IonBadge, IonModal, IonList, IonInput, 
+  IonTextarea, IonSelect, IonSelectOption, IonLabel, IonItem, IonTitle
+} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { EventCardData } from '../../components/show-event/show-event.component';
 import { ModalController } from '@ionic/angular/standalone';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
-import {NavController} from "@ionic/angular";
+import { NavController } from "@ionic/angular";
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-particular',
@@ -16,6 +21,7 @@ import {NavController} from "@ionic/angular";
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     IonHeader,
     IonToolbar,
     IonContent,
@@ -25,21 +31,40 @@ import {NavController} from "@ionic/angular";
     IonFooter,
     IonRow,
     IonCol,
-    IonBadge
+    IonBadge,
+    IonModal,
+    IonList,
+    IonInput,
+    IonTextarea,
+    IonSelect,
+    IonSelectOption,
+    IonLabel,
+    IonItem,
+    IonTitle,
   ],
 })
 export class ParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
-  //JWT
   private authService = inject(AuthService);
   private modalCtrl = inject(ModalController);
-  //nav controller
   private navCtrl = inject(NavController);
+  private fb = inject(FormBuilder);
   readonly apiBase = environment.apiBase;
 
   isCurrentUserCreator: boolean = false;
+
+  isEditModalOpen = false;
+  isSavingEdit = false;
+  editForm: FormGroup = this.fb.group({
+    EventTitle: ['', Validators.required],
+    EventType: [0, Validators.required],
+    EventCategory: ['', Validators.required],
+    Location: ['', Validators.required],
+    Price: [0, [Validators.min(0)]],
+    EventDetails: ['', Validators.required],
+  });
 
   // 新增 userInfo 对象，模拟队友的数据结构
   userInfo: any = {
@@ -294,7 +319,6 @@ export class ParticularPage implements OnInit {
     this.isCurrentUserCreator = currentUserId !== null && creatorId !== null && currentUserId === creatorId;
   }
 
-  //创建聊天函数 -ZeweiXia 3-16
   async onChat() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
@@ -303,38 +327,97 @@ export class ParticularPage implements OnInit {
       const modal = await this.modalCtrl.create({
         component: LoginPage
       });
-
-      // 监听 Modal 关闭
       modal.onDidDismiss().then(() => {
-        // 重新检查用户登录状态
         const newUserId = this.authService.currentUserId;
         if (newUserId) {
-          // 登录成功，刷新页面数据
           window.location.reload();
         }
       });
-
       await modal.present();
       return;
     }
 
     if (this.isCurrentUserCreator) {
-      console.log('不能与自己聊天');
+      this.openEditModal();
       return;
     }
 
-    //前段收集好数据准备传递创建聊天 3-16
     const chatData = {
       eventId: this.event?.id,
-      //点击的人的id
       creatorId: currentUserId,
-      //发布事件的人的id
       partnerId: this.event?.creatorId,
-
     };
     const roomId = `${chatData.eventId}_${chatData.creatorId}_${chatData.partnerId}`;
     this.navCtrl.navigateForward(`/chat-detail/${roomId}`, {
       state: { roomId: roomId }
     });
+  }
+
+  async openEditModal() {
+    if (!this.event?.id) return;
+
+    try {
+      const resp = await fetch(`${this.apiBase}/events/${this.event.id}`);
+      const data = await resp.json();
+      
+      if (data?.success && data?.event) {
+        const evt = data.event;
+        this.editForm.reset({
+          EventTitle: evt.EventTitle || '',
+          EventType: evt.EventType ?? 0,
+          EventCategory: evt.EventCategory || '',
+          Location: evt.Location || '',
+          Price: evt.Price ?? 0,
+          EventDetails: evt.EventDetails || '',
+        });
+      }
+    } catch (e) {
+      console.error('加载事件数据失败', e);
+    }
+
+    this.isEditModalOpen = true;
+  }
+
+  closeEditModal() {
+    this.isEditModalOpen = false;
+  }
+
+  async submitEdit() {
+    if (this.editForm.invalid || !this.event?.id) return;
+
+    this.isSavingEdit = true;
+    const formValue = this.editForm.value;
+
+    try {
+      const resp = await fetch(`${this.apiBase}/events/${this.event.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.authService.token}`
+        },
+        body: JSON.stringify({
+          EventTitle: formValue.EventTitle,
+          EventType: formValue.EventType,
+          EventCategory: formValue.EventCategory,
+          Location: formValue.Location,
+          Price: formValue.Price,
+          EventDetails: formValue.EventDetails,
+        })
+      });
+
+      const data = await resp.json();
+      
+      if (data.success) {
+        console.log('修改成功');
+        this.closeEditModal();
+        this.loadEventDetail(String(this.event.id));
+      } else {
+        console.error('修改失败', data.error);
+      }
+    } catch (e) {
+      console.error('提交修改失败', e);
+    } finally {
+      this.isSavingEdit = false;
+    }
   }
 }

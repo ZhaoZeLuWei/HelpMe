@@ -19,8 +19,29 @@
         <ion-icon slot="icon-only" name="search"></ion-icon>
       </ion-button>
     </div>
+    <!-- ===== 2. 分类标签按钮 ===== -->
+    <ion-row class="category-row">
+  <ion-col>
+    <ion-button 
+      expand="block" 
+      [fill]="currentType === 'request' ? 'solid' : 'outline'"
+      color="primary"
+      (click)="filterByType('request')">
+      求助
+    </ion-button>
+  </ion-col>
+  <ion-col>
+    <ion-button 
+      expand="block" 
+      [fill]="currentType === 'help' ? 'solid' : 'outline'"
+      color="primary"
+      (click)="filterByType('help')">
+      帮助
+    </ion-button>
+  </ion-col>
+    </ion-row>
 
-    <!-- ===== 2. 筛选按钮行 ===== -->
+    <!-- ===== 3. 筛选按钮行 ===== -->
     <ion-row class="filter-row">
       <ion-col>
         <ion-button expand="block" fill="clear" size="small" color="dark" (click)="setModal('price', true)">
@@ -42,7 +63,7 @@
       </ion-col>
     </ion-row>
 
-    <!-- ===== 3. 列表展示区 (动态模板) ===== -->
+    <!-- ===== 4. 列表展示区 (动态模板) ===== -->
 
     <ion-grid class="event-list-container">
       <ion-row>
