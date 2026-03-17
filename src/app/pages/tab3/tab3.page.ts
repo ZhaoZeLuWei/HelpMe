@@ -88,7 +88,7 @@ export class Tab3Page implements OnInit {
             name = '系统通知';
             avatar = 'assets/icon/notification.svg';
           } else {
-            name = `用户 ${room.partnerId}`; // 或者后续调用用户接口获取真实昵称
+            name = `${room.partnerId}`; // 或者后续调用用户接口获取真实昵称
             avatar = 'assets/icon/user.svg';
           }
 
@@ -105,6 +105,7 @@ export class Tab3Page implements OnInit {
 
         // 可选：按更新时间排序
         this.chatRooms.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        console.log(this.chatRooms);
         this.showChat = true;
       }
     } catch (err) {
