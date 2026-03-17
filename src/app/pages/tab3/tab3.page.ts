@@ -74,8 +74,8 @@ export class Tab3Page implements OnInit {
   //line 67 68 use api to get all list?
   async loadUserRooms(userId: number) {
     try {
-      const query = new URLSearchParams({ userId: String(userId) }).toString();
-      const resp = await fetch(`http://localhost:3000/api/rooms/list?${query}`);
+      const query = new URLSearchParams({ userId: String(userId) }).toString(); // query = "userId=100002"
+      const resp = await fetch(`http://localhost:3000/api/rooms/list?${query}`); // 正确拼接 URL
       const data = await resp.json();
       console.log(data);
 
