@@ -61,7 +61,7 @@ export class Tab3Page implements OnInit {
 
     if(this.getUser){
       //init system room
-      const sysRoom = `system_${this.getUser.UserId}`;
+      const sysRoom = `system_${this.getUser.UserId ?? this.getUser.UserId}`;
       this.initSystemRoom(sysRoom);
 
       //get all rooms with the target user
@@ -83,19 +83,31 @@ export class Tab3Page implements OnInit {
         this.chatRooms = data.data.rooms.map((room: any) => {
           let name = '';
           let avatar = '';
+          let eventName = '';
+          let otherChatName = '';
 
-          if (room.type === 'system' || room._id.startsWith('system_')) {
+          if (
+            room.type === 'system' ||
+            (room._id && room._id.startsWith('system_'))
+          ){
             name = '系统通知';
             avatar = 'assets/icon/notification.svg';
           } else {
-            name = `${room.partnerId}`; // 或者后续调用用户接口获取真实昵称
-            avatar = 'assets/icon/user.svg';
+            eventName = room.event.name;
+            if(room.userA.id !== this.getUser.UserId) {
+              otherChatName = room.userA.name;
+              avatar = room.userA.avatar;
+            }else if (room.userB.id !== this.getUser.UserId) {
+              otherChatName = room.userB.name;
+              avatar = room.userB.avatar;
+            }
+            name = otherChatName + " " + eventName;
           }
 
           return {
-            roomId: room._id,
+            roomId: room.roomId,
             name,
-            lastMsg: room.lastMsg || '暂无消息', // 注意这里是 lastMsg，不是 lastMessage
+            lastMsg: room.lastMsg || '暂无消息',
             count: room.unreadCount || 0,
             avatar,
             type: room.type || 'user',
@@ -111,6 +123,11 @@ export class Tab3Page implements OnInit {
     } catch (err) {
       console.error('加载聊天房间失败', err);
     }
+  }
+
+  getAvatarUrl(path: string): string {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `http://localhost:3000${path}`;
   }
 
   //根据登陆用户信息来进入对应用户的通知聊天房间
