@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   OnInit,
+  OnDestroy,
   ViewChild,
   inject,
 } from '@angular/core';
@@ -45,8 +46,8 @@ import {
 
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
-import { LanguageService } from '../../services/language.service'
-
+import { LanguageService } from '../../services/language.service';
+import type { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-tab5',
@@ -74,7 +75,7 @@ import { LanguageService } from '../../services/language.service'
     IonSelectOption,
   ],
 })
-export class Tab5Page implements OnInit {
+export class Tab5Page implements OnInit, OnDestroy {
   showRequestModal = false;
   showHelpModal = false;
   showIdentityModal = false;
@@ -119,27 +120,36 @@ export class Tab5Page implements OnInit {
   private toastCtrl = inject(ToastController);
   private auth = inject(AuthService);
   private langService = inject(LanguageService);
+  private langSub: Subscription | null = null;
 
   // 翻译对象
   t = this.langService.getTranslations('zh').tab5;
 
   constructor() {
     addIcons({
-      close, 
-      handLeftOutline, 
-      heartOutline, 
+      close,
+      handLeftOutline,
+      heartOutline,
       shieldCheckmarkOutline,
-      imageOutline, 
-      addCircleOutline, 
+      imageOutline,
+      addCircleOutline,
       closeCircle,
     });
 
-    //监听语言变化 
-    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
-      this.t = this.langService.getTranslations(lang).tab5;
-    });
+    //监听语言变化
+    this.langSub = this.langService.currentLang$.subscribe(
+      (lang: 'zh' | 'en') => {
+        this.t = this.langService.getTranslations(lang).tab5;
+      },
+    );
   }
 
+  ngOnDestroy(): void {
+    if (this.langSub) {
+      this.langSub.unsubscribe();
+      this.langSub = null;
+    }
+  }
 
   ngOnInit(): void {
     this.requestForm = this.fb.group({
@@ -272,7 +282,7 @@ export class Tab5Page implements OnInit {
 
     if (!resp.ok || !data?.success) {
       if (resp.status === 401) {
-        await this.toast('未登录或登录已过期，请重新登录');
+        await this.auth.handleAuthExpired();
         return null;
       }
       if (resp.status === 404) {

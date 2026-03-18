@@ -304,12 +304,12 @@ export class Tab4Page implements OnDestroy {
       if (!resp.ok) {
         this.tasks = snapshot;
 
-        const msg =
-          data?.error ||
-          data?.msg ||
-          (resp.status === 401
-            ? '未登录或登录已过期'
-            : `删除失败（${resp.status}）`);
+        if (resp.status === 401) {
+          await this.auth.handleAuthExpired();
+          return;
+        }
+
+        const msg = data?.error || data?.msg || `删除失败（${resp.status}）`;
         await this.presentDeleteToast(msg);
         return;
       }
@@ -489,7 +489,12 @@ export class Tab4Page implements OnDestroy {
       if (id) {
         try {
           const resp = await fetch(`${this.API_BASE}/users/${id}/profile`);
-          if (resp.ok) {
+          if (!resp.ok) {
+            if (resp.status === 401) {
+              await this.auth.handleAuthExpired();
+              return;
+            }
+          } else {
             const data = await resp.json().catch(() => null);
             if (data?.success && data.user) {
               this.updateUserFromData(data.user);
@@ -517,7 +522,13 @@ export class Tab4Page implements OnDestroy {
   async loadUserEvents(userId: number): Promise<void> {
     try {
       const resp = await fetch(`${this.API_BASE}/users/${userId}/events`);
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        if (resp.status === 401) {
+          await this.auth.handleAuthExpired();
+          return;
+        }
+        return;
+      }
 
       const data = await resp.json().catch(() => null);
       if (!Array.isArray(data)) return;
@@ -687,12 +698,12 @@ export class Tab4Page implements OnDestroy {
 
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.success) {
-        const msg =
-          data?.error ||
-          data?.msg ||
-          (resp.status === 401
-            ? '未登录或登录已过期'
-            : `保存失败（${resp.status}）`);
+        if (resp.status === 401) {
+          await this.auth.handleAuthExpired();
+          return;
+        }
+
+        const msg = data?.error || data?.msg || `保存失败（${resp.status}）`;
         await this.presentDeleteToast(msg);
         return;
       }
@@ -907,12 +918,15 @@ export class Tab4Page implements OnDestroy {
       const data = await resp.json().catch(() => null);
 
       if (!resp.ok || !data?.success) {
-        const msg =
-          data?.error ||
-          data?.msg ||
-          (resp.status === 401
-            ? '未登录或登录已过期'
-            : `保存失败（${resp.status}）`);
+        if (resp.status === 401) {
+          if (avatarPath) {
+            await this.deleteUploadedFile(avatarPath);
+          }
+          await this.auth.handleAuthExpired();
+          return;
+        }
+
+        const msg = data?.error || data?.msg || `保存失败（${resp.status}）`;
 
         // 如果更新用户信息失败，且已经上传了头像，则删除已上传的头像
         if (avatarPath) {

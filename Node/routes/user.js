@@ -2,7 +2,7 @@
 
 const express = require("express");
 const pool = require("../help_me_db.js");
-const { signToken } = require("./auth.js");
+const { signToken, authRequired } = require("./auth.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 
 const router = express.Router();
@@ -220,8 +220,17 @@ router.get("/users/:id/profile", async (req, res) => {
 });
 
 // 更新用户资料
-router.put("/users/:id/profile", async (req, res) => {
-  const userId = req.params.id;
+router.put("/users/:id/profile", authRequired, async (req, res) => {
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ error: "无效的用户ID" });
+  }
+
+  const authUserId = Number(req.user?.id);
+  if (!Number.isInteger(authUserId) || authUserId !== userId) {
+    return res.status(403).json({ error: "无权修改其他用户资料" });
+  }
+
   const {
     UserName,
     RealName,

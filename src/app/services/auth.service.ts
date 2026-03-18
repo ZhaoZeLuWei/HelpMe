@@ -1,5 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, map, distinctUntilChanged } from 'rxjs';
+import { Router } from '@angular/router';
+import { ToastController } from '@ionic/angular';
 import { environment } from '../../environments/environment';
 
 // 认证相关类型
@@ -24,11 +26,15 @@ export interface ProviderProfile {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly API_BASE = environment.apiBase;
+  private readonly router = inject(Router);
+  private readonly toastController = inject(ToastController);
 
   // 唯一真相：session（token + user）
   private readonly _session$ = new BehaviorSubject<Session | null>(
     this.readSessionFromStorage(),
   );
+  private sessionExpiryTimer: ReturnType<typeof setTimeout> | null = null;
+  private handlingAuthExpired = false;
 
   /** 给页面订阅：获取完整 session（token+user） */
   public readonly session$ = this._session$.asObservable();
@@ -39,7 +45,9 @@ export class AuthService {
     distinctUntilChanged(),
   );
 
-  constructor() {}
+  constructor() {
+    this.scheduleSessionExpiryCheck();
+  }
 
   // ----------------- getters（同步读取，方便页面直接用） -----------------
   get token(): string | null {
@@ -66,6 +74,13 @@ export class AuthService {
 
     if (!token) return null;
 
+    const expMs = this.decodeTokenExpMs(token);
+    if (expMs != null && expMs <= Date.now()) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
+
     let user: any = null;
     if (rawUser) {
       try {
@@ -91,6 +106,73 @@ export class AuthService {
   private setSession(session: Session | null) {
     this.persistSession(session);
     this._session$.next(session);
+    this.scheduleSessionExpiryCheck();
+  }
+
+  private decodeTokenExpMs(token: string): number | null {
+    try {
+      const parts = token.split('.');
+      if (parts.length < 2) return null;
+
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const normalized =
+        base64 + '='.repeat((4 - (base64.length % 4 || 4)) % 4);
+
+      const payload = JSON.parse(atob(normalized));
+      if (typeof payload?.exp !== 'number') return null;
+      return payload.exp * 1000;
+    } catch {
+      return null;
+    }
+  }
+
+  private scheduleSessionExpiryCheck() {
+    if (this.sessionExpiryTimer) {
+      clearTimeout(this.sessionExpiryTimer);
+      this.sessionExpiryTimer = null;
+    }
+
+    const token = this.token;
+    if (!token) return;
+
+    const expMs = this.decodeTokenExpMs(token);
+    if (expMs == null) return;
+
+    const delay = expMs - Date.now();
+    if (delay <= 0) {
+      void this.handleAuthExpired();
+      return;
+    }
+
+    this.sessionExpiryTimer = setTimeout(() => {
+      void this.handleAuthExpired();
+    }, delay);
+  }
+
+  async handleAuthExpired(message = '登录已过期，请重新登录'): Promise<void> {
+    if (this.handlingAuthExpired) return;
+
+    this.handlingAuthExpired = true;
+    try {
+      const hadToken = !!this.token;
+      this.logout();
+
+      if (hadToken) {
+        const toast = await this.toastController.create({
+          message,
+          duration: 1400,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await toast.present();
+      }
+
+      if (!this.router.url.startsWith('/tabs/tab4')) {
+        await this.router.navigate(['/tabs/tab4'], { replaceUrl: true });
+      }
+    } finally {
+      this.handlingAuthExpired = false;
+    }
   }
 
   // ----------------- auth header / fetch -----------------
