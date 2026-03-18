@@ -196,6 +196,8 @@ export class Tab3Page implements OnInit {
 
   //go to the chat with router
   goChat(user: any) {
+    this.clearRoomUnread(user.roomId);
+    
     this.navCtrl.navigateForward(['/chat-detail', user.roomId], {
       state: { targetUser: user }
     });
@@ -241,5 +243,12 @@ export class Tab3Page implements OnInit {
     }
 
     return target.toLocaleDateString();
+  }
+
+  private clearRoomUnread(roomId: string) {
+    const room = this.chatRooms.find(r => r.roomId === roomId);
+    if (room) {
+      room.count = 0; // 本地红点清零
+    }
   }
 }

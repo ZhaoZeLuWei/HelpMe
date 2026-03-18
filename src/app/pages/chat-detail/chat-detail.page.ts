@@ -119,6 +119,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     // step 2: receive msg from node and show it
     this.socket.on('chat message', (msg: ChatModel, offset?: number) => {
       this.addMessage(msg);
+
       if (offset) {
         this.serverOffset = offset;
         this.socket.auth.serverOffset = offset;

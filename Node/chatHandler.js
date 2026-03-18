@@ -315,12 +315,12 @@ module.exports.registerChatHandler = (io, socket) => {
         lastMsg: messageData.text,
         updatedAt: new Date()
       });
+
     }
     catch (error) {
       console.log(error);
     }
   }
-
 
   socket.on('joinRoom', joinRoom);
   socket.on('chat message', handleChatMsg);
