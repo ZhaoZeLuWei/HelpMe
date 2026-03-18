@@ -136,11 +136,13 @@
     @for (task of getFilteredTasks(); track task.id) {
     <ion-card class="task-item">
       <ion-item lines="none">
-        <ion-icon
-          [name]="task.EventType === 1 ? 'heart' : 'hand-left'"
-          slot="start"
-          class="task-icon"
-        ></ion-icon>
+        <div slot="start" class="task-icon-wrap">
+          <ion-icon
+            [name]="task.EventType === 1 ? 'heart' : 'hand-left'"
+            class="task-icon"
+          ></ion-icon>
+          <div class="task-type-label">{{ task.EventType === 1 ? '帮助' : '求助' }}</div>
+        </div>
         <ion-label>
           <h2 class="task-title">{{ task.publisher }} · {{ task.title }}</h2>
           <p class="task-meta">发布时间: {{ task.createdAt }}</p>
