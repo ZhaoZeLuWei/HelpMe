@@ -166,8 +166,8 @@ const getRoomList = async (queryParams) => {
           id: Number(room.eventId),
           name: eventMap[Number(room.eventId)] || '未知事件'
         },
-        lastMsg: '',
-        unreadCount: 0,
+        lastMsg: room.lastMsg || '',
+        unreadCount: room.unreadCount || 0,
         updatedAt: room.updatedAt
       };
     });
@@ -233,6 +233,12 @@ module.exports.registerChatHandler = (io, socket) => {
           sendTime: new Date(),
         }
       );
+
+      // 清零当前登录用户的 unreadCount
+      await Room.updateOne(
+        { _id: roomId },
+        { $set: { [`unreadCount.${socket.user.id}`]: 0 } }
+      );
     } catch (error) {
       console.log('joinRoom or CREATE room error:', error);
     }
@@ -264,6 +270,30 @@ module.exports.registerChatHandler = (io, socket) => {
       //📃write into MongoDB 1-16
       //这里调用了数据结构，通过api写入？
       await Message.create(messageData);
+
+      //update room last Msg
+      const senderId = socket.user.id;
+
+      const room = await Room.findById(roomId);
+
+      const receiverId =
+        senderId === room.creatorId
+          ? room.partnerId
+          : room.creatorId;
+
+      await Room.updateOne(
+        { _id: roomId },
+        {
+          $set: {
+            lastMsg: messageData.text,
+            updatedAt: new Date()
+          },
+          // count msg send but not been read
+          $inc: {
+            [`unreadCount.${receiverId}`]: 1
+          }
+        }
+      );
 
       //转发给对应房间号的客户端1-16
       io.to(roomId).emit('chat message', messageData);

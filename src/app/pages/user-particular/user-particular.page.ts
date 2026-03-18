@@ -299,7 +299,11 @@ export class UserParticularPage implements OnInit {
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;
         if (newUserId) {
-          window.location.reload();
+          // 可以直接刷新数据而不是 reload
+          this.loadUserFromStorage(newUserId);
+          this.loadActiveEvents(newUserId);
+          this.loadUserComments(newUserId);
+          this.loadActivityFeed(newUserId);
         }
       });
       await modal.present();
@@ -310,13 +314,10 @@ export class UserParticularPage implements OnInit {
       console.log('不能与自己聊天');
       return;
     }
-
-
-    const chatData = {
-      TargetUserId: this.userId,
-      PartnerId: currentUserId
-    };
-    console.log('聊天数据:', chatData);
+    this.router.navigate(['/chat-detail'], {
+      state: { targetUser: this.userInfo },
+      replaceUrl: true
+    });
   }
   async onFollow() {
     const currentUserId = this.authService.currentUserId;

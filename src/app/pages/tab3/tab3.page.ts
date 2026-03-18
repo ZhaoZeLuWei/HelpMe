@@ -104,11 +104,13 @@ export class Tab3Page implements OnInit {
             name = otherChatName + " " + eventName;
           }
 
+          const unreadCount = room.unreadCount?.[this.getUser.UserId] || 0;
+
           return {
             roomId: room.roomId,
             name,
             lastMsg: room.lastMsg || '暂无消息',
-            count: room.unreadCount || 0,
+            count: unreadCount,
             avatar,
             type: room.type || 'user',
             updatedAt: room.updatedAt
