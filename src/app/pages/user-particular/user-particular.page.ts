@@ -13,7 +13,9 @@ import {
   timeOutline,
   heartOutline,
   homeOutline,
-  createOutline
+  createOutline,
+  handLeftOutline,
+  heart
 } from 'ionicons/icons';
 
 @Component({
@@ -73,7 +75,9 @@ export class UserParticularPage implements OnInit {
       timeOutline,
       heartOutline,
       homeOutline,
-      createOutline
+      createOutline,
+      handLeftOutline,
+      heart
     });
   }
 
@@ -160,7 +164,8 @@ export class UserParticularPage implements OnInit {
               title: event.EventTitle,
               description: event.EventDetails || '暂无描述',
               activityType: this.getActivityType(event.status),
-              date: event.CreateTime
+              date: event.CreateTime,
+              EventType: event.EventType
             }));
         }
       }
@@ -234,6 +239,18 @@ export class UserParticularPage implements OnInit {
     }
   }
 
+  getTypeIcon(eventType: number): string {
+    return eventType === 1 ? 'heart' : 'hand-left-outline';
+  }
+
+  getTypeText(eventType: number): string {
+    return eventType === 1 ? '帮助' : '求助';
+  }
+
+  getTypeColor(eventType: number): string {
+    return eventType === 1 ? '#E11D48' : '#0F766E';
+  }
+
   getAvatarUrl(avatarPath?: string): string {
     if (!avatarPath || avatarPath.trim() === '') {
       return '/assets/icon/user.svg';
@@ -265,6 +282,11 @@ export class UserParticularPage implements OnInit {
         eventId: eventId,
         title: event.EventTitle || event.title
       }
+    });
+  }
+  goToEditEvent(eventId: number) {
+    this.router.navigate(['/tabs/tab4'], { 
+      queryParams: { editEvent: eventId } 
     });
   }
 

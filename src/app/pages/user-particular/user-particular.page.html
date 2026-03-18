@@ -98,14 +98,25 @@
               </div>
             }
             @for (event of activeEvents; track event.EventId) {
-              <!-- 添加 (click) 和 cursor 样式 -->
               <div class="event-item" (click)="goToEventDetail(event)" style="cursor: pointer;">
+                <div class="type-indicator">
+                  <ion-icon [name]="getTypeIcon(event.EventType)" [style.color]="getTypeColor(event.EventType)"></ion-icon>
+                  <span class="type-label" [style.color]="getTypeColor(event.EventType)">{{ getTypeText(event.EventType) }}</span>
+                </div>
                 <div class="event-info">
                   <h4>{{ event.EventTitle }}</h4>
                   <p class="event-category">{{ event.EventCategory }}</p>
                   <p class="event-price">¥{{ event.Price }}</p>
                   <p class="event-time">{{ formatDate(event.CreateTime) }}</p>
                 </div>
+                @if (isCurrentUser) {
+                  <ion-button 
+                    fill="clear" 
+                    size="small" 
+                    (click)="goToEditEvent(event.EventId); $event.stopPropagation()">
+                    <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                  </ion-button>
+                }
               </div>
             }
           </div>
@@ -123,14 +134,19 @@
             }
             @for (comment of userComments; track comment.id) {
               <div class="comment-item">
-                <div class="comment-header">
-                  <!-- 使用新方法处理头像 -->
-                  <img [src]="getCommentAvatarUrl(comment.authorAvatar)" class="comment-avatar" />
-                  <span class="comment-author">{{ comment.authorName }}</span>
-                  <span class="comment-score">{{ comment.rating }}分</span>
+                <div class="type-indicator">
+                  <ion-icon [name]="getTypeIcon(comment.EventType)" [style.color]="getTypeColor(comment.EventType)"></ion-icon>
+                  <span class="type-label" [style.color]="getTypeColor(comment.EventType)">{{ getTypeText(comment.EventType) }}</span>
                 </div>
-                <p class="comment-content">{{ comment.content }}</p>
-                <p class="comment-time">{{ formatDate(comment.createTime) }}</p>
+                <div class="comment-content-wrapper">
+                  <div class="comment-header">
+                    <img [src]="getCommentAvatarUrl(comment.authorAvatar)" class="comment-avatar" />
+                    <span class="comment-author">{{ comment.authorName }}</span>
+                    <span class="comment-score">{{ comment.rating }}分</span>
+                  </div>
+                  <p class="comment-content">{{ comment.content }}</p>
+                  <p class="comment-time">{{ formatDate(comment.createTime) }}</p>
+                </div>
               </div>
             }
           </div>
@@ -147,15 +163,20 @@
               </div>
             }
             @for (activity of activityFeed; track activity.id) {
-              <!-- 添加 (click) 和 cursor 样式 -->
               <div class="activity-item" (click)="goToEventDetail(activity)" style="cursor: pointer;">
-                <div class="activity-header">
-                  <span class="activity-type">{{ activity.activityType }}</span>
-                  <span class="activity-time">{{ formatDate(activity.date) }}</span>
+                <div class="type-indicator">
+                  <ion-icon [name]="getTypeIcon(activity.EventType)" [style.color]="getTypeColor(activity.EventType)"></ion-icon>
+                  <span class="type-label" [style.color]="getTypeColor(activity.EventType)">{{ getTypeText(activity.EventType) }}</span>
                 </div>
-                <div class="activity-content">
-                  <h4>{{ activity.title }}</h4>
-                  <p>{{ activity.description }}</p>
+                <div class="activity-content-wrapper">
+                  <div class="activity-header">
+                    <span class="activity-type">{{ activity.activityType }}</span>
+                    <span class="activity-time">{{ formatDate(activity.date) }}</span>
+                  </div>
+                  <div class="activity-content">
+                    <h4>{{ activity.title }}</h4>
+                    <p>{{ activity.description }}</p>
+                  </div>
                 </div>
               </div>
             }
