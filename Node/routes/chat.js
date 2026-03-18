@@ -1,5 +1,4 @@
 const express = require("express");
-const {getRoomListFilteredByUser} = require("../chatHandler");
 const router = express.Router();
 
 const { getChatHistory, getRoomList } = require('../chatHandler.js');

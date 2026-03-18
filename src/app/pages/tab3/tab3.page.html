@@ -42,7 +42,9 @@
           <ion-label>
             <div class="chat-header">
               <h2>{{user.name}}</h2>
-              <ion-note color="medium">{{user.time}}</ion-note>
+              <ion-note color="medium">
+                {{ formatChatTime(user.updatedAt)}}
+              </ion-note>
             </div>
             <p>{{user.lastMsg}}</p>
           </ion-label>

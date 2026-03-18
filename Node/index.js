@@ -13,6 +13,7 @@ const testRoutes = require("./routes/test.js");
 const userRoutes = require("./routes/user.js");
 const eventRoutes = require("./routes/event.js");
 const verifyRoutes = require("./routes/verify.js");
+
 //const orderRoutes = require("./routes/order.js");
 const reviewRoutes = require("./routes/review.js");
 const chatRoutes = require("./routes/chat.js");
@@ -87,7 +88,6 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   // 这里调用修正后的函数
   registerChatHandler(io, socket);
-
   socket.on("disconnect", () => {
     console.log("disconnect");
   });

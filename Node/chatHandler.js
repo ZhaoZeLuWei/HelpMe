@@ -198,6 +198,12 @@ module.exports.registerChatHandler = (io, socket) => {
     //Node已经通过JWT获取了登陆用户的身份，并传递到客户端
     socket.emit('myself', socket.user);
 
+    //user join into private chat list server room
+    if (socket.user && socket.user.id) {
+      socket.join(socket.user.id.toString());
+      console.log(`User ${socket.user.id} joined private room`);
+    }
+
     if (!roomId) return;
     try {
       let room = await Room.findById(roomId);
@@ -297,6 +303,18 @@ module.exports.registerChatHandler = (io, socket) => {
 
       //转发给对应房间号的客户端1-16
       io.to(roomId).emit('chat message', messageData);
+
+      //send update msg to tab3  (3-18)
+      io.to(senderId.toString()).emit('listUpdate', {
+        roomId,
+        lastMsg: messageData.text,
+        updatedAt: new Date(),
+      });
+      io.to(receiverId.toString()).emit('listUpdate', {
+        roomId,
+        lastMsg: messageData.text,
+        updatedAt: new Date()
+      });
     }
     catch (error) {
       console.log(error);

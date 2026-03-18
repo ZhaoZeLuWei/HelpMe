@@ -93,7 +93,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     }
     this.loadHistory(this.roomId);
 
-    // Init Connection (Without JSON Web Token !!!)
+    // Init Connection
     this.socket = io('http://localhost:3000', {
       auth: {
         token: this.auth.token,
