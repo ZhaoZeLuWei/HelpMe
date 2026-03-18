@@ -3,9 +3,18 @@
     <!-- 返回箭头 -->
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
-        <ion-icon slot="icon-only" name="chevron-back-outline"></ion-icon>
+        <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+        返回
+      </ion-button>
+      </ion-buttons>
+    <ion-buttons slot="end">
+      <ion-button (click)="goHome()">
+        <ion-icon slot="start" name="home-outline"></ion-icon>
+        主页
       </ion-button>
     </ion-buttons>
+
+
 
   </ion-toolbar>
 </ion-header>

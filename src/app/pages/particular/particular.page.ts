@@ -1,8 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { 
-  IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, 
-  IonFooter, IonRow, IonCol, IonBadge, IonModal, IonList, IonInput, 
+import {
+  IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons,
+  IonFooter, IonRow, IonCol, IonBadge, IonModal, IonList, IonInput,
   IonTextarea, IonSelect, IonSelectOption, IonLabel, IonItem, IonTitle
 } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -271,6 +271,9 @@ export class ParticularPage implements OnInit {
       this.router.navigate(['/tabs/tab1']);
     }
   }
+  goHome() {
+    this.router.navigate(['/tabs/tab1']);
+  }
 
   // 关注按钮点击事件
   async onFollow() {
@@ -359,7 +362,7 @@ export class ParticularPage implements OnInit {
     try {
       const resp = await fetch(`${this.apiBase}/events/${this.event.id}`);
       const data = await resp.json();
-      
+
       if (data?.success && data?.event) {
         const evt = data.event;
         this.editForm.reset({
@@ -406,7 +409,7 @@ export class ParticularPage implements OnInit {
       });
 
       const data = await resp.json();
-      
+
       if (data.success) {
         console.log('修改成功');
         this.closeEditModal();
