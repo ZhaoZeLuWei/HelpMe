@@ -137,7 +137,7 @@
     <ion-card class="task-item">
       <ion-item lines="none">
         <ion-icon
-          name="document-text"
+          [name]="task.EventType === 1 ? 'heart' : 'hand-left'"
           slot="start"
           class="task-icon"
         ></ion-icon>
