@@ -1,16 +1,16 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>
-      Chats
+      {{ t.title }}
     </ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   @if (!showChat) {
-    <h1>您好！请登录</h1>
-    <h1>Welcome! Please Login</h1>
-    <h3>Now directing you to the login page...</h3>
+    <h1>{{ t.loginRequired }}</h1>
+    <h1>{{ t.loginRequiredSub }}</h1>
+    <h3>{{ t.loginHint }}</h3>
   }
   @if (showChat) {
     <ion-list>
@@ -22,7 +22,7 @@
 
         <ion-label>
           <div class="chat-header">
-            <h2>通知</h2>
+            <h2>{{ t.notification }}</h2>
             <ion-note color="medium">DT</ion-note>
           </div>
           <p>Here is the last message send</p>
