@@ -17,6 +17,14 @@
   padding: 10px 0;
   ion-col { padding: 0 5px; }
 }
+.category-buttons {
+  padding: 10px 16px;
+  background: #ffffff;
+  
+  ion-col {
+    padding: 0 5px;
+  }
+}
 
 /* 列表容器 – 同队友空状态背景 */
 .event-list-container {
@@ -105,7 +113,14 @@
   display: none;
 }
 
-/* 调整内容间距 */
+.category-row {
+  padding: 8px 16px;
+  background: #ffffff;
+  
+  ion-col {
+    padding: 0 5px;
+  }
+}
 :host ::ng-deep app-universal-search {
   margin-top: -16px;
 }

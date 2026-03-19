@@ -334,9 +334,12 @@ router.get("/users/:id/comments", async (req, res) => {
         c.TargetUserId AS targetUserId,
         c.Score AS rating,
         c.Text AS content,
-        c.Time AS createTime
+        c.Time AS createTime,
+        e.EventType AS EventType
        FROM Comments c
        JOIN Users u ON c.AuthorId = u.UserId
+       LEFT JOIN Orders o ON c.OrderId = o.OrderId
+       LEFT JOIN Events e ON o.EventId = e.EventId
        WHERE c.TargetUserId = ?
        ORDER BY c.Time DESC
        LIMIT 50`,
