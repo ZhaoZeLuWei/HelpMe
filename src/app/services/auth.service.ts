@@ -250,6 +250,8 @@ export class AuthService {
       realName: string;
       idCardNumber: string;
       location: string;
+      locationPlaceId?: string;
+
       birthDate: string;
       introduction?: string;
     },
@@ -283,6 +285,9 @@ export class AuthService {
         formData.append('realName', data.realName);
         formData.append('idCardNumber', data.idCardNumber);
         formData.append('location', data.location);
+        if (data.locationPlaceId) {
+          formData.append('locationPlaceId', data.locationPlaceId);
+        }
         formData.append('birthDate', data.birthDate);
         if (data.introduction)
           formData.append('introduction', data.introduction);

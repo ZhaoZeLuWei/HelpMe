@@ -14,6 +14,10 @@ import {
 } from '@angular/forms';
 import type { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
+import {
+  LocationPickerComponent,
+  type PickedLocation,
+} from '../../components/location-picker/location-picker.component';
 
 import {
   documentText,
@@ -59,6 +63,7 @@ import {
   IonTextarea,
   IonSelect,
   IonSelectOption,
+  IonNote,
   ModalController,
 } from '@ionic/angular/standalone';
 
@@ -95,6 +100,7 @@ import { environment } from '../../../environments/environment';
     IonTextarea,
     IonSelect,
     IonSelectOption,
+    IonNote,
     ReactiveFormsModule,
   ],
 })
@@ -139,6 +145,9 @@ export class Tab4Page implements OnDestroy {
       ],
     ],
     Location: ['', Validators.required],
+    LocationPlaceId: [''],
+    LocationLng: [null],
+    LocationLat: [null],
     BirthDate: ['', Validators.required],
     Introduction: ['', Validators.maxLength(200)],
   });
@@ -163,9 +172,37 @@ export class Tab4Page implements OnDestroy {
     EventType: [0, Validators.required],
     EventCategory: ['', Validators.required],
     Location: ['', Validators.required],
+    LocationPlaceId: [''],
+    LocationLng: [null],
+    LocationLat: [null],
     Price: [0, [Validators.min(0), Validators.max(1_000_000)]],
     EventDetails: ['', Validators.required],
   });
+
+  async openLocationPicker(formType: 'eventEdit' | 'profileEdit') {
+    const form =
+      formType === 'eventEdit' ? this.editForm : this.editProfileForm;
+
+    const modal = await this.modalController.create({
+      component: LocationPickerComponent,
+      componentProps: {
+        selectedPlaceId: form.get('LocationPlaceId')?.value || '',
+        selectedText: form.get('Location')?.value || '',
+      },
+    });
+
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+    if (role !== 'confirm' || !data?.selected) return;
+
+    const picked: PickedLocation = data.selected;
+    form.patchValue({
+      Location: picked.text,
+      LocationPlaceId: picked.placeId,
+      LocationLng: picked.lng,
+      LocationLat: picked.lat,
+    });
+  }
 
   // 删除按钮配置
   alertButtons = [
@@ -427,6 +464,9 @@ export class Tab4Page implements OnDestroy {
       orderCount: 0,
       serviceRanking: 0,
       location: '',
+      locationPlaceId: '',
+      locationLng: null,
+      locationLat: null,
       avatar: '',
       introduction: '',
       realName: '',
@@ -448,6 +488,12 @@ export class Tab4Page implements OnDestroy {
   private updateUserFromData(data: any): void {
     this.userInfo.name = data.UserName || data.userName || '';
     this.userInfo.location = data.Location || data.location || '';
+    this.userInfo.locationPlaceId =
+      data.LocationPlaceId || data.locationPlaceId || '';
+    this.userInfo.locationLng =
+      data.LocationLng != null ? Number(data.LocationLng) : null;
+    this.userInfo.locationLat =
+      data.LocationLat != null ? Number(data.LocationLat) : null;
     this.userInfo.introduction = data.Introduction || data.introduction || '';
     this.userInfo.avatar = data.UserAvatar || data.userAvatar || '';
     this.userInfo.buyerRanking =
@@ -543,6 +589,9 @@ export class Tab4Page implements OnDestroy {
         EventType: e.EventType ?? 0,
         EventCategory: e.EventCategory || '',
         Location: e.Location || '',
+        LocationPlaceId: e.LocationPlaceId || '',
+        LocationLng: e.LocationLng != null ? Number(e.LocationLng) : null,
+        LocationLat: e.LocationLat != null ? Number(e.LocationLat) : null,
         Price: e.Price ?? 0,
         EventDetails: e.EventDetails || '',
         Photos: e.Photos || null,
@@ -581,6 +630,11 @@ export class Tab4Page implements OnDestroy {
       EventType: source.EventType ?? 0,
       EventCategory: source.EventCategory || '',
       Location: source.Location || '',
+      LocationPlaceId: source.LocationPlaceId || '',
+      LocationLng:
+        source.LocationLng != null ? Number(source.LocationLng) : null,
+      LocationLat:
+        source.LocationLat != null ? Number(source.LocationLat) : null,
       Price: source.Price ?? 0,
       EventDetails: source.EventDetails || '',
     });
@@ -799,6 +853,15 @@ export class Tab4Page implements OnDestroy {
       RealName: this.userInfo.realName || '',
       IdCardNumber: this.userInfo.idCardNumber || '',
       Location: this.userInfo.location || '',
+      LocationPlaceId: this.userInfo.locationPlaceId || '',
+      LocationLng:
+        this.userInfo.locationLng != null
+          ? Number(this.userInfo.locationLng)
+          : null,
+      LocationLat:
+        this.userInfo.locationLat != null
+          ? Number(this.userInfo.locationLat)
+          : null,
       BirthDate: this.userInfo.birthDate || '',
       Introduction: this.userInfo.introduction || '',
     });
@@ -895,6 +958,9 @@ export class Tab4Page implements OnDestroy {
         RealName: this.editProfileForm.value.RealName,
         IdCardNumber: this.editProfileForm.value.IdCardNumber,
         Location: this.editProfileForm.value.Location,
+        LocationPlaceId: this.editProfileForm.value.LocationPlaceId || null,
+        LocationLng: this.editProfileForm.value.LocationLng ?? null,
+        LocationLat: this.editProfileForm.value.LocationLat ?? null,
         BirthDate: this.editProfileForm.value.BirthDate,
         Introduction: this.editProfileForm.value.Introduction || '',
       };
@@ -942,6 +1008,9 @@ export class Tab4Page implements OnDestroy {
       this.userInfo.realName = payload.RealName;
       this.userInfo.idCardNumber = payload.IdCardNumber;
       this.userInfo.location = payload.Location;
+      this.userInfo.locationPlaceId = payload.LocationPlaceId || '';
+      this.userInfo.locationLng = payload.LocationLng ?? null;
+      this.userInfo.locationLat = payload.LocationLat ?? null;
       this.userInfo.birthDate = payload.BirthDate;
       this.userInfo.introduction = payload.Introduction;
       if (avatarPath) {
@@ -954,6 +1023,9 @@ export class Tab4Page implements OnDestroy {
       storedUser.RealName = payload.RealName;
       storedUser.IdCardNumber = payload.IdCardNumber;
       storedUser.Location = payload.Location;
+      storedUser.LocationPlaceId = payload.LocationPlaceId || '';
+      storedUser.LocationLng = payload.LocationLng ?? null;
+      storedUser.LocationLat = payload.LocationLat ?? null;
       storedUser.BirthDate = payload.BirthDate;
       storedUser.Introduction = payload.Introduction;
       if (avatarPath) {

@@ -141,7 +141,9 @@
             [name]="task.EventType === 1 ? 'heart' : 'hand-left'"
             class="task-icon"
           ></ion-icon>
-          <div class="task-type-label">{{ task.EventType === 1 ? '帮助' : '求助' }}</div>
+          <div class="task-type-label">
+            {{ task.EventType === 1 ? '帮助' : '求助' }}
+          </div>
         </div>
         <ion-label>
           <h2 class="task-title">{{ task.publisher }} · {{ task.title }}</h2>
@@ -242,12 +244,15 @@
                 placeholder="如：电脑维修"
               ></ion-input>
             </ion-item>
-            <ion-item>
+            <ion-item
+              button
+              detail="true"
+              (click)="openLocationPicker('eventEdit')"
+            >
               <ion-label position="stacked">位置 *</ion-label>
-              <ion-input
-                formControlName="Location"
-                placeholder="详细地址"
-              ></ion-input>
+              <ion-text [color]="editForm.value.Location ? 'dark' : 'medium'">
+                {{ editForm.value.Location || '请选择地点' }}
+              </ion-text>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">价格 (¥)</ion-label>
@@ -415,13 +420,18 @@
               ></ion-input>
             </ion-item>
 
-            <ion-item>
-              <ion-label position="floating">所在地 *</ion-label>
-              <ion-input
-                type="text"
-                formControlName="Location"
-                placeholder="例如：广西柳州"
-              ></ion-input>
+            <ion-item
+              button
+              detail="true"
+              (click)="openLocationPicker('profileEdit')"
+            >
+              <ion-label>所在地 *</ion-label>
+              <ion-note
+                slot="end"
+                [color]="editProfileForm.value.Location ? 'dark' : 'medium'"
+              >
+                {{ editProfileForm.value.Location || '请选择地点' }}
+              </ion-note>
             </ion-item>
 
             <ion-item>

@@ -104,6 +104,10 @@
       margin: 8px 0;
     }
 
+    ion-note.placeholder {
+      color: var(--ion-color-medium);
+    }
+
     .actions {
       display: flex;
       flex-direction: column;

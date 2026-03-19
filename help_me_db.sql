@@ -23,6 +23,7 @@ CREATE TABLE Users (
   IdCardNumber  VARCHAR(18)  NOT NULL,
   UserAvatar    VARCHAR(255) NOT NULL,
   Location      VARCHAR(255) NOT NULL,
+  LocationPlaceId VARCHAR(24) NULL,
   BirthDate     DATE         NOT NULL,
   Introduction  VARCHAR(255) NULL,
   CreateTime    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -59,11 +60,13 @@ CREATE TABLE Events (
   EventCategory  VARCHAR(255)   NOT NULL,
   Photos         TEXT           NULL,
   Location       VARCHAR(100)   NOT NULL,
+  LocationPlaceId VARCHAR(24)   NULL,
   Price          DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
   EventDetails   VARCHAR(255)   NOT NULL,
   CreateTime     TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   KEY idx_events_creator (CreatorId),
+  KEY idx_events_location_place (LocationPlaceId),
   CONSTRAINT fk_events_creator
     FOREIGN KEY (CreatorId) REFERENCES Users(UserId)
     ON DELETE RESTRICT ON UPDATE CASCADE

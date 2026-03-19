@@ -7,6 +7,12 @@ const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 
 const router = express.Router();
 
+function normalizeLocationPlaceId(value) {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text ? text : null;
+}
+
 // 检查手机号是否已注册
 router.post("/check-phone", async (req, res) => {
   const { phone } = req.body || {};
@@ -41,6 +47,7 @@ router.post(
       realName,
       idCardNumber,
       location,
+      locationPlaceId,
       birthDate,
       introduction,
     } = req.body || {};
@@ -94,38 +101,44 @@ router.post(
         : "/img/user.svg";
 
       // 插入新用户
-      const [result] = await pool.query(
-        "INSERT INTO Users (PhoneNumber, UserName, RealName, IdCardNumber, Location, BirthDate, Introduction, UserAvatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          phone,
-          userName,
-          realName,
-          idCardNumber,
-          location,
-          birthDate,
-          introduction || null,
-          avatarPath,
-        ],
-      );
+      const conn = await pool.getConnection();
+      try {
+        const [result] = await conn.query(
+          "INSERT INTO Users (PhoneNumber, UserName, RealName, IdCardNumber, Location, LocationPlaceId, BirthDate, Introduction, UserAvatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            phone,
+            userName,
+            realName,
+            idCardNumber,
+            location,
+            normalizeLocationPlaceId(locationPlaceId),
+            birthDate,
+            introduction || null,
+            avatarPath,
+          ],
+        );
 
-      const userId = result.insertId;
+        const userId = result.insertId;
 
-      // 同时在 Consumers 表中创建记录（初始买家评分为0）
-      await pool.query(
-        "INSERT INTO Consumers (ConsumerId, BuyerRanking) VALUES (?, 0)",
-        [userId],
-      );
+        // 同时在 Consumers 表中创建记录（初始买家评分为0）
+        await conn.query(
+          "INSERT INTO Consumers (ConsumerId, BuyerRanking) VALUES (?, 0)",
+          [userId],
+        );
 
-      // 获取新创建的用户信息
-      const [rows] = await pool.query(
-        "SELECT UserId, UserName, PhoneNumber FROM Users WHERE UserId = ? LIMIT 1",
-        [userId],
-      );
+        // 获取新创建的用户信息
+        const [rows] = await conn.query(
+          "SELECT UserId, UserName, PhoneNumber FROM Users WHERE UserId = ? LIMIT 1",
+          [userId],
+        );
 
-      const user = rows[0];
-      const token = signToken(user);
+        const user = rows[0];
+        const token = signToken(user);
 
-      return res.json({ success: true, user, token });
+        return res.json({ success: true, user, token });
+      } finally {
+        conn.release();
+      }
     } catch (err) {
       console.error("DB query error (register):", err);
       // 注册失败时清理已上传的头像文件
@@ -182,10 +195,10 @@ router.post("/login", async (req, res) => {
 router.get("/users/:id/events", async (req, res) => {
   const userId = req.params.id;
   try {
-    const [rows] = await pool.query(
-      "SELECT EventId, EventTitle, EventType, EventCategory, Location, Price, Photos, EventDetails, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50",
-      [userId],
-    );
+    const selectSql =
+      "SELECT EventId, EventTitle, EventType, EventCategory, Location, LocationPlaceId, Price, Photos, EventDetails, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50";
+
+    const [rows] = await pool.query(selectSql, [userId]);
     return res.json(rows);
   } catch (err) {
     console.error("DB query error (user events):", err);
@@ -197,8 +210,10 @@ router.get("/users/:id/events", async (req, res) => {
 router.get("/users/:id/profile", async (req, res) => {
   const userId = req.params.id;
   try {
+    const userGeoSelect = "u.LocationPlaceId,";
+
     const [rows] = await pool.query(
-      `SELECT u.UserId, u.UserName, u.RealName, u.IdCardNumber, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction, u.CreateTime,
+      `SELECT u.UserId, u.UserName, u.RealName, u.IdCardNumber, u.PhoneNumber, u.UserAvatar, u.Location, ${userGeoSelect} u.BirthDate, u.Introduction, u.CreateTime,
               (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
               c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
        FROM Users u
@@ -236,6 +251,7 @@ router.put("/users/:id/profile", authRequired, async (req, res) => {
     RealName,
     IdCardNumber,
     Location,
+    LocationPlaceId,
     BirthDate,
     Introduction,
     UserAvatar,
@@ -286,6 +302,9 @@ router.put("/users/:id/profile", authRequired, async (req, res) => {
     updateFields.push("BirthDate = ?");
     updateValues.push(BirthDate);
 
+    updateFields.push("LocationPlaceId = ?");
+    updateValues.push(normalizeLocationPlaceId(LocationPlaceId));
+
     updateFields.push("Introduction = ?");
     updateValues.push(Introduction || null);
 
@@ -303,8 +322,10 @@ router.put("/users/:id/profile", authRequired, async (req, res) => {
     );
 
     // 获取更新后的用户信息
+    const userGeoSelect = "u.LocationPlaceId,";
+
     const [rows] = await pool.query(
-      `SELECT u.UserId, u.UserName, u.RealName, u.IdCardNumber, u.PhoneNumber, u.UserAvatar, u.Location, u.BirthDate, u.Introduction,
+      `SELECT u.UserId, u.UserName, u.RealName, u.IdCardNumber, u.PhoneNumber, u.UserAvatar, u.Location, ${userGeoSelect} u.BirthDate, u.Introduction,
               (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
               c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
        FROM Users u
