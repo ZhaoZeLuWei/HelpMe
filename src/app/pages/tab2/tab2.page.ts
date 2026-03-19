@@ -80,6 +80,25 @@ export class Tab2Page implements OnInit, AfterViewInit {
   ionViewWillEnter() {
     this.loadEvents();
   }
+  filterByType(type: 'request' | 'help' | null) {
+  if (this.currentType === type) {
+    // 再次点击相同按钮，取消筛选
+    this.currentType = null;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { type: null },
+      queryParamsHandling: 'merge'
+    });
+  } else {
+    this.currentType = type;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { type: type },
+      queryParamsHandling: 'merge'
+    });
+  }
+  this.loadEvents();
+}
 
   ngAfterViewInit() {
     // 如果 URL 带 focusSearch=true，则自动聚焦搜索框
@@ -92,9 +111,8 @@ export class Tab2Page implements OnInit, AfterViewInit {
 
   /* 统一加载：根据关键词和分类决定接口 */
   private loadEvents(keyword?: string, skipUpdate?: boolean) {
-    // 直接从当前路由获取参数，而不是使用保存的 this.currentType
     const currentParams = this.route.snapshot.queryParams;
-    const realType = currentParams['type'] || null;
+    const realType = this.currentType || currentParams['type'] || null;
 
     // 构建查询参数
     const params = new URLSearchParams();
@@ -129,6 +147,15 @@ export class Tab2Page implements OnInit, AfterViewInit {
         this.eventsData.set(transformed);   // signal 自动触发视图更新
       })
       .catch(err => console.error('Tab2 加载失败', err));
+  }
+  onTypeChange(type: 'request' | 'help' | null) {
+    this.currentType = type;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { type: type },
+      queryParamsHandling: 'merge'
+    });
+    this.loadEvents();
   }
   /* 跳转到搜索页面 */
   navigateToSearch() {

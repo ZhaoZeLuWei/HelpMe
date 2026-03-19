@@ -8,6 +8,13 @@
     </ion-buttons>
     <!-- 页面标题 -->
     <ion-title>用户详情</ion-title>
+    <!-- 右侧：主页按钮 -->
+    <ion-buttons slot="end">
+      <ion-button (click)="goHome()">
+        <ion-icon slot="start" name="home-outline"></ion-icon>
+        主页
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -44,6 +51,13 @@
             服务次数：{{ userInfo.orderCount }} 次
           </p>
           <p class="user-introduction">个人介绍: {{ userInfo.introduction || '暂无介绍' }}</p>
+        </div>
+        <!-- 关注/编辑按钮 -->
+        <div class="follow-button-container" (click)="$event.stopPropagation()">
+          <ion-button fill="outline" size="small" (click)="isCurrentUser ? goToEditProfile() : onFollow()">
+            <ion-icon slot="start" [name]="isCurrentUser ? 'create-outline' : 'heart-outline'"></ion-icon>
+            {{ isCurrentUser ? '编辑' : '关注' }}
+          </ion-button>
         </div>
       </div>
       <!-- 标签页导航 -->
@@ -84,14 +98,25 @@
               </div>
             }
             @for (event of activeEvents; track event.EventId) {
-              <!-- 添加 (click) 和 cursor 样式 -->
               <div class="event-item" (click)="goToEventDetail(event)" style="cursor: pointer;">
+                <div class="type-indicator">
+                  <ion-icon [name]="getTypeIcon(event.EventType)" [style.color]="getTypeColor(event.EventType)"></ion-icon>
+                  <span class="type-label" [style.color]="getTypeColor(event.EventType)">{{ getTypeText(event.EventType) }}</span>
+                </div>
                 <div class="event-info">
                   <h4>{{ event.EventTitle }}</h4>
                   <p class="event-category">{{ event.EventCategory }}</p>
                   <p class="event-price">¥{{ event.Price }}</p>
                   <p class="event-time">{{ formatDate(event.CreateTime) }}</p>
                 </div>
+                @if (isCurrentUser) {
+                  <ion-button 
+                    fill="clear" 
+                    size="small" 
+                    (click)="goToEditEvent(event.EventId); $event.stopPropagation()">
+                    <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                  </ion-button>
+                }
               </div>
             }
           </div>
@@ -109,14 +134,19 @@
             }
             @for (comment of userComments; track comment.id) {
               <div class="comment-item">
-                <div class="comment-header">
-                  <!-- 使用新方法处理头像 -->
-                  <img [src]="getCommentAvatarUrl(comment.authorAvatar)" class="comment-avatar" />
-                  <span class="comment-author">{{ comment.authorName }}</span>
-                  <span class="comment-score">{{ comment.rating }}分</span>
+                <div class="type-indicator">
+                  <ion-icon [name]="getTypeIcon(comment.EventType)" [style.color]="getTypeColor(comment.EventType)"></ion-icon>
+                  <span class="type-label" [style.color]="getTypeColor(comment.EventType)">{{ getTypeText(comment.EventType) }}</span>
                 </div>
-                <p class="comment-content">{{ comment.content }}</p>
-                <p class="comment-time">{{ formatDate(comment.createTime) }}</p>
+                <div class="comment-content-wrapper">
+                  <div class="comment-header">
+                    <img [src]="getCommentAvatarUrl(comment.authorAvatar)" class="comment-avatar" />
+                    <span class="comment-author">{{ comment.authorName }}</span>
+                    <span class="comment-score">{{ comment.rating }}分</span>
+                  </div>
+                  <p class="comment-content">{{ comment.content }}</p>
+                  <p class="comment-time">{{ formatDate(comment.createTime) }}</p>
+                </div>
               </div>
             }
           </div>
@@ -133,15 +163,20 @@
               </div>
             }
             @for (activity of activityFeed; track activity.id) {
-              <!-- 添加 (click) 和 cursor 样式 -->
               <div class="activity-item" (click)="goToEventDetail(activity)" style="cursor: pointer;">
-                <div class="activity-header">
-                  <span class="activity-type">{{ activity.activityType }}</span>
-                  <span class="activity-time">{{ formatDate(activity.date) }}</span>
+                <div class="type-indicator">
+                  <ion-icon [name]="getTypeIcon(activity.EventType)" [style.color]="getTypeColor(activity.EventType)"></ion-icon>
+                  <span class="type-label" [style.color]="getTypeColor(activity.EventType)">{{ getTypeText(activity.EventType) }}</span>
                 </div>
-                <div class="activity-content">
-                  <h4>{{ activity.title }}</h4>
-                  <p>{{ activity.description }}</p>
+                <div class="activity-content-wrapper">
+                  <div class="activity-header">
+                    <span class="activity-type">{{ activity.activityType }}</span>
+                    <span class="activity-time">{{ formatDate(activity.date) }}</span>
+                  </div>
+                  <div class="activity-content">
+                    <h4>{{ activity.title }}</h4>
+                    <p>{{ activity.description }}</p>
+                  </div>
                 </div>
               </div>
             }
@@ -151,22 +186,4 @@
     </div>
   </div>
 </ion-content>
-<!-- ✅ 底部固定栏：与 ion-content 并列 -->
-<ion-footer>
-  <ion-toolbar>
-    <ion-row class="bottom-actions">
-      <ion-col>
-        <ion-button expand="block" fill="outline" (click)="onFollow()">
-          <ion-icon slot="start" name="heart-outline"></ion-icon>
-          关注
-        </ion-button>
-      </ion-col>
-        <ion-col>
-          <ion-button expand="block" (click)="onChat()">
-            <ion-icon slot="start" name="chatbubble-outline"></ion-icon>
-            {{ isCurrentUser ? '不能与自己聊天' : '聊一聊' }}
-          </ion-button>
-        </ion-col>
-    </ion-row>
-  </ion-toolbar>
-</ion-footer>
+
