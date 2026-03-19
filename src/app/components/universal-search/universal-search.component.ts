@@ -1,4 +1,4 @@
-import { Component,OnInit,Output, EventEmitter,computed, inject, input, signal, ContentChild, TemplateRef, ViewChild } from '@angular/core'; // <--- 引入 ContentChild 和 TemplateRef
+import { Component, OnInit, Output, EventEmitter, computed, inject, input, signal, ContentChild, TemplateRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 // 修改后 (确保 IonList 和 IonItem 都在)
 import {
@@ -24,12 +24,13 @@ import {
 } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { ActivatedRoute } from '@angular/router';          // ← 新增
+import { ActivatedRoute } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search } from 'ionicons/icons';
 
 // 只保留这一个 import，删除了重复的引入
 import { EventCardData } from '../show-event/show-event.component';
+import { LanguageService } from '../../services/language.service';
 
 @Component({
   selector: 'app-universal-search',
@@ -53,6 +54,10 @@ export class UniversalSearchComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly langService = inject(LanguageService);
+
+  // 翻译对象
+  t = this.langService.getTranslations('zh').shared.search;
 
   // --- 数据输入 ---
   dataSource = input<EventCardData[]>([]);
@@ -137,6 +142,11 @@ export class UniversalSearchComponent implements OnInit {
   }
   // 新增方法：初始化时同步路由参数
   ngOnInit() {
+    // 监听语言变化
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).shared.search;
+    });
+
     // 订阅路由参数的变化
     this.route.queryParams.subscribe(params => {
       const keyword = params['search'];

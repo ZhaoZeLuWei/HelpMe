@@ -1,4 +1,4 @@
-import {Component,OnInit, inject} from '@angular/core';
+import {Component, OnInit, inject} from '@angular/core';
 import { AuthService } from "../../services/auth.service";
 import {io} from 'socket.io-client';
 //Standalone need to import specific component tag
@@ -16,7 +16,7 @@ import {
   } from '@ionic/angular/standalone';
 import {Router} from '@angular/router';
 import {NavController, ToastController} from '@ionic/angular';
-import {sad} from "ionicons/icons";
+import {LanguageService} from '../../services/language.service';
 
 @Component({
   selector: 'app-tab3',
@@ -41,6 +41,7 @@ export class Tab3Page implements OnInit {
   private navCtrl = inject(NavController);
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
+  private langService = inject(LanguageService);
 
   //variables
   socket: any;
@@ -50,6 +51,9 @@ export class Tab3Page implements OnInit {
   systemRoom : any = null;
   //init chat rooms (nothing)
   chatRooms: any[] = [];
+
+  // 翻译对象
+  t = this.langService.getTranslations('zh').tab3;
 
   ngOnInit() {
     this.showChat = false;
@@ -110,6 +114,12 @@ export class Tab3Page implements OnInit {
           let eventName = '';
           let otherChatName = '';
 
+          if (room.type === 'system' || room._id.startsWith('system_')) {
+            name = this.t.systemNotification;
+            avatar = 'assets/icon/notification.svg';
+          } else {
+            name = `${this.t.unknownUser} ${room.partnerId}`; // 或者后续调用用户接口获取真实昵称
+            avatar = 'assets/icon/user.svg';
           if (
             room.type === 'system' ||
             (room._id && room._id.startsWith('system_'))
@@ -147,7 +157,7 @@ export class Tab3Page implements OnInit {
         this.showChat = true;
       }
     } catch (err) {
-      console.error('加载聊天房间失败', err);
+      console.error(this.t.loadRoomsFailed, err);
     }
   }
 
@@ -160,9 +170,9 @@ export class Tab3Page implements OnInit {
   private initSystemRoom(sysRoom:any) {
     this.systemRoom = {
       roomId: sysRoom, // 现在这里不会是 undefined 了
-      name: '系统通知',
+      name: this.t.systemNotification,
       avatar: 'assets/icon/notification.svg',
-      lastMsg: '暂无新通知',
+      lastMsg: this.t.noNewNotification,
       count: 0,
       type: 'system'
     }
@@ -185,7 +195,7 @@ export class Tab3Page implements OnInit {
   //if user not login ,show a toast at the top of the screen ( all pages can see)
   private async loginToast() {
     const toast = await this.toastCtrl.create({
-      message: '请您登录或注册',
+      message: this.t.loginToast,
       duration: 1000,
       position: 'bottom',
       positionAnchor: 'main-tab-bar',

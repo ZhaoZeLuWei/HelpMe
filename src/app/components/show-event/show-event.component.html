@@ -6,7 +6,7 @@
       [src]="imgUrl(event.cardImage)"
       (error)="onImageError($event)"
       class="card-image-img"
-      alt="事件图片"
+      [alt]="t.eventImage"
     />
     <div class="distance-in-image">
       <span class="material-icons">location_on</span>
@@ -19,7 +19,7 @@
       <img
         [src]="avatarUrl(event.avatar)"
         (error)="onAvatarError($event)"
-        alt="用户头像"
+        [alt]="t.userAvatar"
         class="avatar-img-small"
       />
     </div>
