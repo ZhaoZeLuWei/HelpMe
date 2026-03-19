@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   OnInit,
+  OnDestroy,
   ViewChild,
   inject,
 } from '@angular/core';
@@ -31,6 +32,7 @@ import {
   IonToolbar,
   IonSelect,
   IonSelectOption,
+  ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -45,8 +47,12 @@ import {
 
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
-import { LanguageService } from '../../services/language.service'
-
+import { LanguageService } from '../../services/language.service';
+import {
+  LocationPickerComponent,
+  type PickedLocation,
+} from '../../components/location-picker/location-picker.component';
+import type { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-tab5',
@@ -74,7 +80,7 @@ import { LanguageService } from '../../services/language.service'
     IonSelectOption,
   ],
 })
-export class Tab5Page implements OnInit {
+export class Tab5Page implements OnInit, OnDestroy {
   showRequestModal = false;
   showHelpModal = false;
   showIdentityModal = false;
@@ -116,30 +122,40 @@ export class Tab5Page implements OnInit {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private navCtrl = inject(NavController);
+  private modalCtrl = inject(ModalController);
   private toastCtrl = inject(ToastController);
   private auth = inject(AuthService);
   private langService = inject(LanguageService);
+  private langSub: Subscription | null = null;
 
   // 翻译对象
   t = this.langService.getTranslations('zh').tab5;
 
   constructor() {
     addIcons({
-      close, 
-      handLeftOutline, 
-      heartOutline, 
+      close,
+      handLeftOutline,
+      heartOutline,
       shieldCheckmarkOutline,
-      imageOutline, 
-      addCircleOutline, 
+      imageOutline,
+      addCircleOutline,
       closeCircle,
     });
 
-    //监听语言变化 
-    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
-      this.t = this.langService.getTranslations(lang).tab5;
-    });
+    //监听语言变化
+    this.langSub = this.langService.currentLang$.subscribe(
+      (lang: 'zh' | 'en') => {
+        this.t = this.langService.getTranslations(lang).tab5;
+      },
+    );
   }
 
+  ngOnDestroy(): void {
+    if (this.langSub) {
+      this.langSub.unsubscribe();
+      this.langSub = null;
+    }
+  }
 
   ngOnInit(): void {
     this.requestForm = this.fb.group({
@@ -147,6 +163,9 @@ export class Tab5Page implements OnInit {
       EventType: [0],
       EventCategory: ['', Validators.required],
       Location: ['', Validators.required],
+      LocationPlaceId: [''],
+      LocationLng: [null],
+      LocationLat: [null],
       Price: [0, [Validators.min(0), Validators.max(1_000_000)]],
       EventDetails: ['', Validators.required],
     });
@@ -156,6 +175,9 @@ export class Tab5Page implements OnInit {
       EventType: [1],
       EventCategory: ['', Validators.required],
       Location: ['', Validators.required],
+      LocationPlaceId: [''],
+      LocationLng: [null],
+      LocationLat: [null],
       Price: [
         0,
         [Validators.required, Validators.min(0), Validators.max(1_000_000)],
@@ -171,8 +193,55 @@ export class Tab5Page implements OnInit {
         [Validators.required, Validators.pattern(/^(\d{18}|\d{17}[\dXx])$/)],
       ],
       Location: ['', Validators.required],
+      LocationPlaceId: [''],
+      LocationLng: [null],
+      LocationLat: [null],
       ProviderRole: ['', [Validators.required, Validators.pattern(/^[123]$/)]],
       Introduction: [''],
+    });
+  }
+
+  private appendLocationMeta(fd: FormData, value: any) {
+    if (value?.LocationPlaceId) {
+      fd.append('LocationPlaceId', String(value.LocationPlaceId));
+    }
+
+    if (value?.LocationLng !== null && value?.LocationLng !== undefined) {
+      fd.append('LocationLng', String(value.LocationLng));
+    }
+
+    if (value?.LocationLat !== null && value?.LocationLat !== undefined) {
+      fd.append('LocationLat', String(value.LocationLat));
+    }
+  }
+
+  async openLocationPicker(formType: 'request' | 'help' | 'identity') {
+    const form =
+      formType === 'request'
+        ? this.requestForm
+        : formType === 'help'
+          ? this.helpForm
+          : this.identityForm;
+
+    const modal = await this.modalCtrl.create({
+      component: LocationPickerComponent,
+      componentProps: {
+        selectedPlaceId: form.get('LocationPlaceId')?.value || '',
+        selectedText: form.get('Location')?.value || '',
+      },
+    });
+
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+
+    if (role !== 'confirm' || !data?.selected) return;
+
+    const picked: PickedLocation = data.selected;
+    form.patchValue({
+      Location: picked.text,
+      LocationPlaceId: picked.placeId,
+      LocationLng: picked.lng,
+      LocationLat: picked.lat,
     });
   }
 
@@ -272,7 +341,7 @@ export class Tab5Page implements OnInit {
 
     if (!resp.ok || !data?.success) {
       if (resp.status === 401) {
-        await this.toast('未登录或登录已过期，请重新登录');
+        await this.auth.handleAuthExpired();
         return null;
       }
       if (resp.status === 404) {
@@ -437,6 +506,7 @@ export class Tab5Page implements OnInit {
       fd.append('EventType', String(v.EventType ?? 0));
       fd.append('EventCategory', String(v.EventCategory ?? ''));
       fd.append('Location', String(v.Location ?? ''));
+      this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
       fd.append('EventDetails', String(v.EventDetails ?? ''));
 
@@ -455,6 +525,9 @@ export class Tab5Page implements OnInit {
         EventType: 0,
         EventCategory: '',
         Location: '',
+        LocationPlaceId: '',
+        LocationLng: null,
+        LocationLat: null,
         Price: '',
         EventDetails: '',
       });
@@ -485,6 +558,7 @@ export class Tab5Page implements OnInit {
       fd.append('EventType', String(v.EventType ?? 1));
       fd.append('EventCategory', String(v.EventCategory ?? ''));
       fd.append('Location', String(v.Location ?? ''));
+      this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
       fd.append('EventDetails', String(v.EventDetails ?? ''));
 
@@ -503,6 +577,9 @@ export class Tab5Page implements OnInit {
         EventType: 1,
         EventCategory: '',
         Location: '',
+        LocationPlaceId: '',
+        LocationLng: null,
+        LocationLat: null,
         Price: 0,
         EventDetails: '',
       });
@@ -534,6 +611,7 @@ export class Tab5Page implements OnInit {
       fd.append('RealName', String(v.RealName ?? ''));
       fd.append('IdCardNumber', String(v.IdCardNumber ?? ''));
       fd.append('Location', String(v.Location ?? ''));
+      this.appendLocationMeta(fd, v);
 
       if (v.Introduction != null && String(v.Introduction).trim() !== '') {
         fd.append('Introduction', String(v.Introduction));
@@ -569,6 +647,9 @@ export class Tab5Page implements OnInit {
         PhoneNumber: phone ?? '',
         IdCardNumber: '',
         Location: '',
+        LocationPlaceId: '',
+        LocationLng: null,
+        LocationLat: null,
         ProviderRole: '',
         Introduction: '',
       });

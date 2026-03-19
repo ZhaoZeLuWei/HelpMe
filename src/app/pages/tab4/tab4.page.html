@@ -134,11 +134,15 @@
     @for (task of getFilteredTasks(); track task.id) {
     <ion-card class="task-item">
       <ion-item lines="none">
-        <ion-icon
-          name="document-text"
-          slot="start"
-          class="task-icon"
-        ></ion-icon>
+        <div slot="start" class="task-icon-wrap">
+          <ion-icon
+            [name]="task.EventType === 1 ? 'heart' : 'hand-left'"
+            class="task-icon"
+          ></ion-icon>
+          <div class="task-type-label">
+            {{ task.EventType === 1 ? '帮助' : '求助' }}
+          </div>
+        </div>
         <ion-label>
           <h2 class="task-title">{{ task.publisher }} · {{ task.title }}</h2>
           <p class="task-meta">{{ t.publishTime }}: {{ task.createdAt }}</p>
@@ -236,12 +240,15 @@
                 [placeholder]="t.categoryPlaceholder"
               ></ion-input>
             </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.locationLabel }} *</ion-label>
-              <ion-input
-                formControlName="Location"
-                [placeholder]="t.locationPlaceholder"
-              ></ion-input>
+            <ion-item
+              button
+              detail="true"
+              (click)="openLocationPicker('eventEdit')"
+            >
+              <ion-label position="stacked">位置 *</ion-label>
+              <ion-text [color]="editForm.value.Location ? 'dark' : 'medium'">
+                {{ editForm.value.Location || '请选择地点' }}
+              </ion-text>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">{{ t.priceLabel }}</ion-label>
@@ -406,13 +413,18 @@
               ></ion-input>
             </ion-item>
 
-            <ion-item>
-              <ion-label position="floating">{{ t.locationLabelProfile }} *</ion-label>
-              <ion-input
-                type="text"
-                formControlName="Location"
-                [placeholder]="t.locationPlaceholderProfile"
-              ></ion-input>
+            <ion-item
+              button
+              detail="true"
+              (click)="openLocationPicker('profileEdit')"
+            >
+              <ion-label>所在地 *</ion-label>
+              <ion-note
+                slot="end"
+                [color]="editProfileForm.value.Location ? 'dark' : 'medium'"
+              >
+                {{ editProfileForm.value.Location || '请选择地点' }}
+              </ion-note>
             </ion-item>
 
             <ion-item>

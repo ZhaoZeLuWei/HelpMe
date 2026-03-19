@@ -5,8 +5,46 @@ const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 const { authRequired } = require("./auth.js");
 
-const Message = require('../models/Message');
+const Message = require("../models/Message");
 const router = express.Router();
+
+let usersGeoColumnsState = {
+  checked: false,
+  supported: false,
+};
+
+async function supportsUserGeoColumns(conn) {
+  if (usersGeoColumnsState.checked) {
+    return usersGeoColumnsState.supported;
+  }
+
+  const [rows] = await conn.query(
+    `SELECT COUNT(*) AS cnt
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'Users'
+       AND COLUMN_NAME IN ('LocationPlaceId', 'LocationLng', 'LocationLat')`,
+  );
+
+  usersGeoColumnsState = {
+    checked: true,
+    supported: Number(rows?.[0]?.cnt || 0) === 3,
+  };
+
+  return usersGeoColumnsState.supported;
+}
+
+function normalizeLocationPlaceId(value) {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text ? text : null;
+}
+
+function normalizeCoordinate(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
 
 //GET 获取所有申请记录（仅包含通过和待审核) by Zewei 2-3
 router.get("/adminVerify", async (req, res) => {
@@ -90,8 +128,16 @@ router.post(
   ),
 
   async (req, res) => {
-    const { ServiceCategory, RealName, IdCardNumber, Location, Introduction } =
-      req.body || {};
+    const {
+      ServiceCategory,
+      RealName,
+      IdCardNumber,
+      Location,
+      LocationPlaceId,
+      LocationLng,
+      LocationLat,
+      Introduction,
+    } = req.body || {};
 
     // 基础内容校验，从 JWT token 中提取 providerId
     const providerId = Number(req.user?.id);
@@ -132,6 +178,7 @@ router.post(
     try {
       conn = await pool.getConnection();
       await conn.beginTransaction();
+      const hasGeoColumns = await supportsUserGeoColumns(conn);
 
       // 0) 确保 Providers 记录存在
       await conn.query(
@@ -167,6 +214,17 @@ router.post(
       if (hasValue(Location)) {
         uSets.push("Location = ?");
         uParams.push(String(Location).trim());
+      }
+
+      if (hasGeoColumns) {
+        uSets.push("LocationPlaceId = ?");
+        uParams.push(normalizeLocationPlaceId(LocationPlaceId));
+
+        uSets.push("LocationLng = ?");
+        uParams.push(normalizeCoordinate(LocationLng));
+
+        uSets.push("LocationLat = ?");
+        uParams.push(normalizeCoordinate(LocationLat));
       }
 
       if (hasValue(Introduction)) {
@@ -259,8 +317,6 @@ router.post(
         idCardPaths,
         certPaths,
       });
-
-
     } catch (err) {
       console.error("认证提交数据库错误:", err);
       if (conn) {
@@ -286,7 +342,7 @@ router.post(
         senderId: providerId,
         userName: "系统通知",
         sendTime: new Date(),
-      }).catch(err => console.error("写入系统消息失败:", err));
+      }).catch((err) => console.error("写入系统消息失败:", err));
 
       if (conn) conn.release();
     }

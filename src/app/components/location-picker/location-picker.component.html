@@ -1,0 +1,55 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>选择地点</ion-title>
+    <ion-buttons slot="start">
+      <ion-button (click)="close()">取消</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="picker-content">
+  <div class="search-wrap">
+    <ion-searchbar
+      [value]="keyword"
+      placeholder="搜索地点（如：万达、家属楼、教学楼）"
+      (ionInput)="onKeywordChange($any($event.detail).value)"
+      showClearButton="always"
+    ></ion-searchbar>
+  </div>
+
+  @if (loading()) {
+    <div class="state-box">
+      <ion-spinner name="dots"></ion-spinner>
+      <p>正在加载附近地点...</p>
+    </div>
+  }
+
+  @if (!loading() && locations().length === 0) {
+    <div class="state-box empty">
+      <p>没有找到可选地点，请换个关键词</p>
+    </div>
+  }
+
+  @if (!loading() && locations().length > 0) {
+    <ion-list lines="full">
+      @for (item of locations(); track item.id) {
+        <ion-item button detail="false" (click)="selectLocation(item)">
+          <ion-label>
+            <h3>{{ item.name }}</h3>
+            <p>
+              {{
+                item.distanceMeters
+                  ? item.distanceMeters + "m内"
+                  : item.district || "附近"
+              }}
+            </p>
+            <p class="address">{{ item.address || item.district }}</p>
+          </ion-label>
+          @if (selectedPlaceId === item.id || selectedText === item.name) {
+            <ion-icon name="checkmark" slot="end"></ion-icon>
+          }
+        </ion-item>
+      }
+    </ion-list>
+  }
+</ion-content>
