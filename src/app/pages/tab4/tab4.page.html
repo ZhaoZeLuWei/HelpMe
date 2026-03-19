@@ -1,6 +1,6 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title> 个人中心 </ion-title>
+    <ion-title> {{ t.title }} </ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -9,13 +9,11 @@
   <!-- 未登录时显示登录提示 -->
   <div class="login-prompt">
     <ion-icon name="person-circle" class="prompt-icon"></ion-icon>
-    <h2>欢迎使用 HelpMe</h2>
-    <p>登录后查看个人中心</p>
+    <h2>{{ t.welcome }}</h2>
+    <p>{{ t.loginHint }}</p>
     <div class="auth-buttons">
-      <ion-button (click)="openLoginModal()">立即登录</ion-button>
-      <ion-button fill="outline" (click)="openRegisterModal()"
-        >注册账号</ion-button
-      >
+      <ion-button (click)="openLoginModal()">{{ t.loginBtn }}</ion-button>
+      <ion-button fill="outline" (click)="openRegisterModal()">{{ t.registerBtn }}</ion-button>
     </div>
   </div>
   } @if (isLoggedIn) {
@@ -44,7 +42,7 @@
         </div>
         <div class="user-location">
           <ion-icon name="location-outline"></ion-icon>
-          <span>{{ userInfo.location || '未设置位置' }}</span>
+          <span>{{ userInfo.location || t.locationNotSet }}</span>
         </div>
       </div>
     </div>
@@ -52,7 +50,7 @@
     <!-- 个人介绍 -->
     <div class="user-intro-section">
       <p class="user-intro">
-        {{ userInfo.introduction || '个人的介绍，等待以后再来探索吧！' }}
+        {{ userInfo.introduction || t.introPlaceholder }}
       </p>
     </div>
 
@@ -61,7 +59,7 @@
       <div class="rating-item">
         <ion-icon name="star" color="warning"></ion-icon>
         <div class="rating-content">
-          <span class="rating-label">买家评分</span>
+          <span class="rating-label">{{ t.buyerRating }}</span>
           <span class="rating-value"
             >{{ formatRating(userInfo.buyerRanking) }}</span
           >
@@ -70,7 +68,7 @@
       <div class="rating-item">
         <ion-icon name="ribbon" color="primary"></ion-icon>
         <div class="rating-content">
-          <span class="rating-label">服务评分</span>
+          <span class="rating-label">{{ t.serviceRating }}</span>
           <span class="rating-value"
             >{{ formatRating(userInfo.serviceRanking) }}</span
           >
@@ -79,7 +77,7 @@
       <div class="rating-item">
         <ion-icon name="briefcase" color="success"></ion-icon>
         <div class="rating-content">
-          <span class="rating-label">服务单数</span>
+          <span class="rating-label">{{ t.orderCount }}</span>
           <span class="rating-value">{{ userInfo.orderCount || 0 }}</span>
         </div>
       </div>
@@ -89,25 +87,25 @@
     <div class="user-button-group">
       <ion-button fill="outline" size="small" (click)="openEditProfileModal()">
         <ion-icon name="create-outline" slot="start"></ion-icon>
-        编辑资料
+        {{ t.editProfile }}
       </ion-button>
       <ion-button color="danger" fill="outline" size="small" (click)="logout()">
         <ion-icon name="log-out" slot="start"></ion-icon>
-        登出
+        {{ t.logout }}
       </ion-button>
     </div>
     <div class="user-actions">
       <ion-button fill="outline" (click)="goToFollow()">
         <ion-icon name="heart-outline"></ion-icon>
-        <span>关注({{ userInfo.stats.follows }})</span>
+        <span>{{ t.follow }}({{ userInfo.stats.follows }})</span>
       </ion-button>
       <ion-button fill="outline" (click)="goToFavorites()">
         <ion-icon name="heart"></ion-icon>
-        <span>收藏({{ userInfo.stats.favorites }})</span>
+        <span>{{ t.favorite }}({{ userInfo.stats.favorites }})</span>
       </ion-button>
       <ion-button fill="outline" (click)="goToViews()">
         <ion-icon name="eye"></ion-icon>
-        <span>浏览({{ userInfo.stats.views }})</span>
+        <span>{{ t.view }}({{ userInfo.stats.views }})</span>
       </ion-button>
     </div>
   </ion-card>
@@ -115,19 +113,19 @@
   <ion-segment [value]="activeTab" (ionChange)="onTabChange($event)">
     <ion-segment-button value="published">
       <ion-icon name="document-text"></ion-icon>
-      <ion-label>我发布的</ion-label>
+      <ion-label>{{ t.tabPublished }}</ion-label>
     </ion-segment-button>
     <ion-segment-button value="inProgress">
       <ion-icon name="time"></ion-icon>
-      <ion-label>正进行的</ion-label>
+      <ion-label>{{ t.tabInProgress }}</ion-label>
     </ion-segment-button>
     <ion-segment-button value="completed">
       <ion-icon name="checkmark-done"></ion-icon>
-      <ion-label>已完成</ion-label>
+      <ion-label>{{ t.tabCompleted }}</ion-label>
     </ion-segment-button>
     <ion-segment-button value="review">
       <ion-icon name="star"></ion-icon>
-      <ion-label>评价</ion-label>
+      <ion-label>{{ t.tabReview }}</ion-label>
     </ion-segment-button>
   </ion-segment>
 
@@ -147,7 +145,7 @@
         </div>
         <ion-label>
           <h2 class="task-title">{{ task.publisher }} · {{ task.title }}</h2>
-          <p class="task-meta">发布时间: {{ task.createdAt }}</p>
+          <p class="task-meta">{{ t.publishTime }}: {{ task.createdAt }}</p>
         </ion-label>
         <ion-badge
           slot="end"
@@ -164,21 +162,21 @@
             [disabled]="deletingIds.has(task.id)"
             (click)="openDeleteAlert(task.id)"
           >
-            @if (deletingIds.has(task.id)) { 删除中... } @else { 删除 }
+            @if (deletingIds.has(task.id)) { {{ t.deleting }} } @else { {{ t.delete }} }
           </ion-button>
-          <ion-button (click)="editTask(task.id)">编辑</ion-button>
+          <ion-button (click)="editTask(task.id)">{{ t.edit }}</ion-button>
           } @if (task.status === 'inProgress') {
-          <ion-button (click)="viewDetails(task.id)">详情</ion-button>
+          <ion-button (click)="viewDetails(task.id)">{{ t.viewDetails }}</ion-button>
           } @if (task.status === 'completed') {
           <ion-button
             [disabled]="deletingIds.has(task.id)"
             (click)="openDeleteAlert(task.id)"
           >
-            @if (deletingIds.has(task.id)) { 删除中... } @else { 删除 }
+            @if (deletingIds.has(task.id)) { {{ t.deleting }} } @else { {{ t.delete }} }
           </ion-button>
-          <ion-button (click)="viewDetails(task.id)">详情</ion-button>
+          <ion-button (click)="viewDetails(task.id)">{{ t.viewDetails }}</ion-button>
           } @if (task.status === 'review') {
-          <ion-button (click)="goToReview(task.id)">评价</ion-button>
+          <ion-button (click)="goToReview(task.id)">{{ t.review }}</ion-button>
           }
         </ion-buttons>
       </ion-item>
@@ -187,7 +185,7 @@
     <div class="empty-state">
       <ion-icon name="document-text" class="empty-icon"></ion-icon>
       <ion-text color="medium">
-        <p>暂无相关任务</p>
+        <p>{{ t.noTasks }}</p>
       </ion-text>
     </div>
     }
@@ -196,8 +194,8 @@
   <!-- 删除确认弹窗 -->
   <ion-alert
     [isOpen]="isDeleteAlertOpen"
-    header="确认删除"
-    message="删除后不可恢复，是否继续？"
+    [header]="t.deleteConfirmTitle"
+    [message]="t.deleteConfirmMsg"
     [buttons]="alertButtons"
     (didDismiss)="onDeleteAlertDismiss()"
   >
@@ -208,11 +206,9 @@
     <ng-template>
       <ion-header [translucent]="true">
         <ion-toolbar>
-          <ion-title>编辑事件</ion-title>
+          <ion-title>{{ t.editEventTitle }}</ion-title>
           <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeEditModal()"
-              >关闭</ion-button
-            >
+            <ion-button fill="clear" (click)="closeEditModal()">{{ t.close }}</ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
@@ -220,28 +216,28 @@
         <form [formGroup]="editForm">
           <ion-list lines="full">
             <ion-item>
-              <ion-label position="stacked">标题 *</ion-label>
+              <ion-label position="stacked">{{ t.titleLabel }} *</ion-label>
               <ion-input
                 formControlName="EventTitle"
-                placeholder="简明描述（如：上门电脑维修）"
+                [placeholder]="t.titlePlaceholder"
               ></ion-input>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">类型 *</ion-label>
+              <ion-label position="stacked">{{ t.typeLabel }} *</ion-label>
               <ion-select
                 formControlName="EventType"
                 interface="popover"
-                placeholder="请选择事件类型"
+                [placeholder]="t.typePlaceholder"
               >
-                <ion-select-option [value]="0">求助</ion-select-option>
-                <ion-select-option [value]="1">帮助</ion-select-option>
+                <ion-select-option [value]="0">{{ t.typeRequest }}</ion-select-option>
+                <ion-select-option [value]="1">{{ t.typeHelp }}</ion-select-option>
               </ion-select>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">类别 *</ion-label>
+              <ion-label position="stacked">{{ t.categoryLabel }} *</ion-label>
               <ion-input
                 formControlName="EventCategory"
-                placeholder="如：电脑维修"
+                [placeholder]="t.categoryPlaceholder"
               ></ion-input>
             </ion-item>
             <ion-item
@@ -255,25 +251,25 @@
               </ion-text>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">价格 (¥)</ion-label>
+              <ion-label position="stacked">{{ t.priceLabel }}</ion-label>
               <ion-input
                 type="number"
                 step="0.01"
                 formControlName="Price"
-                placeholder="0 表示无偿帮助"
+                [placeholder]="t.pricePlaceholder"
               ></ion-input>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">详细描述 *</ion-label>
+              <ion-label position="stacked">{{ t.detailsLabel }} *</ion-label>
               <ion-textarea
                 formControlName="EventDetails"
                 [autoGrow]="true"
-                placeholder="补充说明需求/服务内容"
+                [placeholder]="t.detailsPlaceholder"
               ></ion-textarea>
             </ion-item>
 
             <ion-item lines="none">
-              <ion-label position="stacked">编辑图片（可选）</ion-label>
+              <ion-label position="stacked">{{ t.editPhotoLabel }}</ion-label>
             </ion-item>
 
             <div class="photo-upload-area" (click)="triggerEditFileInput()">
@@ -299,7 +295,7 @@
                 } @if (getEditPhotoCount() === 0) {
                 <div class="upload-placeholder">
                   <ion-icon name="image-outline"></ion-icon>
-                  <p>点击上传照片</p>
+                  <p>{{ t.uploadPhoto }}</p>
                 </div>
                 } @else if (getEditPhotoCount() < 5) {
                 <div class="upload-placeholder">
@@ -309,7 +305,7 @@
               </div>
 
               <ion-text color="medium" class="upload-hint">
-                <p>最多可上传 5 张照片，支持 JPG/PNG</p>
+                <p>{{ t.uploadHint }}</p>
               </ion-text>
             </div>
           </ion-list>
@@ -320,13 +316,13 @@
               fill="outline"
               color="medium"
               (click)="closeEditModal()"
-              >取消</ion-button
+              >{{ t.cancel }}</ion-button
             >
             <ion-button
               type="button"
               (click)="submitEdit()"
               [disabled]="isSavingEdit"
-              >保存</ion-button
+              >{{ isSavingEdit ? t.saving : t.save }}</ion-button
             >
           </div>
         </form>
@@ -342,11 +338,9 @@
     <ng-template>
       <ion-header [translucent]="true">
         <ion-toolbar>
-          <ion-title>编辑个人资料</ion-title>
+          <ion-title>{{ t.editProfileTitle }}</ion-title>
           <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeEditProfileModal()"
-              >关闭</ion-button
-            >
+            <ion-button fill="clear" (click)="closeEditProfileModal()">{{ t.close }}</ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
@@ -366,8 +360,7 @@
               </div>
               <div class="avatar-actions">
                 <ion-button size="small" (click)="triggerProfileAvatarInput()">
-                  {{ profileAvatarPreview || userInfo.avatar ? '更换头像' :
-                  '上传头像' }}
+                  {{ profileAvatarPreview || userInfo.avatar ? t.changeAvatar : t.uploadAvatar }}
                 </ion-button>
                 @if (profileAvatarPreview || userInfo.avatar) {
                 <ion-button
@@ -376,7 +369,7 @@
                   color="danger"
                   (click)="removeProfileAvatar()"
                 >
-                  删除
+                  {{ t.delete }}
                 </ion-button>
                 }
               </div>
@@ -387,35 +380,35 @@
                 style="display: none"
                 (change)="onProfileAvatarSelected($event)"
               />
-              <p class="avatar-hint">支持jpg/png，最大5MB</p>
+              <p class="avatar-hint">{{ t.avatarHint }}</p>
             </div>
 
             <ion-item>
-              <ion-label position="floating">用户名 *</ion-label>
+              <ion-label position="floating">{{ t.userNameLabel }} *</ion-label>
               <ion-input
                 type="text"
                 formControlName="UserName"
-                placeholder="请输入用户名（2-20个字符）"
+                [placeholder]="t.userNamePlaceholder"
                 [maxlength]="20"
               ></ion-input>
             </ion-item>
 
             <ion-item>
-              <ion-label position="floating">真实姓名 *</ion-label>
+              <ion-label position="floating">{{ t.realNameLabel }} *</ion-label>
               <ion-input
                 type="text"
                 formControlName="RealName"
-                placeholder="请输入真实姓名（2-20个字符）"
+                [placeholder]="t.realNamePlaceholder"
                 [maxlength]="20"
               ></ion-input>
             </ion-item>
 
             <ion-item>
-              <ion-label position="floating">身份证号 *</ion-label>
+              <ion-label position="floating">{{ t.idCardLabel }} *</ion-label>
               <ion-input
                 type="text"
                 formControlName="IdCardNumber"
-                placeholder="请输入18位身份证号"
+                [placeholder]="t.idCardPlaceholder"
                 [maxlength]="18"
               ></ion-input>
             </ion-item>
@@ -435,15 +428,15 @@
             </ion-item>
 
             <ion-item>
-              <ion-label position="floating">出生日期 *</ion-label>
+              <ion-label position="floating">{{ t.birthDateLabel }} *</ion-label>
               <ion-input type="date" formControlName="BirthDate"></ion-input>
             </ion-item>
 
             <ion-item>
-              <ion-label position="floating">个人介绍</ion-label>
+              <ion-label position="floating">{{ t.introLabel }}</ion-label>
               <ion-textarea
                 formControlName="Introduction"
-                placeholder="简单介绍一下自己吧（选填，最多200字）"
+                [placeholder]="t.introPlaceholder"
                 [maxlength]="200"
                 [autoGrow]="true"
                 rows="3"
@@ -451,7 +444,7 @@
             </ion-item>
           </ion-list>
 
-          <div class="hint-text">* 标记为必填项</div>
+          <div class="hint-text">{{ t.requiredHint }}</div>
 
           <div class="modal-actions">
             <ion-button
@@ -459,13 +452,13 @@
               fill="outline"
               color="medium"
               (click)="closeEditProfileModal()"
-              >取消</ion-button
+              >{{ t.cancel }}</ion-button
             >
             <ion-button
               type="button"
               (click)="submitProfileEdit()"
               [disabled]="isSavingProfile"
-              >{{ isSavingProfile ? '保存中...' : '保存' }}</ion-button
+              >{{ isSavingProfile ? t.saving : t.save }}</ion-button
             >
           </div>
         </form>

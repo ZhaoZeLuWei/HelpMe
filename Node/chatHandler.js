@@ -70,21 +70,19 @@ const getChatHistory = async (queryParams) => {
 
 const getRoomList = async (queryParams) => {
   try {
-
     const { page = 1, pageSize = 20, userId, eventId, roomId } = queryParams;
 
     const query = {};
 
     if (roomId) {
       query._id = roomId;
-    }
-    else if (eventId) {
+    } else if (eventId) {
       query.eventId = eventId;
-    }
-    else if (userId) {
+    } else if (userId) {
+      const loginUserId = Number(userId);
       query.$or = [
-        { creatorId: userId },
-        { partnerId: userId }
+        { creatorId: loginUserId },
+        { partnerId: loginUserId },
       ];
     }
 
@@ -97,6 +95,7 @@ const getRoomList = async (queryParams) => {
 
     const skip = (pageNum - 1) * size;
 
+    // 查询房间
     const rooms = await Room.find(query)
       .sort({ updatedAt: -1 })
       .skip(skip)
@@ -105,11 +104,79 @@ const getRoomList = async (queryParams) => {
 
     const total = await Room.countDocuments(query);
 
+    // 收集房间涉及的用户ID和事件ID
+    const userIds = new Set();
+    const eventIds = new Set();
+
+    rooms.forEach(room => {
+      userIds.add(Number(room.creatorId));
+      userIds.add(Number(room.partnerId));
+      eventIds.add(Number(room.eventId));
+    });
+
+    // 一次性查询用户信息
+    const [users] = await pool.query(
+      `SELECT UserId, UserName, UserAvatar FROM Users WHERE UserId IN (?)`,
+      [[...userIds]]
+    );
+
+    // 一次性查询事件信息
+    const [events] = await pool.query(
+      `SELECT EventId, EventTitle FROM Events WHERE EventId IN (?)`,
+      [[...eventIds]]
+    );
+
+    // 构建映射表
+    const userMap = {};
+    users.forEach(u => {
+      userMap[Number(u.UserId)] = {
+        id: Number(u.UserId),
+        name: u.UserName,
+        avatar: u.UserAvatar || '/assets/icon/user.svg'
+      };
+    });
+
+    const eventMap = {};
+    events.forEach(e => {
+      eventMap[Number(e.EventId)] = e.EventTitle;
+    });
+
+    // 构造返回数据，不区分谁是登录用户
+    const formattedRooms = rooms.map(room => {
+      const userAId = Number(room.creatorId);
+      const userBId = Number(room.partnerId);
+
+      const userA = userMap[userAId] || {
+        id: userAId,
+        name: '未知用户',
+        avatar: '/assets/icon/user.svg'
+      };
+
+      const userB = userMap[userBId] || {
+        id: userBId,
+        name: '未知用户',
+        avatar: '/assets/icon/user.svg'
+      };
+
+      return {
+        roomId: room._id,
+        userA,
+        userB,
+        event: {
+          id: Number(room.eventId),
+          name: eventMap[Number(room.eventId)] || '未知事件'
+        },
+        lastMsg: room.lastMsg || '',
+        unreadCount: room.unreadCount || 0,
+        updatedAt: room.updatedAt
+      };
+    });
+
     return {
       success: true,
       message: '查询房间列表成功',
       data: {
-        rooms: rooms,
+        rooms: formattedRooms,
         pagination: {
           page: pageNum,
           pageSize: size,
@@ -130,6 +197,12 @@ module.exports.registerChatHandler = (io, socket) => {
   const joinRoom = async (roomId) => {
     //Node已经通过JWT获取了登陆用户的身份，并传递到客户端
     socket.emit('myself', socket.user);
+
+    //user join into private chat list server room
+    if (socket.user && socket.user.id) {
+      socket.join(socket.user.id.toString());
+      console.log(`User ${socket.user.id} joined private room`);
+    }
 
     if (!roomId) return;
     try {
@@ -166,6 +239,12 @@ module.exports.registerChatHandler = (io, socket) => {
           sendTime: new Date(),
         }
       );
+
+      // 清零当前登录用户的 unreadCount
+      await Room.updateOne(
+        { _id: roomId },
+        { $set: { [`unreadCount.${socket.user.id}`]: 0 } }
+      );
     } catch (error) {
       console.log('joinRoom or CREATE room error:', error);
     }
@@ -198,8 +277,45 @@ module.exports.registerChatHandler = (io, socket) => {
       //这里调用了数据结构，通过api写入？
       await Message.create(messageData);
 
+      //update room last Msg
+      const senderId = socket.user.id;
+
+      const room = await Room.findById(roomId);
+
+      const receiverId =
+        senderId === room.creatorId
+          ? room.partnerId
+          : room.creatorId;
+
+      await Room.updateOne(
+        { _id: roomId },
+        {
+          $set: {
+            lastMsg: messageData.text,
+            updatedAt: new Date()
+          },
+          // count msg send but not been read
+          $inc: {
+            [`unreadCount.${receiverId}`]: 1
+          }
+        }
+      );
+
       //转发给对应房间号的客户端1-16
       io.to(roomId).emit('chat message', messageData);
+
+      //send update msg to tab3  (3-18)
+      io.to(senderId.toString()).emit('listUpdate', {
+        roomId,
+        lastMsg: messageData.text,
+        updatedAt: new Date(),
+      });
+      io.to(receiverId.toString()).emit('listUpdate', {
+        roomId,
+        lastMsg: messageData.text,
+        updatedAt: new Date()
+      });
+
     }
     catch (error) {
       console.log(error);

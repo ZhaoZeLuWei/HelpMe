@@ -14,7 +14,7 @@ import {
   IonSearchbar,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
-import { ActivatedRoute, Router } from '@angular/router'; // 添加 ActivatedRoute 和 Router 导入
+import { ActivatedRoute, Router } from '@angular/router';
 
 // 引入搜索组件 (用于显示搜索结果)
 import {
@@ -25,6 +25,8 @@ import {
 // 引入展示组件
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { SearchStateService } from '../../services/search-state.service';
+import { LanguageService } from '../../services/language.service';
+
 @Component({
   selector: 'app-tab2',
   templateUrl: 'tab2.page.html',
@@ -45,6 +47,10 @@ export class Tab2Page implements OnInit, AfterViewInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private searchState = inject(SearchStateService);
+  private langService = inject(LanguageService);
+
+  // 翻译对象
+  t = this.langService.getTranslations('zh').tab2;
 
   // 数据容器
   eventsData = signal<EventCardData[]>([]);
@@ -55,9 +61,13 @@ export class Tab2Page implements OnInit, AfterViewInit {
   // 拿到搜索框实例
   @ViewChild('searchBar') searchBar!: IonSearchbar;
 
-  //constructor(private route: ActivatedRoute) {}
+  ngOnInit() {
+    // 监听语言变化
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).tab2;
+    });
 
-  ngOnInit() {    // 统一订阅：关键词变化 or 聚焦标志变化都走这里
+    // 统一订阅：关键词变化 or 聚焦标志变化都走这里
     // 接收路由参数
     this.route.queryParams.subscribe(params => {
       this.currentType = params['type'] || null;
@@ -66,7 +76,7 @@ export class Tab2Page implements OnInit, AfterViewInit {
       // 只在第一次或者关键词变化时加载数据
       const currentKeyword = this.route.snapshot.queryParams['search'] || '';
       if (keyword !== currentKeyword || !this.eventsData().length) {
-        this.loadEvents(keyword);          // 把关键词传进去
+        this.loadEvents(keyword);
       }
 
       // 聚焦逻辑（可选）
@@ -80,6 +90,25 @@ export class Tab2Page implements OnInit, AfterViewInit {
   ionViewWillEnter() {
     this.loadEvents();
   }
+  filterByType(type: 'request' | 'help' | null) {
+  if (this.currentType === type) {
+    // 再次点击相同按钮，取消筛选
+    this.currentType = null;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { type: null },
+      queryParamsHandling: 'merge'
+    });
+  } else {
+    this.currentType = type;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { type: type },
+      queryParamsHandling: 'merge'
+    });
+  }
+  this.loadEvents();
+}
 
   ngAfterViewInit() {
     // 如果 URL 带 focusSearch=true，则自动聚焦搜索框
@@ -92,9 +121,8 @@ export class Tab2Page implements OnInit, AfterViewInit {
 
   /* 统一加载：根据关键词和分类决定接口 */
   private loadEvents(keyword?: string, skipUpdate?: boolean) {
-    // 直接从当前路由获取参数，而不是使用保存的 this.currentType
     const currentParams = this.route.snapshot.queryParams;
-    const realType = currentParams['type'] || null;
+    const realType = this.currentType || currentParams['type'] || null;
 
     // 构建查询参数
     const params = new URLSearchParams();
@@ -113,11 +141,11 @@ export class Tab2Page implements OnInit, AfterViewInit {
       .then(list => {
         const transformed = list.map((item: any) => ({
           id: String(item.id),
-          creatorId: Number(item.creatorId), // 新增
-          cardImage: item.cardImage ,
+          creatorId: Number(item.creatorId),
+          cardImage: item.cardImage,
           title: item.title,
           icon: item.icon || 'navigate-outline',
-          distance: item.distance || '未知距离',
+          distance: item.distance || this.t.unknownDistance,
           name: item.name,
           address: item.address,
           demand: item.demand,
@@ -126,9 +154,18 @@ export class Tab2Page implements OnInit, AfterViewInit {
           avatar: item.avatar,
         }));
 
-        this.eventsData.set(transformed);   // signal 自动触发视图更新
+        this.eventsData.set(transformed);
       })
-      .catch(err => console.error('Tab2 加载失败', err));
+      .catch(err => console.error(this.t.loadFailed, err));
+  }
+  onTypeChange(type: 'request' | 'help' | null) {
+    this.currentType = type;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { type: type },
+      queryParamsHandling: 'merge'
+    });
+    this.loadEvents();
   }
   /* 跳转到搜索页面 */
   navigateToSearch() {

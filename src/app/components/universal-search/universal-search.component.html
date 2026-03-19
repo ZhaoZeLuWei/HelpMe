@@ -8,7 +8,7 @@
         #searchBar
         class="search-bar-custom"
         [animated]="true"
-        placeholder="输入需求描述..."
+        [placeholder]="t.placeholder"
         show-clear-button="true"
         [formControl]="searchControl"
         (ionClear)="resetFilters()"> <!-- 点击小X时自动重置 -->
@@ -19,30 +19,51 @@
         <ion-icon slot="icon-only" name="search"></ion-icon>
       </ion-button>
     </div>
+    <!-- ===== 2. 分类标签按钮 ===== -->
+    <ion-row class="category-row">
+  <ion-col>
+    <ion-button 
+      expand="block" 
+      [fill]="currentType === 'request' ? 'solid' : 'outline'"
+      color="primary"
+      (click)="filterByType('request')">
+      求助
+    </ion-button>
+  </ion-col>
+  <ion-col>
+    <ion-button 
+      expand="block" 
+      [fill]="currentType === 'help' ? 'solid' : 'outline'"
+      color="primary"
+      (click)="filterByType('help')">
+      帮助
+    </ion-button>
+  </ion-col>
+    </ion-row>
 
-    <!-- ===== 2. 筛选按钮行 ===== -->
+    <!-- ===== 3. 筛选按钮行 ===== -->
     <ion-row class="filter-row">
       <ion-col>
         <ion-button expand="block" fill="clear" size="small" color="dark" (click)="setModal('price', true)">
           <ion-icon slot="start" name="pricetag"></ion-icon>
-          价格区间
+          {{ t.priceRange }}
         </ion-button>
       </ion-col>
       <ion-col>
         <ion-button expand="block" fill="clear" size="small" color="dark" (click)="setModal('location', true)">
           <ion-icon slot="start" name="location"></ion-icon>
-          地点筛选
+          {{ t.locationFilter }}
         </ion-button>
       </ion-col>
       <ion-col>
         <ion-button expand="block" fill="clear" size="small" color="dark" (click)="resetFilters()">
           <ion-icon slot="start" name="funnel"></ion-icon>
-          重置
+          {{ t.reset }}
         </ion-button>
       </ion-col>
     </ion-row>
 
-    <!-- ===== 3. 列表展示区 (动态模板) ===== -->
+    <!-- ===== 4. 列表展示区 (动态模板) ===== -->
 
     <ion-grid class="event-list-container">
       <ion-row>
@@ -67,7 +88,7 @@
           <ion-col size="12">
             <div class="empty-state">
               <ion-icon name="file-tray" size="large" color="medium"></ion-icon>
-              <p>暂无符合条件的需求</p>
+              <p>{{ t.noResults }}</p>
             </div>
           </ion-col>
         }
@@ -81,20 +102,20 @@
       <ng-template>
         <ion-header>
           <ion-toolbar>
-            <ion-title>价格筛选</ion-title>
+            <ion-title>{{ t.priceFilterTitle }}</ion-title>
             <ion-buttons slot="end">
-              <ion-button (click)="setModal('price', false)">关闭</ion-button>
+              <ion-button (click)="setModal('price', false)">{{ t.close }}</ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
           <div formGroupName="priceRange">
             <ion-item>
-              <ion-label>最低: {{ filterForm.get('priceRange')?.get('min')?.value }}</ion-label>
+              <ion-label>{{ t.minPrice }}: {{ filterForm.get('priceRange')?.get('min')?.value }}</ion-label>
               <ion-range formControlName="min" [min]="0" [max]="500" [snaps]="true" color="secondary"></ion-range>
             </ion-item>
             <ion-item>
-              <ion-label>最高: {{ filterForm.get('priceRange')?.get('max')?.value }}</ion-label>
+              <ion-label>{{ t.maxPrice }}: {{ filterForm.get('priceRange')?.get('max')?.value }}</ion-label>
               <ion-range formControlName="max" [min]="0" [max]="1000" [snaps]="true" color="secondary"></ion-range>
             </ion-item>
           </div>
@@ -107,17 +128,17 @@
       <ng-template>
         <ion-header>
           <ion-toolbar>
-            <ion-title>输入地点关键词</ion-title>
+            <ion-title>{{ t.locationFilterTitle }}</ion-title>
             <ion-buttons slot="end">
-              <ion-button (click)="setModal('location', false)">关闭</ion-button>
+              <ion-button (click)="setModal('location', false)">{{ t.close }}</ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
         <ion-content>
           <ion-list>
             <ion-item>
-              <ion-label position="stacked">地点关键词 (匹配地址)</ion-label>
-              <ion-input type="text" [formControlName]="'location'" placeholder="例如: 广科, 001..."></ion-input>
+              <ion-label position="stacked">{{ t.locationLabel }}</ion-label>
+              <ion-input type="text" [formControlName]="'location'" [placeholder]="t.locationPlaceholder"></ion-input>
             </ion-item>
           </ion-list>
         </ion-content>
