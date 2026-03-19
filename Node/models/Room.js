@@ -30,6 +30,12 @@ const RoomSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  // 每个用户的未读消息数
+  unreadCount: {
+    type: Map,
+    of: Number,
+    default: {}  // 初始化为空对象
   }
 });
 

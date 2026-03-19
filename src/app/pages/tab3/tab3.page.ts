@@ -1,5 +1,6 @@
 import {Component,OnInit, inject} from '@angular/core';
 import { AuthService } from "../../services/auth.service";
+import {io} from 'socket.io-client';
 //Standalone need to import specific component tag
 import {
   IonContent,
@@ -42,6 +43,8 @@ export class Tab3Page implements OnInit {
   private toastCtrl = inject(ToastController);
 
   //variables
+  socket: any;
+  serverOffset = 0;
   getUser: any;
   showChat: boolean | undefined;
   systemRoom : any = null;
@@ -51,6 +54,16 @@ export class Tab3Page implements OnInit {
   ngOnInit() {
     this.showChat = false;
     console.log(this.getUser);
+
+    // Init Connection
+    //用户独享socket 房间 ，用于实时更新聊天列表 ！！！（重要突破）
+    this.socket = io('http://localhost:3000', {
+      auth: {
+        token: this.auth.token,
+        serverOffset: this.serverOffset
+      }
+    });
+
   }
 
   ionViewWillEnter() {
@@ -61,9 +74,20 @@ export class Tab3Page implements OnInit {
 
     if(this.getUser){
       //init system room
-      const sysRoom = `system_${this.getUser.UserId}`;
+      const sysRoom = `system_${this.getUser.UserId ?? this.getUser.UserId}`;
       this.initSystemRoom(sysRoom);
 
+      this.socket.emit('joinRoom', null);
+      this.socket.off('listUpdate');
+
+      //start listen list update from socket
+      //重要突破 使用socket 在这里监听每一次消息变化情况！！（重要）
+      this.socket.on ('listUpdate', (data:any) => {
+        console.log("new chat list update!" , data);
+        if (this.getUser?.UserId) {
+          this.loadUserRooms(this.getUser.UserId);
+        }
+      })
       //get all rooms with the target user
       this.loadUserRooms(this.getUser.UserId);
       console.log(this.chatRooms);
@@ -74,8 +98,8 @@ export class Tab3Page implements OnInit {
   //line 67 68 use api to get all list?
   async loadUserRooms(userId: number) {
     try {
-      const query = new URLSearchParams({ userId: String(userId) }).toString();
-      const resp = await fetch(`http://localhost:3000/api/rooms/list?${query}`);
+      const query = new URLSearchParams({ userId: String(userId) }).toString(); // query = "userId=100002"
+      const resp = await fetch(`http://localhost:3000/api/rooms/list?${query}`); // 正确拼接 URL
       const data = await resp.json();
       console.log(data);
 
@@ -83,20 +107,34 @@ export class Tab3Page implements OnInit {
         this.chatRooms = data.data.rooms.map((room: any) => {
           let name = '';
           let avatar = '';
+          let eventName = '';
+          let otherChatName = '';
 
-          if (room.type === 'system' || room._id.startsWith('system_')) {
+          if (
+            room.type === 'system' ||
+            (room._id && room._id.startsWith('system_'))
+          ){
             name = '系统通知';
             avatar = 'assets/icon/notification.svg';
           } else {
-            name = `用户 ${room.partnerId}`; // 或者后续调用用户接口获取真实昵称
-            avatar = 'assets/icon/user.svg';
+            eventName = room.event.name;
+            if(room.userA.id !== this.getUser.UserId) {
+              otherChatName = room.userA.name;
+              avatar = room.userA.avatar;
+            }else if (room.userB.id !== this.getUser.UserId) {
+              otherChatName = room.userB.name;
+              avatar = room.userB.avatar;
+            }
+            name = otherChatName + " " + eventName;
           }
 
+          const unreadCount = room.unreadCount?.[this.getUser.UserId] || 0;
+
           return {
-            roomId: room._id,
+            roomId: room.roomId,
             name,
-            lastMsg: room.lastMsg || '暂无消息', // 注意这里是 lastMsg，不是 lastMessage
-            count: room.unreadCount || 0,
+            lastMsg: room.lastMsg || '暂无消息',
+            count: unreadCount,
             avatar,
             type: room.type || 'user',
             updatedAt: room.updatedAt
@@ -105,11 +143,17 @@ export class Tab3Page implements OnInit {
 
         // 可选：按更新时间排序
         this.chatRooms.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        console.log(this.chatRooms);
         this.showChat = true;
       }
     } catch (err) {
       console.error('加载聊天房间失败', err);
     }
+  }
+
+  getAvatarUrl(path: string): string {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `http://localhost:3000${path}`;
   }
 
   //根据登陆用户信息来进入对应用户的通知聊天房间
@@ -152,8 +196,59 @@ export class Tab3Page implements OnInit {
 
   //go to the chat with router
   goChat(user: any) {
+    this.clearRoomUnread(user.roomId);
+    
     this.navCtrl.navigateForward(['/chat-detail', user.roomId], {
       state: { targetUser: user }
     });
+  }
+
+  formatChatTime(time: string | Date): string {
+    const now = new Date();
+    const target = new Date(time);
+
+    const diff = (now.getTime() - target.getTime()) / 1000;
+
+    if (diff < 60) return 'Just now';
+
+    const isToday = now.toDateString() === target.toDateString();
+
+    if (isToday) {
+      return target.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+
+    if (yesterday.toDateString() === target.toDateString()) {
+      return 'Yesterday ' + target.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    const isSameYear = now.getFullYear() === target.getFullYear();
+
+    if (isSameYear) {
+      return target.toLocaleDateString([], {
+        month: 'short',
+        day: 'numeric'
+      }) + ' ' + target.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    return target.toLocaleDateString();
+  }
+
+  private clearRoomUnread(roomId: string) {
+    const room = this.chatRooms.find(r => r.roomId === roomId);
+    if (room) {
+      room.count = 0; // 本地红点清零
+    }
   }
 }
