@@ -1,6 +1,6 @@
-import {Component, OnInit, inject} from '@angular/core';
-import { AuthService } from "../../services/auth.service";
-import {io} from 'socket.io-client';
+import { Component, OnInit, inject } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
+import { io } from 'socket.io-client';
 //Standalone need to import specific component tag
 import {
   IonContent,
@@ -13,10 +13,10 @@ import {
   IonBadge,
   IonNote,
   IonLabel,
-  } from '@ionic/angular/standalone';
-import {Router} from '@angular/router';
-import {NavController, ToastController} from '@ionic/angular';
-import {LanguageService} from '../../services/language.service';
+} from '@ionic/angular/standalone';
+import { Router } from '@angular/router';
+import { NavController, ToastController } from '@ionic/angular';
+import { LanguageService } from '../../services/language.service';
 
 @Component({
   selector: 'app-tab3',
@@ -48,7 +48,7 @@ export class Tab3Page implements OnInit {
   serverOffset = 0;
   getUser: any;
   showChat: boolean | undefined;
-  systemRoom : any = null;
+  systemRoom: any = null;
   //init chat rooms (nothing)
   chatRooms: any[] = [];
 
@@ -64,19 +64,18 @@ export class Tab3Page implements OnInit {
     this.socket = io('http://localhost:3000', {
       auth: {
         token: this.auth.token,
-        serverOffset: this.serverOffset
-      }
+        serverOffset: this.serverOffset,
+      },
     });
-
   }
 
   ionViewWillEnter() {
     //init each time
-    this.showChat = false;// web page HTML show check
-    this.getUser = this.auth.currentUser;// user get check
+    this.showChat = false; // web page HTML show check
+    this.getUser = this.auth.currentUser; // user get check
     console.log(this.getUser);
 
-    if(this.getUser){
+    if (this.getUser) {
       //init system room
       const sysRoom = `system_${this.getUser.UserId ?? this.getUser.UserId}`;
       this.initSystemRoom(sysRoom);
@@ -86,17 +85,17 @@ export class Tab3Page implements OnInit {
 
       //start listen list update from socket
       //重要突破 使用socket 在这里监听每一次消息变化情况！！（重要）
-      this.socket.on ('listUpdate', (data:any) => {
-        console.log("new chat list update!" , data);
+      this.socket.on('listUpdate', (data: any) => {
+        console.log('new chat list update!', data);
         if (this.getUser?.UserId) {
           this.loadUserRooms(this.getUser.UserId);
         }
-      })
+      });
       //get all rooms with the target user
       this.loadUserRooms(this.getUser.UserId);
       console.log(this.chatRooms);
     }
-    this.checkAuth();// do checking
+    this.checkAuth(); // do checking
   }
 
   //line 67 68 use api to get all list?
@@ -111,31 +110,27 @@ export class Tab3Page implements OnInit {
         this.chatRooms = data.data.rooms.map((room: any) => {
           let name = '';
           let avatar = '';
-          let eventName = '';
-          let otherChatName = '';
 
-          if (room.type === 'system' || room._id.startsWith('system_')) {
-            name = this.t.systemNotification;
-            avatar = 'assets/icon/notification.svg';
-          } else {
-            name = `${this.t.unknownUser} ${room.partnerId}`; // 或者后续调用用户接口获取真实昵称
-            avatar = 'assets/icon/user.svg';
           if (
             room.type === 'system' ||
             (room._id && room._id.startsWith('system_'))
-          ){
-            name = '系统通知';
+          ) {
+            name = this.t.systemNotification;
             avatar = 'assets/icon/notification.svg';
           } else {
-            eventName = room.event.name;
-            if(room.userA.id !== this.getUser.UserId) {
-              otherChatName = room.userA.name;
-              avatar = room.userA.avatar;
-            }else if (room.userB.id !== this.getUser.UserId) {
-              otherChatName = room.userB.name;
-              avatar = room.userB.avatar;
+            const eventName = room.event?.name || '';
+            let otherChatName = `${this.t.unknownUser} ${room.partnerId ?? ''}`;
+            avatar = 'assets/icon/user.svg';
+
+            if (room.userA?.id !== this.getUser.UserId) {
+              otherChatName = room.userA?.name || otherChatName;
+              avatar = room.userA?.avatar || avatar;
+            } else if (room.userB?.id !== this.getUser.UserId) {
+              otherChatName = room.userB?.name || otherChatName;
+              avatar = room.userB?.avatar || avatar;
             }
-            name = otherChatName + " " + eventName;
+
+            name = `${otherChatName}${eventName ? ` ${eventName}` : ''}`;
           }
 
           const unreadCount = room.unreadCount?.[this.getUser.UserId] || 0;
@@ -147,12 +142,15 @@ export class Tab3Page implements OnInit {
             count: unreadCount,
             avatar,
             type: room.type || 'user',
-            updatedAt: room.updatedAt
+            updatedAt: room.updatedAt,
           };
         });
 
         // 可选：按更新时间排序
-        this.chatRooms.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        this.chatRooms.sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        );
         console.log(this.chatRooms);
         this.showChat = true;
       }
@@ -167,27 +165,27 @@ export class Tab3Page implements OnInit {
   }
 
   //根据登陆用户信息来进入对应用户的通知聊天房间
-  private initSystemRoom(sysRoom:any) {
+  private initSystemRoom(sysRoom: any) {
     this.systemRoom = {
       roomId: sysRoom, // 现在这里不会是 undefined 了
       name: this.t.systemNotification,
       avatar: 'assets/icon/notification.svg',
       lastMsg: this.t.noNewNotification,
       count: 0,
-      type: 'system'
-    }
+      type: 'system',
+    };
   }
 
-  private async checkAuth(){
+  private async checkAuth() {
     const token = this.auth.token;
-    if(!token || !this.getUser){
-      console.log("Please log in or Register");
+    if (!token || !this.getUser) {
+      console.log('Please log in or Register');
       //简单粗暴的跳转到了登陆页 需要优化login page 1-23
       //wait to show toast at top and let user read the html contents then do navigation
       await this.loginToast();
-      await new Promise(resolve => setTimeout(resolve, 200));
-      this.navCtrl.navigateRoot('/tabs/tab4', {animated: true});
-    }  else {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      this.navCtrl.navigateRoot('/tabs/tab4', { animated: true });
+    } else {
       this.showChat = true;
     }
   }
@@ -207,9 +205,9 @@ export class Tab3Page implements OnInit {
   //go to the chat with router
   goChat(user: any) {
     this.clearRoomUnread(user.roomId);
-    
+
     this.navCtrl.navigateForward(['/chat-detail', user.roomId], {
-      state: { targetUser: user }
+      state: { targetUser: user },
     });
   }
 
@@ -226,7 +224,7 @@ export class Tab3Page implements OnInit {
     if (isToday) {
       return target.toLocaleTimeString([], {
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     }
 
@@ -234,29 +232,36 @@ export class Tab3Page implements OnInit {
     yesterday.setDate(now.getDate() - 1);
 
     if (yesterday.toDateString() === target.toDateString()) {
-      return 'Yesterday ' + target.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return (
+        'Yesterday ' +
+        target.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
     }
 
     const isSameYear = now.getFullYear() === target.getFullYear();
 
     if (isSameYear) {
-      return target.toLocaleDateString([], {
-        month: 'short',
-        day: 'numeric'
-      }) + ' ' + target.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      return (
+        target.toLocaleDateString([], {
+          month: 'short',
+          day: 'numeric',
+        }) +
+        ' ' +
+        target.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
     }
 
     return target.toLocaleDateString();
   }
 
   private clearRoomUnread(roomId: string) {
-    const room = this.chatRooms.find(r => r.roomId === roomId);
+    const room = this.chatRooms.find((r) => r.roomId === roomId);
     if (room) {
       room.count = 0; // 本地红点清零
     }
