@@ -17,7 +17,7 @@ import { LanguageService } from '../../services/language.service';
 // 卡片数据接口
 interface CardItem {
   id: string;
-  creatorId: number;      // 新增
+  creatorId: number; // 新增
   cardImage: string;
   icon: string;
   distance: string;
@@ -26,7 +26,7 @@ interface CardItem {
   demand: string;
   price: string;
   avatar: string;
-  createTime: string;// 新增
+  createTime: string; // 新增
   title: string; // 新增
 }
 
@@ -53,15 +53,13 @@ export class Tab1Page implements OnInit {
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
 
-   // 页面翻译对象
+  // 页面翻译对象
   t = this.langService.getTranslations('zh').tab1;
 
   // 按钮显示的文字（从t对象取）
   get currentLangBtnText() {
     return this.t.btnText;
   }
-
-
 
   // 【修复2】在类中定义了缺失的 eventData 属性
   // 初始化为空数组，类型为 CardItem[]
@@ -72,7 +70,7 @@ export class Tab1Page implements OnInit {
   showLangConfirmModal = false;
 
   //constructor(private http: HttpClient, private router: Router) {}
-ngOnInit() {
+  ngOnInit() {
     // --- 保留你原有的数据加载逻辑 ---
     this.getCardData('request').subscribe((data) => {
       this.requestList = data;
@@ -88,7 +86,6 @@ ngOnInit() {
       this.t = this.langService.getTranslations(lang).tab1;
     });
   }
-
 
   // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
   ionViewWillEnter() {
@@ -160,13 +157,13 @@ ngOnInit() {
   //去到搜索页面,并且搜索框自动聚焦
   goToSearchPage() {
     this.router.navigate(['/search'], {
-      queryParams: { returnTo: 'tabs/tab2' }   // 统一回到 Tab2
+      queryParams: { returnTo: 'tabs/tab2' }, // 统一回到 Tab2
     });
   }
   //只去到搜索页面
   goToTab2Search(type?: 'request' | 'help') {
     this.router.navigate(['/tabs/tab2'], {
-      queryParams: { type: type }
+      queryParams: { type: type },
     });
   }
 
@@ -191,7 +188,10 @@ ngOnInit() {
     console.log('点击了小卡片：', item.name, 'ID：', item.id);
     // 跳转到详情页面，传递完整的item对象
     this.router.navigate(['/particular'], {
-      queryParams: { eventId: item.id }
+      queryParams: {
+        eventId: item.id,
+        returnTo: '/tabs/tab1',
+      },
     });
   }
 

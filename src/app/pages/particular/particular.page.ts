@@ -1,9 +1,25 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
-  IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons,
-  IonFooter, IonRow, IonCol, IonBadge, IonModal, IonList, IonInput,
-  IonTextarea, IonSelect, IonSelectOption, IonLabel, IonItem, IonTitle
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonIcon,
+  IonButtons,
+  IonFooter,
+  IonRow,
+  IonCol,
+  IonBadge,
+  IonModal,
+  IonList,
+  IonInput,
+  IonTextarea,
+  IonSelect,
+  IonSelectOption,
+  IonLabel,
+  IonItem,
+  IonTitle,
 } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
@@ -11,8 +27,13 @@ import { EventCardData } from '../../components/show-event/show-event.component'
 import { ModalController } from '@ionic/angular/standalone';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
-import { NavController } from "@ionic/angular";
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NavController } from '@ionic/angular';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 
 @Component({
   selector: 'app-particular',
@@ -78,15 +99,16 @@ export class ParticularPage implements OnInit {
     serviceRanking: 0,
     isVerified: '未认证',
     stats: { favorites: 0, views: 0, follows: 0 },
-    CreateTime: '' // 注册时间
+    CreateTime: '', // 注册时间
   };
 
-
   event: EventCardData | null = null;
+  private returnToPath = '/tabs/tab1';
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       const eventId = params['eventId'];
+      this.returnToPath = params['returnTo'] || '/tabs/tab1';
       if (eventId) {
         // 根据eventId从后端获取完整数据
         this.loadEventDetail(eventId);
@@ -94,7 +116,7 @@ export class ParticularPage implements OnInit {
     });
   }
 
-// 新增方法：根据ID获取事件详情
+  // 新增方法：根据ID获取事件详情
   async loadEventDetail(eventId: string) {
     try {
       const resp = await fetch(`${this.apiBase}/events/${eventId}`);
@@ -125,7 +147,7 @@ export class ParticularPage implements OnInit {
             name: '',
             avatar: '',
             icon: 'navigate-outline',
-            distance: '距500m'
+            distance: '距500m',
           };
           // 加载发布者信息
           if (this.event?.creatorId) {
@@ -140,8 +162,8 @@ export class ParticularPage implements OnInit {
     }
   }
 
-// 根据 ID 加载活动详情
-// 根据 ID 加载活动详情
+  // 根据 ID 加载活动详情
+  // 根据 ID 加载活动详情
   async loadEventById(eventId: number): Promise<void> {
     try {
       const resp = await fetch(`${this.apiBase}/events/${eventId}`);
@@ -172,7 +194,7 @@ export class ParticularPage implements OnInit {
             name: '',
             avatar: '',
             icon: 'navigate-outline',
-            distance: '距500m'
+            distance: '距500m',
           };
 
           this.event = eventData;
@@ -236,7 +258,7 @@ export class ParticularPage implements OnInit {
     }
   }
 
-// 新增：根据 providerRole 返回对应颜色
+  // 新增：根据 providerRole 返回对应颜色
   getServiceRoleColor(providerRole: number): string {
     switch (providerRole) {
       case 1:
@@ -247,29 +269,25 @@ export class ParticularPage implements OnInit {
         return 'medium'; // 灰色
     }
   }
-// 新增：跳转到用户详情页面
+  // 新增：跳转到用户详情页面
   goToUserParticular() {
-  if (this.isCurrentUserCreator) {
-    // 如果是自己的活动，直接跳转到个人中心
-    this.router.navigate(['/tabs/tab4']);
-  } else if (this.userInfo.name) {
-    // 如果是其他用户的活动，跳转到用户详情页
-    this.router.navigate(['/user-particular'], {
-      queryParams: {
-        name: this.userInfo.name,
-        userId: this.event?.creatorId
-      }
-    });
+    if (this.isCurrentUserCreator) {
+      // 如果是自己的活动，直接跳转到个人中心
+      this.router.navigate(['/tabs/tab4']);
+    } else if (this.userInfo.name) {
+      // 如果是其他用户的活动，跳转到用户详情页
+      this.router.navigate(['/user-particular'], {
+        queryParams: {
+          name: this.userInfo.name,
+          userId: this.event?.creatorId,
+        },
+      });
+    }
   }
-}
   // 返回上一页
   goBack() {
-    // 尝试返回上一页，如果没有历史则回首页
-    if (window.history.length > 1) {
-      this.location.back();
-    } else {
-      this.router.navigate(['/tabs/tab1']);
-    }
+    // 优先回到来源主页面，避免历史栈把用户带回聊天室
+    this.router.navigateByUrl(this.returnToPath, { replaceUrl: true });
   }
   goHome() {
     this.router.navigate(['/tabs/tab1']);
@@ -282,7 +300,7 @@ export class ParticularPage implements OnInit {
       console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage
+        component: LoginPage,
       });
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;
@@ -302,7 +320,7 @@ export class ParticularPage implements OnInit {
       console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage
+        component: LoginPage,
       });
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;
@@ -319,7 +337,10 @@ export class ParticularPage implements OnInit {
   checkUserIsCreator() {
     const currentUserId = this.authService.currentUserId;
     const creatorId = this.event?.creatorId;
-    this.isCurrentUserCreator = currentUserId !== null && creatorId !== null && currentUserId === creatorId;
+    this.isCurrentUserCreator =
+      currentUserId !== null &&
+      creatorId !== null &&
+      currentUserId === creatorId;
   }
 
   async onChat() {
@@ -328,7 +349,7 @@ export class ParticularPage implements OnInit {
       console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage
+        component: LoginPage,
       });
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;
@@ -352,7 +373,7 @@ export class ParticularPage implements OnInit {
     };
     const roomId = `${chatData.eventId}_${chatData.creatorId}_${chatData.partnerId}`;
     this.navCtrl.navigateForward(`/chat-detail/${roomId}`, {
-      state: { roomId: roomId }
+      state: { roomId: roomId },
     });
   }
 
@@ -396,7 +417,7 @@ export class ParticularPage implements OnInit {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.authService.token}`
+          Authorization: `Bearer ${this.authService.token}`,
         },
         body: JSON.stringify({
           EventTitle: formValue.EventTitle,
@@ -405,7 +426,7 @@ export class ParticularPage implements OnInit {
           Location: formValue.Location,
           Price: formValue.Price,
           EventDetails: formValue.EventDetails,
-        })
+        }),
       });
 
       const data = await resp.json();
