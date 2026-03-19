@@ -93,7 +93,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     }
     this.loadHistory(this.roomId);
 
-    // Init Connection (Without JSON Web Token !!!)
+    // Init Connection
     this.socket = io('http://localhost:3000', {
       auth: {
         token: this.auth.token,
@@ -119,6 +119,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     // step 2: receive msg from node and show it
     this.socket.on('chat message', (msg: ChatModel, offset?: number) => {
       this.addMessage(msg);
+
       if (offset) {
         this.serverOffset = offset;
         this.socket.auth.serverOffset = offset;

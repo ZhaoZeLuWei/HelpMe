@@ -42,9 +42,18 @@
 
 /* 发布者信息 */
 .publisher-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
   background-color: #f5f5f5;
   padding: 16px;
   border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
 
   h3 {
     margin: 0 0 8px 0;
@@ -56,6 +65,12 @@
     margin: 0;
     font-size: 14px;
     color: #666;
+  }
+
+  .follow-button-container {
+    margin-left: auto;
+    flex-shrink: 0;
+    align-self: flex-start;
   }
 }
 
@@ -129,14 +144,6 @@
     margin-bottom: 20px;
   }
 }
-.publisher-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background-color: #f5f5f5;
-  padding: 16px;
-  border-radius: 8px;
-}
 
 .avatar-container {
   flex-shrink: 0;
@@ -155,34 +162,26 @@
   font-size: 18px;
   font-weight: 600;
 }
+
 .user-name-row {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  white-space: nowrap; // 关键：不换行
+  white-space: nowrap;
 }
 
 .service-badge {
   font-size: 12px;
   padding: 2px 8px;
   border-radius: 12px;
-  white-space: nowrap; // 确保文本不换行
+  white-space: nowrap;
 }
 
-// 如果 h3 换行，可以添加：
 .user-name-row h3 {
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
-}
-.publisher-info {
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
 }

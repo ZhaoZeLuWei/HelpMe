@@ -63,7 +63,11 @@ export class UniversalSearchComponent implements OnInit {
   dataSource = input<EventCardData[]>([]);
   detailRoute = input<string>('/');
   @Output() searchEvent = new EventEmitter<string>();
+  // 在类中添加
+  currentType: 'request' | 'help' | null = null;
 
+// 添加 Output 事件，通知父组件类型变化
+  @Output() typeChange = new EventEmitter<'request' | 'help' | null>();
   // --- 状态管理 ---
   modals = signal({
     price: false,
@@ -123,6 +127,15 @@ export class UniversalSearchComponent implements OnInit {
     });
   });
 
+  filterByType(type: 'request' | 'help') {
+    if (this.currentType === type) {
+      this.currentType = null;
+    } else {
+      this.currentType = type;
+    }
+    this.typeChange.emit(this.currentType);
+  }
+
   // --- 构造函数 ---
   constructor() {
     addIcons({ pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search });
@@ -151,6 +164,15 @@ export class UniversalSearchComponent implements OnInit {
         this.confirmedSearchText.set('');
       }
     });
+    // 添加 type 参数订阅
+  this.route.queryParams.subscribe(params => {
+    const type = params['type'];
+    if (type === 'request' || type === 'help') {
+      this.currentType = type;
+    } else {
+      this.currentType = null;
+    }
+  });
   }
 
 

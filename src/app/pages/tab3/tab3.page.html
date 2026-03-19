@@ -27,23 +27,32 @@
           </div>
           <p>Here is the last message send</p>
         </ion-label>
-
-        <ion-badge slot="end" color="danger">0</ion-badge>
+        @if (systemRoom.count > 0) {
+          <ion-badge slot="end" color="danger">
+            {{systemRoom.count}}
+          </ion-badge>
+        }
       </ion-item>
 <!-- 这里通过读取已存储的聊天列表来创建聊天（注：目前还没有更新ts中通过api获取chatList）-->
       @for (user of chatRooms; track user.name) {
         <ion-item [button]="true" (click)="goChat(user)">
           <ion-avatar slot="start">
-            <img [src]="user.avatar" [alt]="user.name" />
+            <img [src]="getAvatarUrl(user.avatar)">
           </ion-avatar>
           <ion-label>
             <div class="chat-header">
               <h2>{{user.name}}</h2>
-              <ion-note color="medium">{{user.time}}</ion-note>
+              <ion-note color="medium">
+                {{ formatChatTime(user.updatedAt)}}
+              </ion-note>
             </div>
             <p>{{user.lastMsg}}</p>
           </ion-label>
-          <ion-badge slot="end" color="danger">{{user.count}}</ion-badge>
+          @if (user.count > 0) {
+            <ion-badge slot="end" color="danger">
+              {{user.count}}
+            </ion-badge>
+          }
         </ion-item>
       }
     </ion-list>
