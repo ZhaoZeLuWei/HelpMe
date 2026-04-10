@@ -14,6 +14,10 @@ import {
 } from '@angular/forms';
 import type { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
+import {
+  LocationPickerComponent,
+  type PickedLocation,
+} from '../../components/location-picker/location-picker.component';
 
 import {
   documentText,
@@ -21,6 +25,7 @@ import {
   checkmarkDone,
   star,
   heartOutline,
+  handLeft,
   heart,
   eye,
   personCircle,
@@ -58,12 +63,15 @@ import {
   IonTextarea,
   IonSelect,
   IonSelectOption,
+  IonNote,
   ModalController,
 } from '@ionic/angular/standalone';
 
 import { ToastController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
+import { LanguageService } from '../../services/language.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-tab4',
@@ -94,6 +102,7 @@ import { environment } from '../../../environments/environment';
     IonTextarea,
     IonSelect,
     IonSelectOption,
+    IonNote,
     ReactiveFormsModule,
   ],
 })
@@ -104,6 +113,8 @@ export class Tab4Page implements OnDestroy {
   private readonly toastController = inject(ToastController);
   private readonly modalController = inject(ModalController);
   private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly langService = inject(LanguageService);
 
   @ViewChild('editFileInput')
   editFileInput!: ElementRef<HTMLInputElement>;
@@ -113,6 +124,9 @@ export class Tab4Page implements OnDestroy {
 
   isLoggedIn = false;
   private readonly _sub: Subscription;
+
+  // 翻译对象
+  t = this.langService.getTranslations('zh').tab4;
 
   // 用户信息编辑相关
   isEditProfileModalOpen = false;
@@ -138,6 +152,9 @@ export class Tab4Page implements OnDestroy {
       ],
     ],
     Location: ['', Validators.required],
+    LocationPlaceId: [''],
+    LocationLng: [null],
+    LocationLat: [null],
     BirthDate: ['', Validators.required],
     Introduction: ['', Validators.maxLength(200)],
   });
@@ -162,14 +179,42 @@ export class Tab4Page implements OnDestroy {
     EventType: [0, Validators.required],
     EventCategory: ['', Validators.required],
     Location: ['', Validators.required],
+    LocationPlaceId: [''],
+    LocationLng: [null],
+    LocationLat: [null],
     Price: [0, [Validators.min(0), Validators.max(1_000_000)]],
     EventDetails: ['', Validators.required],
   });
 
+  async openLocationPicker(formType: 'eventEdit' | 'profileEdit') {
+    const form =
+      formType === 'eventEdit' ? this.editForm : this.editProfileForm;
+
+    const modal = await this.modalController.create({
+      component: LocationPickerComponent,
+      componentProps: {
+        selectedPlaceId: form.get('LocationPlaceId')?.value || '',
+        selectedText: form.get('Location')?.value || '',
+      },
+    });
+
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+    if (role !== 'confirm' || !data?.selected) return;
+
+    const picked: PickedLocation = data.selected;
+    form.patchValue({
+      Location: picked.text,
+      LocationPlaceId: picked.placeId,
+      LocationLng: picked.lng,
+      LocationLat: picked.lat,
+    });
+  }
+
   // 删除按钮配置
   alertButtons = [
     {
-      text: '取消',
+      text: this.t.cancel,
       role: 'cancel',
       handler: () => {
         this.isDeleteAlertOpen = false;
@@ -177,7 +222,7 @@ export class Tab4Page implements OnDestroy {
       },
     },
     {
-      text: '删除',
+      text: this.t.delete,
       role: 'destructive',
       handler: () => {
         if (this.deleteTargetId != null) {
@@ -203,6 +248,7 @@ export class Tab4Page implements OnDestroy {
       checkmarkDone,
       star,
       heartOutline,
+      handLeft,
       heart,
       eye,
       personCircle,
@@ -226,10 +272,56 @@ export class Tab4Page implements OnDestroy {
         this.resetUserInfo();
       }
     });
+
+    // 监听语言变化
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).tab4;
+      // 更新删除按钮文本
+      this.updateAlertButtons();
+    });
+  }
+
+  // 更新删除按钮配置
+  private updateAlertButtons() {
+    this.alertButtons = [
+      {
+        text: this.t.cancel,
+        role: 'cancel',
+        handler: () => {
+          this.isDeleteAlertOpen = false;
+          this.deleteTargetId = null;
+        },
+      },
+      {
+        text: this.t.delete,
+        role: 'destructive',
+        handler: () => {
+          if (this.deleteTargetId != null) {
+            void this.deleteTask(this.deleteTargetId);
+          }
+          this.isDeleteAlertOpen = false;
+          this.deleteTargetId = null;
+        },
+      },
+    ];
   }
 
   // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
   async ionViewWillEnter() {
+    // 监听查询参数
+    this.route.queryParams.subscribe((params: any) => {
+      if (params['edit'] === 'profile') {
+        this.openEditProfileModal();
+      }
+      // 新增：处理编辑事件参数
+      if (params['editEvent']) {
+        const eventId = Number(params['editEvent']);
+        if (!isNaN(eventId)) {
+          this.openEditModal(eventId);
+        }
+      }
+    });
+
     if (this.isLoggedIn) {
       await this.loadUserFromStorage();
     }
@@ -279,7 +371,7 @@ export class Tab4Page implements OnDestroy {
 
   async deleteTask(taskId: number) {
     if (!this.currentUserId) {
-      await this.presentDeleteToast('未登录，无法删除');
+      await this.presentDeleteToast(this.t.notLoggedIn);
       return;
     }
 
@@ -302,28 +394,28 @@ export class Tab4Page implements OnDestroy {
       if (!resp.ok) {
         this.tasks = snapshot;
 
-        const msg =
-          data?.error ||
-          data?.msg ||
-          (resp.status === 401
-            ? '未登录或登录已过期'
-            : `删除失败（${resp.status}）`);
+        if (resp.status === 401) {
+          await this.auth.handleAuthExpired();
+          return;
+        }
+
+        const msg = data?.error || data?.msg || `删除失败（${resp.status}）`;
         await this.presentDeleteToast(msg);
         return;
       }
 
       if (!data?.success) {
         this.tasks = snapshot;
-        await this.presentDeleteToast(data?.error || '删除失败');
+        await this.presentDeleteToast(data?.error || this.t.networkError);
         return;
       }
 
-      await this.presentDeleteToast('删除成功');
+      await this.presentDeleteToast(this.t.deleteSuccess);
     } catch (e) {
       console.error('deleteTask error', e);
 
       this.tasks = snapshot;
-      await this.presentDeleteToast('网络错误，稍后重试');
+      await this.presentDeleteToast(this.t.networkError);
     } finally {
       this.deletingIds.delete(taskId);
     }
@@ -370,12 +462,12 @@ export class Tab4Page implements OnDestroy {
   // 任务状态的UI显示
   getStatusText(status: string): string {
     const map: Record<string, string> = {
-      published: '已发布',
-      inProgress: '进行中',
-      completed: '已完成',
-      review: '待评价',
+      published: this.t.statusPublished,
+      inProgress: this.t.statusInProgress,
+      completed: this.t.statusCompleted,
+      review: this.t.statusPendingReview,
     };
-    return map[status] || '未知';
+    return map[status] || this.t.statusUnknown;
   }
 
   // 任务状态的颜色
@@ -391,9 +483,9 @@ export class Tab4Page implements OnDestroy {
 
   // 根据认证状态显示数据
   getVerificationColor(status: string): string {
-    if (status === '已认证') return 'success';
-    if (status === '被驳回') return 'danger';
-    if (status === '待审核') return 'warning';
+    if (status === this.t.verified) return 'success';
+    if (status === this.t.rejected) return 'danger';
+    if (status === this.t.pending) return 'warning';
     return 'medium';
   }
 
@@ -401,7 +493,7 @@ export class Tab4Page implements OnDestroy {
     this.auth.logout(); // 登出会触发状态变更
     this.toastController
       .create({
-        message: '已成功登出',
+        message: this.t.logoutSuccess,
         duration: 750,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -417,7 +509,7 @@ export class Tab4Page implements OnDestroy {
   private createDefaultUserInfo() {
     return {
       name: '',
-      isVerified: '未认证',
+      isVerified: this.t.notVerified,
       creditLevel: '',
       goodReviewRate: '',
       buyerRanking: 0,
@@ -425,6 +517,9 @@ export class Tab4Page implements OnDestroy {
       orderCount: 0,
       serviceRanking: 0,
       location: '',
+      locationPlaceId: '',
+      locationLng: null,
+      locationLat: null,
       avatar: '',
       introduction: '',
       realName: '',
@@ -446,6 +541,12 @@ export class Tab4Page implements OnDestroy {
   private updateUserFromData(data: any): void {
     this.userInfo.name = data.UserName || data.userName || '';
     this.userInfo.location = data.Location || data.location || '';
+    this.userInfo.locationPlaceId =
+      data.LocationPlaceId || data.locationPlaceId || '';
+    this.userInfo.locationLng =
+      data.LocationLng != null ? Number(data.LocationLng) : null;
+    this.userInfo.locationLat =
+      data.LocationLat != null ? Number(data.LocationLat) : null;
     this.userInfo.introduction = data.Introduction || data.introduction || '';
     this.userInfo.avatar = data.UserAvatar || data.userAvatar || '';
     this.userInfo.buyerRanking =
@@ -460,10 +561,10 @@ export class Tab4Page implements OnDestroy {
     this.userInfo.birthDate = data.BirthDate || data.birthDate || '';
 
     const vs = data.VerificationStatus ?? data.verificationStatus;
-    if (vs === 1) this.userInfo.isVerified = '已认证';
-    else if (vs === 2) this.userInfo.isVerified = '被驳回';
-    else if (vs === 0) this.userInfo.isVerified = '待审核';
-    else this.userInfo.isVerified = '未认证';
+    if (vs === 1) this.userInfo.isVerified = this.t.verified;
+    else if (vs === 2) this.userInfo.isVerified = this.t.rejected;
+    else if (vs === 0) this.userInfo.isVerified = this.t.pending;
+    else this.userInfo.isVerified = this.t.notVerified;
   }
 
   // 格式化评分显示
@@ -487,7 +588,12 @@ export class Tab4Page implements OnDestroy {
       if (id) {
         try {
           const resp = await fetch(`${this.API_BASE}/users/${id}/profile`);
-          if (resp.ok) {
+          if (!resp.ok) {
+            if (resp.status === 401) {
+              await this.auth.handleAuthExpired();
+              return;
+            }
+          } else {
             const data = await resp.json().catch(() => null);
             if (data?.success && data.user) {
               this.updateUserFromData(data.user);
@@ -515,7 +621,13 @@ export class Tab4Page implements OnDestroy {
   async loadUserEvents(userId: number): Promise<void> {
     try {
       const resp = await fetch(`${this.API_BASE}/users/${userId}/events`);
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        if (resp.status === 401) {
+          await this.auth.handleAuthExpired();
+          return;
+        }
+        return;
+      }
 
       const data = await resp.json().catch(() => null);
       if (!Array.isArray(data)) return;
@@ -530,6 +642,9 @@ export class Tab4Page implements OnDestroy {
         EventType: e.EventType ?? 0,
         EventCategory: e.EventCategory || '',
         Location: e.Location || '',
+        LocationPlaceId: e.LocationPlaceId || '',
+        LocationLng: e.LocationLng != null ? Number(e.LocationLng) : null,
+        LocationLat: e.LocationLat != null ? Number(e.LocationLat) : null,
         Price: e.Price ?? 0,
         EventDetails: e.EventDetails || '',
         Photos: e.Photos || null,
@@ -568,6 +683,11 @@ export class Tab4Page implements OnDestroy {
       EventType: source.EventType ?? 0,
       EventCategory: source.EventCategory || '',
       Location: source.Location || '',
+      LocationPlaceId: source.LocationPlaceId || '',
+      LocationLng:
+        source.LocationLng != null ? Number(source.LocationLng) : null,
+      LocationLat:
+        source.LocationLat != null ? Number(source.LocationLat) : null,
       Price: source.Price ?? 0,
       EventDetails: source.EventDetails || '',
     });
@@ -604,7 +724,7 @@ export class Tab4Page implements OnDestroy {
 
   triggerEditFileInput(): void {
     if (this.getEditPhotoCount() >= this.EDIT_MAX) {
-      void this.presentDeleteToast(`最多只能上传 ${this.EDIT_MAX} 张图片`);
+      void this.presentDeleteToast(`${this.t.uploadHint}`);
       return;
     }
     this.editFileInput?.nativeElement.click();
@@ -640,12 +760,15 @@ export class Tab4Page implements OnDestroy {
 
   private collectEditFormErrors(): string[] {
     const msgs: string[] = [];
-    if (this.editForm.get('EventTitle')?.invalid) msgs.push('标题必填');
-    if (this.editForm.get('EventCategory')?.invalid) msgs.push('类别必填');
-    if (this.editForm.get('Location')?.invalid) msgs.push('位置必填');
-    if (this.editForm.get('EventDetails')?.invalid) msgs.push('详细描述必填');
-    if (this.editForm.get('Price')?.invalid)
-      msgs.push('价格需在 0 ~ 1000000 之间');
+    if (this.editForm.get('EventTitle')?.invalid)
+      msgs.push(this.t.titleRequired);
+    if (this.editForm.get('EventCategory')?.invalid)
+      msgs.push(this.t.categoryRequired);
+    if (this.editForm.get('Location')?.invalid)
+      msgs.push(this.t.locationRequired);
+    if (this.editForm.get('EventDetails')?.invalid)
+      msgs.push(this.t.detailsRequired);
+    if (this.editForm.get('Price')?.invalid) msgs.push(this.t.priceInvalid);
     return msgs;
   }
 
@@ -685,12 +808,12 @@ export class Tab4Page implements OnDestroy {
 
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.success) {
-        const msg =
-          data?.error ||
-          data?.msg ||
-          (resp.status === 401
-            ? '未登录或登录已过期'
-            : `保存失败（${resp.status}）`);
+        if (resp.status === 401) {
+          await this.auth.handleAuthExpired();
+          return;
+        }
+
+        const msg = data?.error || data?.msg || `保存失败（${resp.status}）`;
         await this.presentDeleteToast(msg);
         return;
       }
@@ -712,11 +835,11 @@ export class Tab4Page implements OnDestroy {
         ];
       }
 
-      await this.presentDeleteToast('保存成功');
+      await this.presentDeleteToast(this.t.saveSuccess);
       this.closeEditModal();
     } catch (e) {
       console.error('submitEdit error', e);
-      await this.presentDeleteToast('网络错误，稍后重试');
+      await this.presentDeleteToast(this.t.networkError);
     } finally {
       this.isSavingEdit = false;
     }
@@ -737,13 +860,13 @@ export class Tab4Page implements OnDestroy {
       });
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.success || !Array.isArray(data.paths)) {
-        await this.presentDeleteToast(data?.error || '图片上传失败');
+        await this.presentDeleteToast(data?.error || this.t.networkError);
         return null;
       }
       return data.paths;
     } catch (e) {
       console.error('uploadEditPhotos error', e);
-      await this.presentDeleteToast('图片上传失败，请稍后重试');
+      await this.presentDeleteToast(this.t.networkError);
       return null;
     }
   }
@@ -786,6 +909,15 @@ export class Tab4Page implements OnDestroy {
       RealName: this.userInfo.realName || '',
       IdCardNumber: this.userInfo.idCardNumber || '',
       Location: this.userInfo.location || '',
+      LocationPlaceId: this.userInfo.locationPlaceId || '',
+      LocationLng:
+        this.userInfo.locationLng != null
+          ? Number(this.userInfo.locationLng)
+          : null,
+      LocationLat:
+        this.userInfo.locationLat != null
+          ? Number(this.userInfo.locationLat)
+          : null,
       BirthDate: this.userInfo.birthDate || '',
       Introduction: this.userInfo.introduction || '',
     });
@@ -811,13 +943,13 @@ export class Tab4Page implements OnDestroy {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      void this.presentDeleteToast('请选择图片文件');
+      void this.presentDeleteToast('Please select an image file');
       return;
     }
 
     // 检查文件大小（5MB）
     if (file.size > 5 * 1024 * 1024) {
-      void this.presentDeleteToast('图片大小不能超过5MB');
+      void this.presentDeleteToast('Image size cannot exceed 5MB');
       return;
     }
 
@@ -842,23 +974,23 @@ export class Tab4Page implements OnDestroy {
     if (this.editProfileForm.invalid) {
       const errors: string[] = [];
       if (this.editProfileForm.get('UserName')?.invalid)
-        errors.push('用户名必填（2-20个字符）');
+        errors.push(`${this.t.userNameLabel} ${this.t.userNamePlaceholder}`);
       if (this.editProfileForm.get('RealName')?.invalid)
-        errors.push('真实姓名必填（2-20个字符）');
+        errors.push(`${this.t.realNameLabel} ${this.t.realNamePlaceholder}`);
       if (this.editProfileForm.get('IdCardNumber')?.invalid)
-        errors.push('身份证号格式不正确');
+        errors.push(this.t.idCardPlaceholder);
       if (this.editProfileForm.get('Location')?.invalid)
-        errors.push('所在地必填');
+        errors.push(this.t.locationLabelProfile);
       if (this.editProfileForm.get('BirthDate')?.invalid)
-        errors.push('出生日期必填');
+        errors.push(this.t.birthDateLabel);
       if (this.editProfileForm.get('Introduction')?.invalid)
-        errors.push('个人介绍最多200字');
+        errors.push(this.t.introPlaceholder);
       await this.presentDeleteToast(errors.join('，'));
       return;
     }
 
     if (!this.currentUserId) {
-      await this.presentDeleteToast('未登录，无法保存');
+      await this.presentDeleteToast(this.t.notLoggedIn);
       return;
     }
 
@@ -882,6 +1014,9 @@ export class Tab4Page implements OnDestroy {
         RealName: this.editProfileForm.value.RealName,
         IdCardNumber: this.editProfileForm.value.IdCardNumber,
         Location: this.editProfileForm.value.Location,
+        LocationPlaceId: this.editProfileForm.value.LocationPlaceId || null,
+        LocationLng: this.editProfileForm.value.LocationLng ?? null,
+        LocationLat: this.editProfileForm.value.LocationLat ?? null,
         BirthDate: this.editProfileForm.value.BirthDate,
         Introduction: this.editProfileForm.value.Introduction || '',
       };
@@ -905,12 +1040,15 @@ export class Tab4Page implements OnDestroy {
       const data = await resp.json().catch(() => null);
 
       if (!resp.ok || !data?.success) {
-        const msg =
-          data?.error ||
-          data?.msg ||
-          (resp.status === 401
-            ? '未登录或登录已过期'
-            : `保存失败（${resp.status}）`);
+        if (resp.status === 401) {
+          if (avatarPath) {
+            await this.deleteUploadedFile(avatarPath);
+          }
+          await this.auth.handleAuthExpired();
+          return;
+        }
+
+        const msg = data?.error || data?.msg || `保存失败（${resp.status}）`;
 
         // 如果更新用户信息失败，且已经上传了头像，则删除已上传的头像
         if (avatarPath) {
@@ -926,6 +1064,9 @@ export class Tab4Page implements OnDestroy {
       this.userInfo.realName = payload.RealName;
       this.userInfo.idCardNumber = payload.IdCardNumber;
       this.userInfo.location = payload.Location;
+      this.userInfo.locationPlaceId = payload.LocationPlaceId || '';
+      this.userInfo.locationLng = payload.LocationLng ?? null;
+      this.userInfo.locationLat = payload.LocationLat ?? null;
       this.userInfo.birthDate = payload.BirthDate;
       this.userInfo.introduction = payload.Introduction;
       if (avatarPath) {
@@ -938,6 +1079,9 @@ export class Tab4Page implements OnDestroy {
       storedUser.RealName = payload.RealName;
       storedUser.IdCardNumber = payload.IdCardNumber;
       storedUser.Location = payload.Location;
+      storedUser.LocationPlaceId = payload.LocationPlaceId || '';
+      storedUser.LocationLng = payload.LocationLng ?? null;
+      storedUser.LocationLat = payload.LocationLat ?? null;
       storedUser.BirthDate = payload.BirthDate;
       storedUser.Introduction = payload.Introduction;
       if (avatarPath) {
@@ -945,7 +1089,7 @@ export class Tab4Page implements OnDestroy {
       }
       localStorage.setItem('user', JSON.stringify(storedUser));
 
-      await this.presentDeleteToast('保存成功');
+      await this.presentDeleteToast(this.t.saveSuccess);
       this.closeEditProfileModal();
     } catch (e) {
       console.error('submitProfileEdit error', e);
@@ -955,7 +1099,7 @@ export class Tab4Page implements OnDestroy {
         await this.deleteUploadedFile(avatarPath);
       }
 
-      await this.presentDeleteToast('网络错误，稍后重试');
+      await this.presentDeleteToast(this.t.networkError);
     } finally {
       this.isSavingProfile = false;
     }
@@ -975,14 +1119,14 @@ export class Tab4Page implements OnDestroy {
 
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.success || !Array.isArray(data.paths)) {
-        await this.presentDeleteToast(data?.error || '头像上传失败');
+        await this.presentDeleteToast(data?.error || 'Avatar upload failed');
         return null;
       }
 
       return data.paths[0] || null;
     } catch (e) {
       console.error('uploadProfileAvatar error', e);
-      await this.presentDeleteToast('头像上传失败，请稍后重试');
+      await this.presentDeleteToast(this.t.networkError);
       return null;
     }
   }

@@ -1,13 +1,39 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonFooter, IonRow,IonCol,IonBadge} from '@ionic/angular/standalone';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonIcon,
+  IonButtons,
+  IonFooter,
+  IonRow,
+  IonCol,
+  IonBadge,
+  IonModal,
+  IonList,
+  IonInput,
+  IonTextarea,
+  IonSelect,
+  IonSelectOption,
+  IonLabel,
+  IonItem,
+  IonTitle,
+} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { EventCardData } from '../../components/show-event/show-event.component';
 import { ModalController } from '@ionic/angular/standalone';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
-import {NavController} from "@ionic/angular";
+import { NavController } from '@ionic/angular';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 
 @Component({
   selector: 'app-particular',
@@ -16,6 +42,7 @@ import {NavController} from "@ionic/angular";
   standalone: true,
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     IonHeader,
     IonToolbar,
     IonContent,
@@ -25,21 +52,40 @@ import {NavController} from "@ionic/angular";
     IonFooter,
     IonRow,
     IonCol,
-    IonBadge
+    IonBadge,
+    IonModal,
+    IonList,
+    IonInput,
+    IonTextarea,
+    IonSelect,
+    IonSelectOption,
+    IonLabel,
+    IonItem,
+    IonTitle,
   ],
 })
 export class ParticularPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
-  //JWT
   private authService = inject(AuthService);
   private modalCtrl = inject(ModalController);
-  //nav controller
   private navCtrl = inject(NavController);
+  private fb = inject(FormBuilder);
   readonly apiBase = environment.apiBase;
 
   isCurrentUserCreator: boolean = false;
+
+  isEditModalOpen = false;
+  isSavingEdit = false;
+  editForm: FormGroup = this.fb.group({
+    EventTitle: ['', Validators.required],
+    EventType: [0, Validators.required],
+    EventCategory: ['', Validators.required],
+    Location: ['', Validators.required],
+    Price: [0, [Validators.min(0)]],
+    EventDetails: ['', Validators.required],
+  });
 
   // 新增 userInfo 对象，模拟队友的数据结构
   userInfo: any = {
@@ -53,15 +99,16 @@ export class ParticularPage implements OnInit {
     serviceRanking: 0,
     isVerified: '未认证',
     stats: { favorites: 0, views: 0, follows: 0 },
-    CreateTime: '' // 注册时间
+    CreateTime: '', // 注册时间
   };
 
-
   event: EventCardData | null = null;
+  private returnToPath = '/tabs/tab1';
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       const eventId = params['eventId'];
+      this.returnToPath = params['returnTo'] || '/tabs/tab1';
       if (eventId) {
         // 根据eventId从后端获取完整数据
         this.loadEventDetail(eventId);
@@ -69,7 +116,7 @@ export class ParticularPage implements OnInit {
     });
   }
 
-// 新增方法：根据ID获取事件详情
+  // 新增方法：根据ID获取事件详情
   async loadEventDetail(eventId: string) {
     try {
       const resp = await fetch(`${this.apiBase}/events/${eventId}`);
@@ -100,7 +147,7 @@ export class ParticularPage implements OnInit {
             name: '',
             avatar: '',
             icon: 'navigate-outline',
-            distance: '距500m'
+            distance: '距500m',
           };
           // 加载发布者信息
           if (this.event?.creatorId) {
@@ -115,8 +162,8 @@ export class ParticularPage implements OnInit {
     }
   }
 
-// 根据 ID 加载活动详情
-// 根据 ID 加载活动详情
+  // 根据 ID 加载活动详情
+  // 根据 ID 加载活动详情
   async loadEventById(eventId: number): Promise<void> {
     try {
       const resp = await fetch(`${this.apiBase}/events/${eventId}`);
@@ -147,7 +194,7 @@ export class ParticularPage implements OnInit {
             name: '',
             avatar: '',
             icon: 'navigate-outline',
-            distance: '距500m'
+            distance: '距500m',
           };
 
           this.event = eventData;
@@ -211,7 +258,7 @@ export class ParticularPage implements OnInit {
     }
   }
 
-// 新增：根据 providerRole 返回对应颜色
+  // 新增：根据 providerRole 返回对应颜色
   getServiceRoleColor(providerRole: number): string {
     switch (providerRole) {
       case 1:
@@ -222,25 +269,28 @@ export class ParticularPage implements OnInit {
         return 'medium'; // 灰色
     }
   }
-// 新增：跳转到用户详情页面
+  // 新增：跳转到用户详情页面
   goToUserParticular() {
-    if (this.userInfo.name) {
+    if (this.isCurrentUserCreator) {
+      // 如果是自己的活动，直接跳转到个人中心
+      this.router.navigate(['/tabs/tab4']);
+    } else if (this.userInfo.name) {
+      // 如果是其他用户的活动，跳转到用户详情页
       this.router.navigate(['/user-particular'], {
         queryParams: {
           name: this.userInfo.name,
-          userId: this.event?.creatorId
-        }
+          userId: this.event?.creatorId,
+        },
       });
     }
   }
   // 返回上一页
   goBack() {
-    // 尝试返回上一页，如果没有历史则回首页
-    if (window.history.length > 1) {
-      this.location.back();
-    } else {
-      this.router.navigate(['/tabs/tab1']);
-    }
+    // 优先回到来源主页面，避免历史栈把用户带回聊天室
+    this.router.navigateByUrl(this.returnToPath, { replaceUrl: true });
+  }
+  goHome() {
+    this.router.navigate(['/tabs/tab1']);
   }
 
   // 关注按钮点击事件
@@ -250,7 +300,7 @@ export class ParticularPage implements OnInit {
       console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage
+        component: LoginPage,
       });
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;
@@ -270,7 +320,7 @@ export class ParticularPage implements OnInit {
       console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage
+        component: LoginPage,
       });
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;
@@ -287,50 +337,111 @@ export class ParticularPage implements OnInit {
   checkUserIsCreator() {
     const currentUserId = this.authService.currentUserId;
     const creatorId = this.event?.creatorId;
-    this.isCurrentUserCreator = currentUserId !== null && creatorId !== null && currentUserId === creatorId;
+    this.isCurrentUserCreator =
+      currentUserId !== null &&
+      creatorId !== null &&
+      currentUserId === creatorId;
   }
 
-  //创建聊天函数 -ZeweiXia 3-16
   async onChat() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage
+        component: LoginPage,
       });
-
-      // 监听 Modal 关闭
       modal.onDidDismiss().then(() => {
-        // 重新检查用户登录状态
         const newUserId = this.authService.currentUserId;
         if (newUserId) {
-          // 登录成功，刷新页面数据
           window.location.reload();
         }
       });
-
       await modal.present();
       return;
     }
 
     if (this.isCurrentUserCreator) {
-      console.log('不能与自己聊天');
+      this.openEditModal();
       return;
     }
 
-    //前段收集好数据准备传递创建聊天 3-16
     const chatData = {
       eventId: this.event?.id,
-      //点击的人的id
       creatorId: currentUserId,
-      //发布事件的人的id
       partnerId: this.event?.creatorId,
-
     };
     const roomId = `${chatData.eventId}_${chatData.creatorId}_${chatData.partnerId}`;
     this.navCtrl.navigateForward(`/chat-detail/${roomId}`, {
-      state: { roomId: roomId }
+      state: { roomId: roomId },
     });
+  }
+
+  async openEditModal() {
+    if (!this.event?.id) return;
+
+    try {
+      const resp = await fetch(`${this.apiBase}/events/${this.event.id}`);
+      const data = await resp.json();
+
+      if (data?.success && data?.event) {
+        const evt = data.event;
+        this.editForm.reset({
+          EventTitle: evt.EventTitle || '',
+          EventType: evt.EventType ?? 0,
+          EventCategory: evt.EventCategory || '',
+          Location: evt.Location || '',
+          Price: evt.Price ?? 0,
+          EventDetails: evt.EventDetails || '',
+        });
+      }
+    } catch (e) {
+      console.error('加载事件数据失败', e);
+    }
+
+    this.isEditModalOpen = true;
+  }
+
+  closeEditModal() {
+    this.isEditModalOpen = false;
+  }
+
+  async submitEdit() {
+    if (this.editForm.invalid || !this.event?.id) return;
+
+    this.isSavingEdit = true;
+    const formValue = this.editForm.value;
+
+    try {
+      const resp = await fetch(`${this.apiBase}/events/${this.event.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.authService.token}`,
+        },
+        body: JSON.stringify({
+          EventTitle: formValue.EventTitle,
+          EventType: formValue.EventType,
+          EventCategory: formValue.EventCategory,
+          Location: formValue.Location,
+          Price: formValue.Price,
+          EventDetails: formValue.EventDetails,
+        }),
+      });
+
+      const data = await resp.json();
+
+      if (data.success) {
+        console.log('修改成功');
+        this.closeEditModal();
+        this.loadEventDetail(String(this.event.id));
+      } else {
+        console.error('修改失败', data.error);
+      }
+    } catch (e) {
+      console.error('提交修改失败', e);
+    } finally {
+      this.isSavingEdit = false;
+    }
   }
 }

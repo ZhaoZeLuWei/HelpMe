@@ -5,7 +5,7 @@
       <ion-searchbar
         class="header-search-bar"
         [disabled]="true"
-        placeholder="点击搜索"
+        [placeholder]="t.searchPlaceholder"
         [animated]="true"
         show-clear-button="never">
       </ion-searchbar>
@@ -15,8 +15,11 @@
 
 <ion-content [fullscreen]="true">
 
+
+
+
   <!-- 调用搜索组件，用于显示搜索结果 -->
-  <app-universal-search [dataSource]="eventsData()" [detailRoute]="'/tabs/tab2/detail'">
+  <app-universal-search [dataSource]="eventsData()" [detailRoute]="'/tabs/tab2/detail'" (typeChange)="onTypeChange($event)">
 
     <!--
       【关键点】必须把自定义的组件写在 <ng-template> 里面

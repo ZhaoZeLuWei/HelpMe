@@ -15,6 +15,7 @@ import {
 import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
+import { LocationPickerComponent } from '../../components/location-picker/location-picker.component';
 
 @Component({
   selector: 'app-register',
@@ -64,6 +65,7 @@ export class RegisterPage {
       ),
     ]),
     location: new FormControl('', [Validators.required]),
+    locationPlaceId: new FormControl(''),
     birthDate: new FormControl('', [Validators.required]),
     introduction: new FormControl('', [Validators.maxLength(200)]),
   });
@@ -273,6 +275,7 @@ export class RegisterPage {
     const realName = this.infoForm.controls.realName.value || '';
     const idCardNumber = this.infoForm.controls.idCardNumber.value || '';
     const location = this.infoForm.controls.location.value || '';
+    const locationPlaceId = this.infoForm.controls.locationPlaceId.value || '';
     const birthDate = this.infoForm.controls.birthDate.value || '';
     const introduction = this.infoForm.controls.introduction.value || '';
 
@@ -284,6 +287,7 @@ export class RegisterPage {
         realName,
         idCardNumber,
         location,
+        locationPlaceId,
         birthDate,
         introduction,
       },
@@ -317,5 +321,25 @@ export class RegisterPage {
 
   async closeModal() {
     await this.modalCtrl.dismiss();
+  }
+
+  async openLocationPicker() {
+    const modal = await this.modalCtrl.create({
+      component: LocationPickerComponent,
+      componentProps: {
+        selectedPlaceId:
+          this.infoForm.controls.locationPlaceId.value || undefined,
+        selectedText: this.infoForm.controls.location.value || undefined,
+      },
+    });
+
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+    if (role !== 'confirm' || !data?.selected) return;
+
+    this.infoForm.patchValue({
+      location: data.selected.text,
+      locationPlaceId: data.selected.placeId,
+    });
   }
 }

@@ -3,8 +3,40 @@ const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 const { authRequired } = require("./auth.js");
-const Message = require('../models/Message');
+const Message = require("../models/Message");
 const router = express.Router();
+
+let eventsGeoColumnsState = {
+  checked: false,
+  supported: false,
+};
+
+async function supportsEventGeoColumns(conn) {
+  if (eventsGeoColumnsState.checked) {
+    return eventsGeoColumnsState.supported;
+  }
+
+  const [rows] = await conn.query(
+    `SELECT COUNT(*) AS cnt
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'Events'
+       AND COLUMN_NAME = 'LocationPlaceId'`,
+  );
+
+  eventsGeoColumnsState = {
+    checked: true,
+    supported: Number(rows?.[0]?.cnt || 0) === 1,
+  };
+
+  return eventsGeoColumnsState.supported;
+}
+
+function normalizeLocationPlaceId(value) {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  return text ? text : null;
+}
 
 // 图片上传接口（仅上传，不入库）
 router.post(
@@ -23,6 +55,7 @@ router.post(
 // 获取卡片列表（用于首页展示）
 router.get("/api/cards", async (req, res) => {
   try {
+    const hasGeoColumns = await supportsEventGeoColumns(pool);
     const { type } = req.query;
     let sqlWhere = "";
     let sqlParams = [];
@@ -53,6 +86,7 @@ router.get("/api/cards", async (req, res) => {
         e.EventId AS id,
         e.Photos AS photos,
         e.Location AS address,
+        e.LocationPlaceId AS locationPlaceId,
         e.EventTitle AS title,
         e.EventDetails AS demand,
         e.Price AS price,
@@ -83,13 +117,14 @@ router.get("/api/cards", async (req, res) => {
         id: item.id,
         cardImage: first,
         address: item.address,
+        locationPlaceId: item.locationPlaceId || null,
         demand: item.demand,
         price: item.price,
         createTime: item.createTime,
         name: item.name,
         avatar: item.avatar,
         creatorId: item.creatorId,
-        title: item.title,   // 新增
+        title: item.title, // 新增
         icon: "navigate-outline",
         distance: "距500m", // 实际项目中应计算真实距离
       };
@@ -125,6 +160,7 @@ router.post(
       EventType,
       EventCategory,
       Location,
+      LocationPlaceId,
       Price,
       EventDetails,
     } = req.body || {};
@@ -175,38 +211,56 @@ router.post(
       conn = await pool.getConnection();
       await conn.beginTransaction();
 
+      const hasGeoColumns = await supportsEventGeoColumns(conn);
+
+      const insertColumns = [
+        "CreatorId",
+        "EventTitle",
+        "EventType",
+        "EventCategory",
+        "Photos",
+        "Location",
+        "Price",
+        "EventDetails",
+      ];
+      const insertValues = [
+        creatorId,
+        String(EventTitle),
+        eventTypeNum,
+        String(EventCategory),
+        photosJson,
+        String(Location),
+        price,
+        String(EventDetails),
+      ];
+
+      if (hasGeoColumns) {
+        insertColumns.push("LocationPlaceId");
+        insertValues.push(normalizeLocationPlaceId(LocationPlaceId));
+      }
+
       const [result] = await conn.query(
-        `INSERT INTO Events
-          (CreatorId, EventTitle, EventType, EventCategory, Photos, Location, Price, EventDetails)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          creatorId,
-          String(EventTitle),
-          eventTypeNum,
-          String(EventCategory),
-          photosJson,
-          String(Location),
-          price,
-          String(EventDetails),
-        ],
+        `INSERT INTO Events (${insertColumns.join(", ")}) VALUES (${insertColumns
+          .map(() => "?")
+          .join(", ")})`,
+        insertValues,
       );
 
       await conn.commit();
 
-     await Message.create({
-      roomId: `system_${creatorId}`, 
-      text: `您的订单：“${EventTitle}”发布成功！请耐心等待...`, 
-      senderId: creatorId,
-      userName: "系统通知",
-      sendTime: new Date(),
-    }).catch(err => console.error("写入系统消息失败:", err));
+      await Message.create({
+        roomId: `system_${creatorId}`,
+        text: `您的订单：“${EventTitle}”发布成功！请耐心等待...`,
+        senderId: creatorId,
+        userName: "系统通知",
+        sendTime: new Date(),
+      }).catch((err) => console.error("写入系统消息失败:", err));
 
-    return res.json({
-      success: true,
-      EventId: result.insertId,
-      paths: photoPaths,
-    });
-
+      return res.json({
+        success: true,
+        EventId: result.insertId,
+        paths: photoPaths,
+      });
     } catch (err) {
       console.error("发布事件数据库错误:", err);
       if (conn) {
@@ -229,10 +283,11 @@ router.get("/events/:id", async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query(
-      "SELECT EventId, CreatorId, EventTitle, EventType, EventCategory, Photos, Location, Price, EventDetails, CreateTime FROM Events WHERE EventId = ? LIMIT 1",
-      [eventId],
-    );
+    const hasGeoColumns = await supportsEventGeoColumns(pool);
+    const selectSql =
+      "SELECT EventId, CreatorId, EventTitle, EventType, EventCategory, Photos, Location, LocationPlaceId, Price, EventDetails, CreateTime FROM Events WHERE EventId = ? LIMIT 1";
+
+    const [rows] = await pool.query(selectSql, [eventId]);
 
     if (!rows || rows.length === 0) {
       return res.status(404).json({ success: false, error: "事件不存在" });
@@ -259,6 +314,7 @@ router.put("/events/:id", authRequired, async (req, res) => {
     EventType,
     EventCategory,
     Location,
+    LocationPlaceId,
     Price,
     EventDetails,
     Photos,
@@ -318,6 +374,8 @@ router.put("/events/:id", authRequired, async (req, res) => {
     conn = await pool.getConnection();
     await conn.beginTransaction();
 
+    const hasGeoColumns = await supportsEventGeoColumns(conn);
+
     const [checkRows] = await conn.query(
       "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",
       [eventId, creatorId],
@@ -347,6 +405,9 @@ router.put("/events/:id", authRequired, async (req, res) => {
       String(EventDetails),
     ];
 
+    sets.push("LocationPlaceId = ?");
+    params.push(normalizeLocationPlaceId(LocationPlaceId));
+
     if (hasPhotos) {
       sets.push("Photos = ?");
       params.push(photosValue);
@@ -363,14 +424,13 @@ router.put("/events/:id", authRequired, async (req, res) => {
 
     await Message.create({
       roomId: `system_${creatorId}`,
-      text: `您的订单：“${EventTitle}”信息修改成功。`, 
+      text: `您的订单：“${EventTitle}”信息修改成功。`,
       senderId: creatorId,
       userName: "系统通知",
       sendTime: new Date(),
-    }).catch(err => console.error("写入系统消息失败:", err));
+    }).catch((err) => console.error("写入系统消息失败:", err));
 
     return res.json({ success: true });
-
   } catch (err) {
     if (conn) {
       await conn.rollback().catch(console.error);
@@ -391,7 +451,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
     return res.status(400).json({ success: false, error: "无效的事件ID" });
   }
 
-   let conn;
+  let conn;
   try {
     conn = await pool.getConnection();
     await conn.beginTransaction();
@@ -425,11 +485,11 @@ router.delete("/events/:id", authRequired, async (req, res) => {
     //使用查到的 deletedTitle
     await Message.create({
       roomId: `system_${creatorId}`,
-      text: `您的订单：“${deletedTitle}”已成功删除。`, 
+      text: `您的订单：“${deletedTitle}”已成功删除。`,
       senderId: creatorId,
       userName: "系统通知",
       sendTime: new Date(),
-    }).catch(err => console.error("写入系统消息失败:", err));
+    }).catch((err) => console.error("写入系统消息失败:", err));
 
     return res.json({
       success: true,
@@ -446,9 +506,9 @@ router.delete("/events/:id", authRequired, async (req, res) => {
     if (conn) conn.release();
   }
 });
-router.get('/api/provider-profile', async (req, res) => {
+router.get("/api/provider-profile", async (req, res) => {
   const userId = Number(req.query.userId);
-  if (!userId) return res.status(400).json({ msg: '缺少 userId' });
+  if (!userId) return res.status(400).json({ msg: "缺少 userId" });
 
   const [rows] = await pool.query(
     `SELECT u.UserId,
@@ -460,12 +520,12 @@ router.get('/api/provider-profile', async (req, res) => {
      FROM Users u
             LEFT JOIN Providers p ON p.ProviderId = u.UserId
      WHERE u.UserId = ? LIMIT 1`,
-    [userId]
+    [userId],
   );
-  if (!rows.length) return res.status(404).json({ msg: '用户不存在' });
+  if (!rows.length) return res.status(404).json({ msg: "用户不存在" });
 
   const row = rows[0];
-  row.avatar = row.avatar ? row.avatar : '/assets/icon/user.svg';
+  row.avatar = row.avatar ? row.avatar : "/assets/icon/user.svg";
   res.json({ success: true, data: row });
 });
 
