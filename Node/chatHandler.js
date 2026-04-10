@@ -7,6 +7,7 @@ const Message = require('./models/Message');
 //socket.io(roon).emit “谁加入了房间”，这个东西自己看不到
 //io.emit  系统公告，全站广播
 
+//根据roomId， 读取mongodb中所有符合条件的消息
 const getChatHistory = async (queryParams) => {
   try {
     const { roomId, page = 1, pageSize = 20, startTime, endTime } = queryParams;
@@ -68,6 +69,7 @@ const getChatHistory = async (queryParams) => {
   }
 };
 
+//通过mongodb获取房间状态，通过mySQL获取用户头像，姓名和事件标题
 const getRoomList = async (queryParams) => {
   try {
     const { page = 1, pageSize = 20, userId, eventId, roomId } = queryParams;
