@@ -10,11 +10,24 @@
 <ion-content class="ion-padding">
   <div class="chat-container">
     @for (msg of messages(); track $index) {
-      <div class="message-group" [class.me]="msg.senderId === myself?.id">
-        <span class="user-name">{{ msg.senderId === myself?.id ? myself.name : (msg.userName || '对方') }}</span>
-        <span class="timestamp"> {{ msg.sendTime | date:'HH:mm' }}</span>
-        <div class="message-bubble">
-          {{ msg.text }}
+      <div class="message-group" [class.me]="isMyMessage(msg)">
+        <div class="message-row">
+          <ion-avatar class="message-avatar">
+            <img
+              [src]="getMessageAvatar(msg)"
+              alt="用户头像"
+              (error)="onAvatarError($event)"
+            />
+          </ion-avatar>
+          <div class="message-main">
+            <div class="message-meta">
+              <span class="user-name">{{ isMyMessage(msg) ? (myself?.name || '我') : (msg.userName || roomInfoTab3?.name || '对方') }}</span>
+              <span class="timestamp"> {{ msg.sendTime | date:'HH:mm' }}</span>
+            </div>
+            <div class="message-bubble">
+              {{ msg.text }}
+            </div>
+          </div>
         </div>
       </div>
     }

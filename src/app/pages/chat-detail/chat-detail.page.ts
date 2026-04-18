@@ -12,11 +12,13 @@ import {
   IonFooter,
   IonInput,
   IonButton,
+  IonAvatar,
 } from '@ionic/angular/standalone';
 import { DatePipe } from "@angular/common";
 import {ActivatedRoute, Router} from "@angular/router";
 import {HttpClient} from "@angular/common/http";
 import {ToastController} from "@ionic/angular";
+import { environment } from '../../../environments/environment';
 
 //Models( Data structure) imports here
 import {ChatModel} from "../../models/chat.model";
@@ -44,6 +46,7 @@ import {AuthService} from "../../services/auth.service";
     IonInput,
     IonButtons,
     IonButton,
+    IonAvatar,
   ],
 })
 export class ChatDetailPage implements OnInit, OnDestroy {
@@ -64,6 +67,9 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   getUserFromService: any;
   serverOffset = 0;
   showChat:boolean = true;
+  readonly defaultAvatar = 'assets/icon/user.svg';
+  myAvatar = this.defaultAvatar;
+  otherAvatar = this.defaultAvatar;
 
   //input checking before it send to node
   messageInput = new FormControl('', {
@@ -81,6 +87,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     if (state?.targetUser) {
       this.roomInfoTab3 = state.targetUser;
       this.roomId = this.roomInfoTab3.roomId;
+      this.otherAvatar = this.toAvatarUrl(this.roomInfoTab3.avatar);
     }
     //add else if ( for event detail page create a chat room 3-16)
     else if (state?.roomId){
@@ -91,6 +98,8 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     if (state?.targetUser?.type === 'system') {
       this.showChat = false;
     }
+
+    this.loadMyAvatar();
     this.loadHistory(this.roomId);
 
     // Init Connection
@@ -157,6 +166,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
             senderId: msg.senderId,
             userName: msg.userName,
             sendTime: msg.sendTime,
+            avatar: msg.avatar,
           }));
 
           this.messages.set(apiMsg);
@@ -187,6 +197,56 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   //在messages这个数据结构中，继续顺序添加新的msg
   private addMessage(msg: ChatModel) {
     this.messages.update(prev => [...prev, msg]);
+  }
+
+  private loadMyAvatar() {
+    const userId = this.getCurrentUserId();
+    if (!userId) return;
+
+    this.http
+      .get<any>(`${environment.apiBase}/users/${userId}/profile`)
+      .subscribe({
+        next: (res) => {
+          const avatarPath = res?.user?.UserAvatar || res?.user?.userAvatar || '';
+          this.myAvatar = this.toAvatarUrl(avatarPath);
+        },
+        error: () => {
+          this.myAvatar = this.defaultAvatar;
+        },
+      });
+  }
+
+  isMyMessage(msg: ChatModel): boolean {
+    const userId = this.getCurrentUserId();
+    if (!userId) return false;
+    return String(msg.senderId) === userId;
+  }
+
+  getMessageAvatar(msg: ChatModel): string {
+    if (this.isMyMessage(msg)) {
+      return this.myAvatar;
+    }
+    return this.toAvatarUrl(msg.avatar || this.otherAvatar);
+  }
+
+  onAvatarError(event: Event) {
+    const img = event.target as HTMLImageElement | null;
+    if (img) {
+      img.src = this.defaultAvatar;
+    }
+  }
+
+  private getCurrentUserId(): string {
+    const userId = this.myself?.id ?? this.getUserFromService?.UserId ?? this.getUserFromService?.id;
+    return userId ? String(userId) : '';
+  }
+
+  private toAvatarUrl(path?: string): string {
+    if (!path || !path.trim()) return this.defaultAvatar;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('assets/')) return path;
+    if (path.startsWith('/assets/')) return path;
+    return `${environment.apiBase}${path.startsWith('/') ? path : `/${path}`}`;
   }
 
   ngOnDestroy() {
