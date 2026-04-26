@@ -128,14 +128,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
 
   private searchLocations(keyword: string) {
     this.loading.set(true);
-
-    const cached = this.searchFromCache(keyword);
-    if (cached && cached.length > 0) {
-      this.locations.set(cached);
-      this.loading.set(false);
-      return;
-    }
-
+    // 只要用户在搜索，就完全交给高德在当前城市里找，不拿本地缓存糊弄人
     this.searchByAMap(keyword);
   }
 
@@ -175,15 +168,23 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   private searchByAMap(keyword: string) {
+    this.loading.set(true);
+
     const doSearch = () => {
+      // 1. 获取当前城市（优先用解析出来的，没有就用默认的）
+      const detail = this.addressDetail();
+      const currentCity = detail?.city || detail?.province || '全国';
+
       const placeSearch = new AMap.PlaceSearch({
         pageSize: 20,
         pageIndex: 1,
-        city: '全国',
+        city: currentCity,      // 👈 核心修改：限定在当前城市搜索
+        citylimit: true,        // 👈 核心修改：严格限制不跨城市（不会搜出北京的万达了）
+        extensions: 'all',
       });
 
+      // 2. 使用全局搜索（但已经被 city 限制了范围）
       placeSearch.search(keyword, (status: string, result: any) => {
-        // 👇 加上这两行，看看高德到底返回了什么鬼东西
         console.log('【高德搜索状态】:', status);
         console.log('【高德搜索结果】:', result);
         this.loading.set(false);
@@ -195,8 +196,8 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
             address: poi.address || poi.name || '',
             lng: poi.location?.lng || 0,
             lat: poi.location?.lat || 0,
-            district: poi.pname + poi.cityname + poi.adname,
-            distanceMeters: null,
+            district: (poi.pname || '') + (poi.cityname || '') + (poi.adname || ''),
+            distanceMeters: poi.distance ? Math.round(poi.distance) : null,
           }));
           
           this.locations.set(list);
@@ -402,6 +403,24 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
 
   // ================= 数据加载 =================
 
+  private async loadNearbyLocations(lng: number, lat: number) {
+    const params = new URLSearchParams();
+    params.append('lng', String(lng));
+    params.append('lat', String(lat));
+    params.append('limit', '10');
+
+    try {
+      const resp = await fetch(`${this.apiBase}/locations/suggest?${params.toString()}&_t=${Date.now()}`);
+      const data = await resp.json().catch(() => null);
+
+      if (resp.ok && data?.success && Array.isArray(data.locations) && data.locations.length > 0) {
+        this.nearbyLocations.set(data.locations);
+      }
+    } catch (err) {}
+
+    this.loadNearbyFromAMap(lng, lat);
+  }
+
   async confirmMapLocation() {
     const location = this.selectedMapLocation();
     const address = this.currentAddress();
@@ -420,28 +439,28 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
 
-  private async loadNearbyLocations(lng: number, lat: number) {
-    const params = new URLSearchParams();
-    params.append('lng', String(lng));
-    params.append('lat', String(lat));
-    params.append('limit', '10');
+  // private async loadNearbyLocations(lng: number, lat: number) {
+  //   const params = new URLSearchParams();
+  //   params.append('lng', String(lng));
+  //   params.append('lat', String(lat));
+  //   params.append('limit', '10');
 
-    try {
-      const resp = await fetch(`${this.apiBase}/locations/suggest?${params.toString()}&_t=${Date.now()}`);
-      const data = await resp.json().catch(() => null);
+  //   try {
+  //     const resp = await fetch(`${this.apiBase}/locations/suggest?${params.toString()}&_t=${Date.now()}`);
+  //     const data = await resp.json().catch(() => null);
       
-      // 如果后端有你们自己的私有数据，直接用
-      if (resp.ok && data?.success && Array.isArray(data.locations) && data.locations.length > 0) {
-        this.nearbyLocations.set(data.locations);
-        return; // 有数据就结束，不打扰高德
-      }
-    } catch (err) {
-      // 后端报错也不管，继续走下面的高德兜底
-    }
+  //     // 如果后端有你们自己的私有数据，直接用
+  //     if (resp.ok && data?.success && Array.isArray(data.locations) && data.locations.length > 0) {
+  //       this.nearbyLocations.set(data.locations);
+  //       return; // 有数据就结束，不打扰高德
+  //     }
+  //   } catch (err) {
+  //     // 后端报错也不管，继续走下面的高德兜底
+  //   }
 
-    // 👇 核心兜底逻辑：后端没数据，用高德地图搜索周边填充列表
-    this.loadNearbyFromAMap(lng, lat);
-  }
+  //   // 👇 核心兜底逻辑：后端没数据，用高德地图搜索周边填充列表
+  //   this.loadNearbyFromAMap(lng, lat);
+  // }
 
   // 新增：调用高德地图搜索周边
   private loadNearbyFromAMap(lng: number, lat: number) {
@@ -470,9 +489,27 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
         }));
         
         this.nearbyLocations.set(list);
+         // ✅ 保存到后端数据库
+        this.saveNearbyToBackend(list);
       }
     });
   }
+  // 新增：保存附近地点到后端数据库
+private async saveNearbyToBackend(locations: LocationOption[]) {
+  try {
+    const resp = await fetch(`${this.apiBase}/locations/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locations }),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      console.log(`成功保存 ${data.count} 个地点到数据库`);
+    }
+  } catch (err) {
+    console.error('保存地点到后端失败:', err);
+  }
+}
   // ================= 缓存方法 =================
 
   private saveToCache(location: PickedLocation): void {

@@ -205,6 +205,54 @@ router.get("/locations/:id", async (req, res) => {
     return res.status(500).json({ success: false, error: "查询地点详情失败" });
   }
 });
+// 保存地点（从高德地图获取后存入数据库）
+router.post("/locations/save", async (req, res) => {
+  const db = await getLocationDb();
+  const places = db.collection(COLLECTION_NAME);
+
+  const { locations } = req.body;
+  if (!Array.isArray(locations) || locations.length === 0) {
+    return res.status(400).json({ success: false, error: "无效的地点数据" });
+  }
+
+  try {
+    const now = new Date();
+    const docs = locations.map((loc) => ({
+      name: loc.name,
+      shortName: loc.name,
+      district: loc.district || "",
+      address: loc.address || loc.name,
+      lng: Number(loc.lng) || 0,
+      lat: Number(loc.lat) || 0,
+      tags: [],
+      sortWeight: 0,
+      geo: {
+        type: "Point",
+        coordinates: [Number(loc.lng) || 0, Number(loc.lat) || 0],
+      },
+      isActive: true,
+      source: "amap",  // 标记数据来源
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    // 批量插入或更新（如果已存在则更新）
+    const bulkOps = docs.map((doc) => ({
+      updateOne: {
+        filter: { name: doc.name, address: doc.address },
+        update: { $set: doc },
+        upsert: true,
+      },
+    }));
+
+    await places.bulkWrite(bulkOps);
+
+    return res.json({ success: true, count: docs.length });
+  } catch (err) {
+    console.error("保存地点失败:", err);
+    return res.status(500).json({ success: false, error: "保存地点失败" });
+  }
+});
 
 // 管理端列表
 router.get("/admin/locations", async (req, res) => {
@@ -227,5 +275,7 @@ router.get("/admin/locations", async (req, res) => {
     return res.status(500).json({ success: false, error: "查询地点失败" });
   }
 });
-
+router.get("/test", (req, res) => {
+  res.json({ message: "location routes working" });
+});
 module.exports = router;
