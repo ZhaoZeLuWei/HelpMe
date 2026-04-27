@@ -46,24 +46,19 @@ import {
   IonTitle,
   IonContent,
   IonIcon,
-  IonAvatar,
   IonButton,
-  IonBadge,
   IonButtons,
   IonSegment,
   IonSegmentButton,
   IonLabel,
-  IonCard,
   IonItem,
-  IonText,
-  IonAlert,
+  IonNote,
   IonModal,
   IonList,
   IonInput,
   IonTextarea,
   IonSelect,
   IonSelectOption,
-  IonNote,
   ModalController,
 } from '@ionic/angular/standalone';
 
@@ -71,7 +66,10 @@ import { ToastController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Tab4ProfileCardComponent } from '../../components/tab4-profile-card/tab4-profile-card.component';
+import { Tab4EventsPanelComponent } from '../../components/tab4-events-panel/tab4-events-panel.component';
+import { Tab4OrdersPanelComponent } from '../../components/tab4-orders-panel/tab4-orders-panel.component';
 
 @Component({
   selector: 'app-tab4',
@@ -85,25 +83,23 @@ import { ActivatedRoute } from '@angular/router';
     IonTitle,
     IonContent,
     IonIcon,
-    IonAvatar,
     IonButtons,
     IonButton,
-    IonBadge,
     IonSegment,
     IonSegmentButton,
     IonLabel,
-    IonCard,
     IonItem,
-    IonText,
-    IonAlert,
+    IonNote,
     IonModal,
     IonList,
     IonInput,
     IonTextarea,
     IonSelect,
     IonSelectOption,
-    IonNote,
     ReactiveFormsModule,
+    Tab4ProfileCardComponent,
+    Tab4EventsPanelComponent,
+    Tab4OrdersPanelComponent,
   ],
 })
 export class Tab4Page implements OnDestroy {
@@ -114,6 +110,7 @@ export class Tab4Page implements OnDestroy {
   private readonly modalController = inject(ModalController);
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly langService = inject(LanguageService);
 
   @ViewChild('editFileInput')
@@ -234,10 +231,18 @@ export class Tab4Page implements OnDestroy {
     },
   ];
 
-  activeTab: string = 'published';
+  activeSection: 'events' | 'orders' = 'events';
+  eventFilter: 'all' | 'published' | 'pending' | 'active' | 'review' | 'done' =
+    'all';
+  orderFilter: 'all' | 'pending' | 'active' | 'review' | 'done' = 'all';
 
   userInfo: any = this.createDefaultUserInfo();
   tasks: any[] = [];
+  orders: any[] = [];
+  orderStats = { all: 0, pending: 0, active: 0, review: 0, done: 0 };
+  eventStats = { all: 0, published: 0, pending: 0, active: 0, review: 0, done: 0 };
+  isLoadingEvents = false;
+  isLoadingOrders = false;
   currentUserId: number | null = null;
 
   constructor() {
@@ -328,13 +333,86 @@ export class Tab4Page implements OnDestroy {
   }
 
   // Segment 切换事件
-  onTabChange(event: CustomEvent) {
-    this.activeTab = event.detail.value;
+  onSectionChange(event: CustomEvent) {
+    const value = event.detail.value as 'events' | 'orders' | null;
+    if (value) this.activeSection = value;
   }
 
-  // 根据当前标签筛选显示任务
-  getFilteredTasks() {
-    return this.tasks.filter((task) => task.status === this.activeTab);
+  setEventFilter(filter: string) {
+    this.eventFilter = filter as typeof this.eventFilter;
+  }
+
+  setOrderFilter(filter: string) {
+    this.orderFilter = filter as typeof this.orderFilter;
+  }
+
+  // 根据当前标签筛选显示事件
+  getFilteredEvents() {
+    if (this.eventFilter === 'all') return this.tasks;
+    return this.tasks.filter((event) => event.statusKey === this.eventFilter);
+  }
+
+  // 根据当前标签筛选显示订单
+  getFilteredOrders() {
+    if (this.orderFilter === 'all') return this.orders;
+    return this.orders.filter((order) => order.statusKey === this.orderFilter);
+  }
+
+  getEventStatusText(statusKey: string): string {
+    const map: Record<string, string> = {
+      published: '我发布的',
+      pending: '待确认',
+      active: '进行中',
+      review: '待评价',
+      done: '已完成',
+    };
+    return map[statusKey] || '未知';
+  }
+
+  getEventStatusColor(statusKey: string): string {
+    const map: Record<string, string> = {
+      published: 'primary',
+      pending: 'warning',
+      active: 'tertiary',
+      review: 'medium',
+      done: 'success',
+    };
+    return map[statusKey] || 'medium';
+  }
+
+  getOrderStatusText(statusKey: string): string {
+    const map: Record<string, string> = {
+      pending: '待确认',
+      active: '进行中',
+      review: '待评价',
+      done: '已完成',
+    };
+    return map[statusKey] || '未知';
+  }
+
+  getOrderStatusColor(statusKey: string): string {
+    const map: Record<string, string> = {
+      pending: 'warning',
+      active: 'primary',
+      review: 'medium',
+      done: 'success',
+    };
+    return map[statusKey] || 'medium';
+  }
+
+  getOrderActionLabel(order: any): string {
+    if (order.statusKey === 'pending' && order.role === 'seller') return '确认订单';
+    if (order.statusKey === 'active' && order.role === 'buyer') return '确认完成';
+    if (order.statusKey === 'review') return '去评价';
+    return '查看详情';
+  }
+
+  isOrderActionEnabled(order: any): boolean {
+    return (
+      (order.statusKey === 'pending' && order.role === 'seller') ||
+      (order.statusKey === 'active' && order.role === 'buyer') ||
+      order.statusKey === 'review'
+    );
   }
 
   // !!!!!以下跳转函数为占位，后续接入路由或 API
@@ -454,11 +532,6 @@ export class Tab4Page implements OnDestroy {
     //后续跳转详情页
   }
 
-  goToReview(taskId: number) {
-    console.log(`去评价 ${taskId}`);
-    //后续跳转评价页
-  }
-
   // 任务状态的UI显示
   getStatusText(status: string): string {
     const map: Record<string, string> = {
@@ -468,17 +541,6 @@ export class Tab4Page implements OnDestroy {
       review: this.t.statusPendingReview,
     };
     return map[status] || this.t.statusUnknown;
-  }
-
-  // 任务状态的颜色
-  getStatusColor(status: string): string {
-    const map: Record<string, string> = {
-      published: 'primary',
-      inProgress: 'warning',
-      completed: 'success',
-      review: 'medium',
-    };
-    return map[status] || 'medium';
   }
 
   // 根据认证状态显示数据
@@ -595,10 +657,11 @@ export class Tab4Page implements OnDestroy {
             }
           } else {
             const data = await resp.json().catch(() => null);
-            if (data?.success && data.user) {
+      if (data?.success && data.user) {
               this.updateUserFromData(data.user);
 
               await this.loadUserEvents(data.user.UserId);
+              await this.loadOrders(data.user.UserId);
               return;
             }
           }
@@ -612,7 +675,10 @@ export class Tab4Page implements OnDestroy {
       const fid = u.UserId || u.userId || u.id;
       if (fid) this.currentUserId = fid;
 
-      if (fid) await this.loadUserEvents(fid);
+      if (fid) {
+        await this.loadUserEvents(fid);
+        await this.loadOrders(fid);
+      }
     } catch (e) {
       console.error('loadUserFromStorage error', e);
     }
@@ -620,6 +686,7 @@ export class Tab4Page implements OnDestroy {
 
   async loadUserEvents(userId: number): Promise<void> {
     try {
+      this.isLoadingEvents = true;
       const resp = await fetch(`${this.API_BASE}/users/${userId}/events`);
       if (!resp.ok) {
         if (resp.status === 401) {
@@ -637,6 +704,7 @@ export class Tab4Page implements OnDestroy {
         publisher: this.userInfo.name || '',
         title: e.EventTitle,
         status: 'published',
+        statusKey: 'published',
         createdAt: e.CreateTime || '',
         EventTitle: e.EventTitle,
         EventType: e.EventType ?? 0,
@@ -649,8 +717,173 @@ export class Tab4Page implements OnDestroy {
         EventDetails: e.EventDetails || '',
         Photos: e.Photos || null,
       }));
+
+      this.eventStats = {
+        all: this.tasks.length,
+        published: this.tasks.filter((e: any) => e.statusKey === 'published').length,
+        pending: this.tasks.filter((e: any) => e.statusKey === 'pending').length,
+        active: this.tasks.filter((e: any) => e.statusKey === 'active').length,
+        review: this.tasks.filter((e: any) => e.statusKey === 'review').length,
+        done: this.tasks.filter((e: any) => e.statusKey === 'done').length,
+      };
     } catch (e) {
       console.warn('loadUserEvents failed', e);
+    } finally {
+      this.isLoadingEvents = false;
+    }
+  }
+
+  async loadOrders(userId: number): Promise<void> {
+    try {
+      this.isLoadingOrders = true;
+      const resp = await fetch(`${this.API_BASE}/orders?role=all`, {
+        headers: { ...this.auth.getAuthHeader() },
+      });
+      if (!resp.ok) {
+        if (resp.status === 401) {
+          await this.auth.handleAuthExpired();
+        }
+        return;
+      }
+
+      const data = await resp.json().catch(() => null);
+      const rows = Array.isArray(data?.orders) ? data.orders : [];
+      const mapped = rows
+        .filter((o: any) => Number(o.ConsumerId) === userId || Number(o.ProviderId) === userId)
+        .map((o: any) => {
+          const status = Number(o.OrderStatus);
+          const meta =
+            status === 0
+              ? { key: 'pending', label: '待确认', color: 'warning' }
+              : status === 1
+                ? { key: 'active', label: '进行中', color: 'primary' }
+                : status === 2
+                  ? { key: 'review', label: '待评价', color: 'medium' }
+                  : { key: 'done', label: '已完成', color: 'success' };
+
+          return {
+            id: Number(o.OrderId),
+            eventId: Number(o.EventId),
+            consumerId: Number(o.ConsumerId),
+            providerId: Number(o.ProviderId),
+            title: o.EventTitle || '订单',
+            location: o.DetailLocation || '',
+            price: o.TransactionPrice || 0,
+            creatorName: o.ProviderName || '',
+            consumerName: o.ConsumerName || '',
+            createdAt: o.OrderCreateTime || '',
+            status: meta.label,
+            statusKey: meta.key,
+            statusColor: meta.color,
+            role: Number(o.ConsumerId) === userId ? 'buyer' : 'seller',
+            reviewCount: Number(o.ReviewCount || 0),
+          };
+        });
+
+      this.orders = mapped;
+      this.orderStats = {
+        all: mapped.length,
+        pending: mapped.filter((o: { statusKey: string }) => o.statusKey === 'pending').length,
+        active: mapped.filter((o: { statusKey: string }) => o.statusKey === 'active').length,
+        review: mapped.filter((o: { statusKey: string }) => o.statusKey === 'review').length,
+        done: mapped.filter((o: { statusKey: string }) => o.statusKey === 'done').length,
+      };
+    } catch (e) {
+      console.error('loadOrders error', e);
+    } finally {
+      this.isLoadingOrders = false;
+    }
+  }
+
+  goToEventDetail(eventId: number) {
+    void this.router.navigate(['/particular'], {
+      queryParams: { eventId },
+    });
+  }
+
+  async confirmOrder(orderId: number) {
+    await this.performOrderAction(orderId, 'confirm');
+  }
+
+  async completeOrder(orderId: number) {
+    await this.performOrderAction(orderId, 'complete');
+  }
+
+  private async performOrderAction(
+    orderId: number,
+    action: 'confirm' | 'complete',
+  ) {
+    try {
+      const resp = await fetch(`${this.API_BASE}/orders/${orderId}/${action}`, {
+        method: 'PUT',
+        headers: { ...this.auth.getAuthHeader() },
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.success) {
+        if (resp.status === 401) {
+          await this.auth.handleAuthExpired();
+          return;
+        }
+        await this.presentDeleteToast(data?.error || this.t.networkError);
+        return;
+      }
+      if (this.currentUserId) await this.loadOrders(this.currentUserId);
+      await this.presentDeleteToast(action === 'confirm' ? '订单已确认' : '订单已完成');
+    } catch (e) {
+      console.error('performOrderAction error', e);
+      await this.presentDeleteToast(this.t.networkError);
+    }
+  }
+
+  reviewOrderId: number | null = null;
+  isReviewModalOpen = false;
+  reviewForm: FormGroup = this.fb.group({
+    Score: [5, [Validators.required]],
+    Text: ['', [Validators.maxLength(200)]],
+  });
+
+  openReviewModal(orderId: number) {
+    this.reviewOrderId = orderId;
+    this.isReviewModalOpen = true;
+  }
+
+  closeReviewModal() {
+    this.isReviewModalOpen = false;
+    this.reviewOrderId = null;
+    this.reviewForm.reset({ Score: 5, Text: '' });
+  }
+
+  async submitReview() {
+    if (!this.reviewOrderId || this.reviewForm.invalid || !this.currentUserId) return;
+    const order = this.orders.find((o) => o.id === this.reviewOrderId);
+    if (!order) return;
+    const targetUserId = order.role === 'buyer' ? order.providerId : order.consumerId;
+
+    try {
+      const resp = await fetch(`${this.API_BASE}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.auth.getAuthHeader(),
+        },
+        body: JSON.stringify({
+          OrderId: this.reviewOrderId,
+          TargetUserId: targetUserId,
+          Score: this.reviewForm.value.Score,
+          Text: this.reviewForm.value.Text || '',
+        }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.success) {
+        await this.presentDeleteToast(data?.error || this.t.networkError);
+        return;
+      }
+      this.closeReviewModal();
+      if (this.currentUserId) await this.loadOrders(this.currentUserId);
+      await this.presentDeleteToast('评价已提交');
+    } catch (e) {
+      console.error('submitReview error', e);
+      await this.presentDeleteToast(this.t.networkError);
     }
   }
 
@@ -1103,6 +1336,10 @@ export class Tab4Page implements OnDestroy {
     } finally {
       this.isSavingProfile = false;
     }
+  }
+
+  openEditProfileModalFromButton(): void {
+    this.openEditProfileModal();
   }
 
   private async uploadProfileAvatar(): Promise<string | null> {

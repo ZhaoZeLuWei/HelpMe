@@ -1,0 +1,45 @@
+<div class="section-toolbar">
+  <ion-button fill="clear" [class.active-filter]="filter === 'all'" (click)="setFilter('all')">全部 {{ orderStats?.all || 0 }}</ion-button>
+  <ion-button fill="clear" [class.active-filter]="filter === 'pending'" (click)="setFilter('pending')">待确认 {{ orderStats?.pending || 0 }}</ion-button>
+  <ion-button fill="clear" [class.active-filter]="filter === 'active'" (click)="setFilter('active')">进行中 {{ orderStats?.active || 0 }}</ion-button>
+  <ion-button fill="clear" [class.active-filter]="filter === 'review'" (click)="setFilter('review')">待评价 {{ orderStats?.review || 0 }}</ion-button>
+  <ion-button fill="clear" [class.active-filter]="filter === 'done'" (click)="setFilter('done')">已完成 {{ orderStats?.done || 0 }}</ion-button>
+</div>
+
+<div class="tasks-list">
+  @if (isLoading) {
+    <div class="empty-state"><ion-text color="medium"><p>订单加载中...</p></ion-text></div>
+  }
+  @for (order of orders; track order.id) {
+  <ion-card class="task-item">
+    <ion-item lines="none" button detail="false" (click)="viewDetail.emit(order.eventId)">
+      <ion-label>
+        <h2 class="task-title">{{ order.title }}</h2>
+        <p class="task-meta">{{ order.role === 'buyer' ? '买家' : '卖家' }} · {{ order.location }}</p>
+        <p class="task-meta">订单号：{{ order.id }} · {{ order.createdAt }}</p>
+      </ion-label>
+      <ion-badge slot="end" [color]="order.statusColor">{{ order.statusLabel }}</ion-badge>
+    </ion-item>
+    <ion-item lines="none" class="task-actions">
+      <ion-buttons slot="end">
+        <ion-button (click)="viewDetail.emit(order.eventId)">详情</ion-button>
+        @if (order.statusKey === 'pending' && order.role === 'seller') {
+          <ion-button (click)="confirm.emit(order.id)">确认订单</ion-button>
+        }
+        @if (order.statusKey === 'active' && order.role === 'buyer') {
+          <ion-button (click)="complete.emit(order.id)">确认完成</ion-button>
+        }
+        @if (order.statusKey === 'review') {
+          <ion-button (click)="review.emit(order.id)">去评价</ion-button>
+        }
+      </ion-buttons>
+    </ion-item>
+  </ion-card>
+  }
+  @if (!isLoading && orders.length === 0) {
+  <div class="empty-state">
+    <ion-icon name="document-text" class="empty-icon"></ion-icon>
+    <ion-text color="medium"><p>暂无订单</p></ion-text>
+  </div>
+  }
+</div>

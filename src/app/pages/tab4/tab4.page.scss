@@ -9,316 +9,28 @@
   justify-content: center;
   padding: 80px 32px;
   text-align: center;
-
-  .prompt-icon {
-    font-size: 80px;
-    color: var(--ion-color-primary);
-    margin-bottom: 16px;
-  }
-
-  h2 {
-    font-size: 24px;
-    font-weight: 600;
-    margin: 0 0 8px;
-  }
-
-  p {
-    color: var(--ion-color-medium);
-    margin: 0 0 24px;
-  }
-
-  .auth-buttons {
-    display: flex;
-    gap: 12px;
-    width: 100%;
-    max-width: 400px;
-
-    ion-button {
-      flex: 1;
-      --padding-start: 24px;
-      --padding-end: 24px;
-    }
-  }
 }
 
-.user-card {
-  margin: 12px;
-  border-radius: var(--card-radius);
-  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08);
-  overflow: hidden;
+.prompt-icon {
+  font-size: 80px;
+  color: var(--ion-color-primary);
+  margin-bottom: 16px;
 }
 
-.user-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 16px;
-  background: linear-gradient(
-    135deg,
-    var(--ion-color-primary-tint) 0%,
-    var(--ion-color-primary) 100%
-  );
-}
-
-.avatar-section {
-  .user-avatar {
-    width: 80px;
-    height: 80px;
-    border: 3px solid #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-
-    ion-icon {
-      font-size: 80px;
-      color: #fff;
-    }
-  }
-}
-
-.user-basic-info {
-  flex: 1;
-  color: #fff;
-
-  .user-name-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-
-    .user-name {
-      font-size: 20px;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .verified-badge {
-      font-size: 11px;
-      font-weight: 500;
-    }
-  }
-
-  .user-location {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    opacity: 0.95;
-
-    ion-icon {
-      font-size: 16px;
-    }
-  }
-}
-
-.user-intro-section {
-  padding: 16px;
-  border-bottom: 1px solid var(--ion-color-light);
-
-  .user-intro {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--ion-color-medium);
-    font-style: italic;
-  }
-}
-
-.user-ratings {
-  display: flex;
-  justify-content: space-around;
-  padding: 16px;
-  border-bottom: 1px solid var(--ion-color-light);
-
-  .rating-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    ion-icon {
-      font-size: 24px;
-    }
-
-    .rating-content {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-
-      .rating-label {
-        font-size: 12px;
-        color: var(--ion-color-medium);
-      }
-
-      .rating-value {
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--ion-color-dark);
-      }
-    }
-  }
-}
-
-.user-button-group {
+.auth-buttons {
   display: flex;
   gap: 12px;
-  padding: 12px 16px;
-
-  ion-button {
-    flex: 1;
-    text-transform: none;
-  }
+  width: 100%;
+  max-width: 400px;
 }
 
-ion-segment {
-  margin: 0 12px;
+.auth-buttons ion-button {
+  flex: 1;
 }
 
-ion-segment-button {
-  text-transform: none;
-}
-
-.tasks-list {
-  padding: 12px;
-}
-
-.task-item {
-  border-radius: var(--card-radius);
-  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
-  margin-bottom: 12px;
-}
-
-.task-icon {
-  font-size: 28px;
-  color: var(--ion-color-primary);
-}
-
-.task-icon-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-}
-
-.task-type-label {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--ion-color-medium);
-  text-align: center;
-}
-
-.task-title {
-  font-weight: 600;
-}
-
-.task-meta {
-  color: var(--ion-color-medium);
-}
-
-.status-badge {
-  border-radius: 8px;
-}
-
-.task-actions {
-  padding: 0 12px 8px;
-}
-
-.task-actions ion-button {
-  --padding-start: 6px;
-  --padding-end: 6px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 0;
-  gap: 8px;
-}
-
-.empty-icon {
-  font-size: 36px;
-  color: var(--ion-color-medium);
-}
-
-.edit-modal-content {
-  padding: 8px 0 20px;
-}
-
+.review-form,
 .edit-profile-modal-content {
-  padding: 8px 0 20px;
-
-  .avatar-upload-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    margin: 16px 16px 24px;
-    background: var(--ion-item-background);
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-
-    .avatar-preview {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      overflow: hidden;
-      margin-bottom: 20px;
-      border: 3px solid var(--ion-color-primary);
-      background: var(--ion-color-light);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      ion-icon {
-        font-size: 100px;
-        color: var(--ion-color-medium);
-      }
-    }
-
-    .avatar-actions {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
-
-      ion-button {
-        --padding-start: 20px;
-        --padding-end: 20px;
-        font-weight: 600;
-        height: 38px;
-      }
-    }
-
-    .avatar-hint {
-      font-size: 13px;
-      color: var(--ion-color-medium);
-      text-align: center;
-      margin: 0;
-      line-height: 1.4;
-    }
-  }
-
-  ion-item {
-    --background: var(--ion-item-background);
-    --padding-start: 16px;
-    --padding-end: 16px;
-    margin-bottom: 12px;
-  }
-
-  ion-label {
-    font-weight: 600;
-    margin-bottom: 8px;
-  }
-
-  .hint-text {
-    font-size: 13px;
-    color: var(--ion-color-medium);
-    padding: 8px 16px 16px;
-    text-align: center;
-  }
+  padding: 16px;
 }
 
 .modal-actions {
@@ -329,71 +41,36 @@ ion-segment-button {
 
 .modal-actions ion-button {
   flex: 1;
-  text-transform: none;
 }
 
-.photo-upload-area {
-  padding: 0 16px 16px;
-}
-
-.upload-hint {
-  font-size: 12px;
-  margin-top: 8px;
-  display: block;
-}
-
-.photo-preview-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.photo-preview {
-  position: relative;
-  width: 96px;
-  height: 96px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--ion-color-step-200, #e5e7eb);
-}
-
-.photo-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.remove-photo {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border-radius: 50%;
-  font-size: 16px;
-  color: var(--ion-color-danger, #ef4444);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  cursor: pointer;
-}
-
-.upload-placeholder {
+.avatar-upload-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 80px;
-  height: 80px;
-  border: 2px dashed var(--ion-color-step-400, #9ca3af);
-  border-radius: 8px;
-  color: var(--ion-color-medium);
+  padding: 20px;
+  margin: 16px 16px 24px;
+  background: var(--ion-item-background);
+  border-radius: 16px;
 }
 
-.upload-placeholder ion-icon {
-  font-size: 24px;
-  margin-bottom: 4px;
+.avatar-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 20px;
+  background: var(--ion-color-light);
+}
+
+.avatar-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.avatar-hint,
+.hint-text {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  text-align: center;
 }

@@ -78,6 +78,8 @@ export class ParticularPage implements OnInit {
 
   isEditModalOpen = false;
   isSavingEdit = false;
+  isOrderModalOpen = false;
+  isSubmittingOrder = false;
   editForm: FormGroup = this.fb.group({
     EventTitle: ['', Validators.required],
     EventType: [0, Validators.required],
@@ -85,6 +87,10 @@ export class ParticularPage implements OnInit {
     Location: ['', Validators.required],
     Price: [0, [Validators.min(0)]],
     EventDetails: ['', Validators.required],
+  });
+  orderForm: FormGroup = this.fb.group({
+    DetailLocation: ['', Validators.required],
+    AdditionalInfo: ['', [Validators.maxLength(200)]],
   });
 
   // 新增 userInfo 对象，模拟队友的数据结构
@@ -291,6 +297,59 @@ export class ParticularPage implements OnInit {
   }
   goHome() {
     this.router.navigate(['/tabs/tab1']);
+  }
+
+  openOrderModal() {
+    if (!this.event) return;
+    this.orderForm.reset({
+      DetailLocation: this.event.address || '',
+      AdditionalInfo: '',
+    });
+    this.isOrderModalOpen = true;
+  }
+
+  closeOrderModal() {
+    this.isOrderModalOpen = false;
+    this.orderForm.reset();
+  }
+
+  async submitOrder() {
+    if (!this.event || this.orderForm.invalid || this.isSubmittingOrder) return;
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({ component: LoginPage });
+      await modal.present();
+      return;
+    }
+
+    this.isSubmittingOrder = true;
+    try {
+      const resp = await fetch(`${this.apiBase}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.authService.getAuthHeader(),
+        },
+        body: JSON.stringify({
+          EventId: this.event.id,
+          DetailLocation: this.orderForm.value.DetailLocation,
+          AdditionalInfo: this.orderForm.value.AdditionalInfo || '',
+        }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.success) {
+        alert(data?.error || '下单失败');
+        return;
+      }
+      this.closeOrderModal();
+      alert('下单成功，等待卖家确认');
+    } catch (e) {
+      console.error('submitOrder error', e);
+      alert('网络错误，请稍后重试');
+    } finally {
+      this.isSubmittingOrder = false;
+    }
   }
 
   // 关注按钮点击事件

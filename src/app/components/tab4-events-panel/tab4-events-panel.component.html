@@ -1,0 +1,38 @@
+<div class="section-toolbar">
+  <ion-button fill="clear" [class.active-filter]="filter === 'all'" (click)="setFilter('all')">全部 {{ eventStats?.all || 0 }}</ion-button>
+  <ion-button fill="clear" [class.active-filter]="filter === 'published'" (click)="setFilter('published')">我发布的 {{ eventStats?.published || 0 }}</ion-button>
+  <ion-button fill="clear" [class.active-filter]="filter === 'active'" (click)="setFilter('active')">进行中 {{ eventStats?.active || 0 }}</ion-button>
+  <ion-button fill="clear" [class.active-filter]="filter === 'review'" (click)="setFilter('review')">待评价 {{ eventStats?.review || 0 }}</ion-button>
+  <ion-button fill="clear" [class.active-filter]="filter === 'done'" (click)="setFilter('done')">已完成 {{ eventStats?.done || 0 }}</ion-button>
+</div>
+
+<div class="tasks-list">
+  @if (isLoading) {
+    <div class="empty-state"><ion-text color="medium"><p>事件加载中...</p></ion-text></div>
+  }
+  @for (event of events; track event.id) {
+  <ion-card class="task-item">
+    <ion-item lines="none" button detail="false" (click)="viewDetail.emit(event.id)">
+      <ion-label>
+        <h2 class="task-title">{{ event.title }}</h2>
+        <p class="task-meta">{{ event.createdAt }}</p>
+      </ion-label>
+      <ion-badge slot="end" [color]="event.statusColor">{{ event.statusLabel }}</ion-badge>
+    </ion-item>
+    <ion-item lines="none" class="task-actions">
+      <ion-buttons slot="end">
+        <ion-button (click)="edit.emit(event.id)">编辑</ion-button>
+        <ion-button [disabled]="deletingIds.has(event.id)" (click)="remove.emit(event.id)">
+          @if (deletingIds.has(event.id)) { 删除中... } @else { 删除 }
+        </ion-button>
+      </ion-buttons>
+    </ion-item>
+  </ion-card>
+  }
+  @if (!isLoading && events.length === 0) {
+  <div class="empty-state">
+    <ion-icon name="document-text" class="empty-icon"></ion-icon>
+    <ion-text color="medium"><p>暂无事件</p></ion-text>
+  </div>
+  }
+</div>

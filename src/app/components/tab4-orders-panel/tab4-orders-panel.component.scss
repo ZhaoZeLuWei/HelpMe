@@ -1,0 +1,25 @@
+.section-toolbar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px;
+  white-space: nowrap;
+}
+
+.section-toolbar ion-button {
+  text-transform: none;
+}
+
+.section-toolbar .active-filter {
+  --background: var(--ion-color-primary);
+  --color: #fff;
+}
+
+.tasks-list {
+  padding: 12px;
+}
+
+.task-item {
+  border-radius: 16px;
+  margin-bottom: 12px;
+}

@@ -84,6 +84,12 @@
         </ion-button>
       </ion-col>
         <ion-col>
+          <ion-button expand="block" color="primary" (click)="openOrderModal()">
+            <ion-icon slot="start" name="document-text"></ion-icon>
+            下单
+          </ion-button>
+        </ion-col>
+        <ion-col>
           <ion-button expand="block" (click)="onChat()">
             <ion-icon slot="start" [name]="isCurrentUserCreator ? 'create-outline' : 'chatbubble-outline'"></ion-icon>
             {{ isCurrentUserCreator ? '编辑' : '聊一聊' }}
@@ -138,6 +144,38 @@
         <div style="padding: 16px;">
           <ion-button expand="block" (click)="submitEdit()" [disabled]="isSavingEdit">
             {{ isSavingEdit ? '保存中...' : '保存修改' }}
+          </ion-button>
+        </div>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="isOrderModalOpen" (didDismiss)="closeOrderModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>填写订单信息</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="closeOrderModal()">关闭</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <form [formGroup]="orderForm">
+        <ion-list lines="full">
+          <ion-item>
+            <ion-label position="stacked">详细地址 *</ion-label>
+            <ion-input formControlName="DetailLocation" placeholder="请输入上门/交付地址"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">补充信息</ion-label>
+            <ion-textarea formControlName="AdditionalInfo" [autoGrow]="true" placeholder="例如时间、联系方式、特殊要求"></ion-textarea>
+          </ion-item>
+        </ion-list>
+        <div style="padding: 16px;">
+          <ion-button expand="block" (click)="submitOrder()" [disabled]="isSubmittingOrder">
+            {{ isSubmittingOrder ? '提交中...' : '确认下单' }}
           </ion-button>
         </div>
       </form>
