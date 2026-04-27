@@ -506,6 +506,76 @@ router.delete("/events/:id", authRequired, async (req, res) => {
     if (conn) conn.release();
   }
 });
+
+// 管理端：获取事件列表
+router.get("/admin/events", async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+        e.EventId,
+        e.CreatorId,
+        e.EventTitle,
+        e.EventType,
+        e.EventCategory,
+        e.Photos,
+        e.Location,
+        e.Price,
+        e.EventDetails,
+        e.CreateTime,
+        u.UserName AS CreatorName,
+        (SELECT COUNT(*) FROM Orders o WHERE o.EventId = e.EventId) AS OrderCount
+       FROM Events e
+       JOIN Users u ON e.CreatorId = u.UserId
+       ORDER BY e.CreateTime DESC`,
+    );
+
+    return res.json({ success: true, events: rows });
+  } catch (err) {
+    console.error("获取管理端事件失败:", err);
+    return res.status(500).json({ success: false, error: "获取事件列表失败" });
+  }
+});
+
+// 管理端：删除事件
+router.delete("/admin/events/:id", async (req, res) => {
+  const eventId = Number(req.params.id);
+  if (!Number.isInteger(eventId) || eventId <= 0) {
+    return res.status(400).json({ success: false, error: "无效的事件ID" });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    await conn.query("DELETE FROM Orders WHERE EventId = ?", [eventId]);
+    const [result] = await conn.query("DELETE FROM Events WHERE EventId = ?", [eventId]);
+    await conn.commit();
+    return res.json({ success: true, deleted: result.affectedRows });
+  } catch (err) {
+    if (conn) await conn.rollback().catch(() => {});
+    console.error("删除事件失败:", err);
+    return res.status(500).json({ success: false, error: "删除事件失败" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// 管理端：状态统计
+router.get("/admin/events/summary", async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN EventType = 0 THEN 1 ELSE 0 END) AS requestCount,
+        SUM(CASE WHEN EventType = 1 THEN 1 ELSE 0 END) AS helpCount
+       FROM Events`,
+    );
+    return res.json({ success: true, summary: rows[0] || {} });
+  } catch (err) {
+    console.error("获取事件统计失败:", err);
+    return res.status(500).json({ success: false, error: "获取统计失败" });
+  }
+});
 router.get("/api/provider-profile", async (req, res) => {
   const userId = Number(req.query.userId);
   if (!userId) return res.status(400).json({ msg: "缺少 userId" });

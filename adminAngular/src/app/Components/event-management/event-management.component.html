@@ -1,4 +1,22 @@
-<div class="placeholder-page">
+<div class="page-shell">
   <h2>事件管理</h2>
-  <p>事件管理功能开发中...</p>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>标题</th><th>发布者</th><th>类型</th><th>订单数</th><th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (event of events; track event.EventId) {
+      <tr>
+        <td>{{ event.EventId }}</td>
+        <td>{{ event.EventTitle }}</td>
+        <td>{{ event.CreatorName }}</td>
+        <td>{{ event.EventType === 1 ? '帮助' : '求助' }}</td>
+        <td>{{ event.OrderCount }}</td>
+        <td><button (click)="deleteEvent(event.EventId)">删除</button></td>
+      </tr>
+      }
+    </tbody>
+  </table>
 </div>
