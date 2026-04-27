@@ -149,4 +149,35 @@ router.get('/reviews', async (req, res) => {
   }
 });
 
+// 管理端评论列表
+router.get('/admin/reviews', async (_req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT
+        c.ReviewId,
+        c.OrderId,
+        c.AuthorId,
+        c.TargetUserId,
+        c.Score,
+        c.Text,
+        c.Time,
+        ao.EventId,
+        e.EventTitle,
+        au.UserName AS AuthorName,
+        tu.UserName AS TargetName
+       FROM Comments c
+       JOIN Orders ao ON c.OrderId = ao.OrderId
+       JOIN Events e ON ao.EventId = e.EventId
+       JOIN Users au ON c.AuthorId = au.UserId
+       JOIN Users tu ON c.TargetUserId = tu.UserId
+       ORDER BY c.Time DESC`,
+    );
+
+    return res.json({ success: true, reviews: rows });
+  } catch (err) {
+    console.error('获取管理端评价失败:', err);
+    return res.status(500).json({ success: false, error: '获取评价列表失败' });
+  }
+});
+
 module.exports = router;
