@@ -12,7 +12,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import type { Subscription } from 'rxjs';
+import { Subscription, interval } from 'rxjs';
 import { addIcons } from 'ionicons';
 import {
   LocationPickerComponent,
@@ -121,6 +121,8 @@ export class Tab4Page implements OnDestroy {
 
   isLoggedIn = false;
   private readonly _sub: Subscription;
+  private _pollSub: Subscription | null = null;
+  private static readonly POLL_INTERVAL_MS = 15_000;
 
   // 翻译对象
   t = this.langService.getTranslations('zh').tab4;
@@ -281,6 +283,7 @@ export class Tab4Page implements OnDestroy {
       this.isLoggedIn = v;
       if (v) {
         void this.loadUserFromStorage();
+        this.startPolling();
       } else {
         this.resetUserInfo();
       }
@@ -317,6 +320,29 @@ export class Tab4Page implements OnDestroy {
         },
       },
     ];
+  }
+
+  // ---- 轮询：页面可见时每 15s 自动刷新订单 ----
+  private startPolling() {
+    if (this._pollSub) return;
+    this._pollSub = interval(Tab4Page.POLL_INTERVAL_MS).subscribe(() => {
+      if (this.isLoggedIn && this.currentUserId) {
+        void this.loadOrders(this.currentUserId);
+      }
+    });
+  }
+
+  private stopPolling() {
+    this._pollSub?.unsubscribe();
+    this._pollSub = null;
+  }
+
+  ionViewDidEnter() {
+    this.startPolling();
+  }
+
+  ionViewWillLeave() {
+    this.stopPolling();
   }
 
   // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
@@ -379,84 +405,6 @@ export class Tab4Page implements OnDestroy {
       }
     }
     return blocked;
-  }
-
-  getEventStatusText(statusKey: string): string {
-    const map: Record<string, string> = {
-      published: '我发布的',
-      pending: '待确认',
-      active: '进行中',
-      review: '待评价',
-      done: '已完成',
-    };
-    return map[statusKey] || '未知';
-  }
-
-  getEventStatusColor(statusKey: string): string {
-    const map: Record<string, string> = {
-      published: 'primary',
-      pending: 'warning',
-      active: 'tertiary',
-      review: 'medium',
-      done: 'success',
-    };
-    return map[statusKey] || 'medium';
-  }
-
-  getOrderStatusText(statusKey: string): string {
-    const map: Record<string, string> = {
-      pending: '待确认',
-      active: '进行中',
-      review: '待评价',
-      done: '已完成',
-    };
-    return map[statusKey] || '未知';
-  }
-
-  getOrderStatusColor(statusKey: string): string {
-    const map: Record<string, string> = {
-      pending: 'warning',
-      active: 'primary',
-      review: 'medium',
-      done: 'success',
-    };
-    return map[statusKey] || 'medium';
-  }
-
-  getOrderActionLabel(order: any): string {
-    if (order.statusKey === 'pending' && order.role === 'seller')
-      return '确认订单';
-    if (order.statusKey === 'active' && order.role === 'buyer')
-      return '确认完成';
-    if (order.statusKey === 'review' && !order.hasReviewed) return '去评价';
-    if (order.statusKey === 'review' && order.hasReviewed)
-      return '已评价，等待对方';
-    return '查看详情';
-  }
-
-  isOrderActionEnabled(order: any): boolean {
-    if (order.statusKey === 'review' && order.hasReviewed) return false;
-    return (
-      (order.statusKey === 'pending' && order.role === 'seller') ||
-      (order.statusKey === 'active' && order.role === 'buyer') ||
-      order.statusKey === 'review'
-    );
-  }
-
-  // !!!!!以下跳转函数为占位，后续接入路由或 API
-  goToFollow() {
-    console.log('跳转到关注页面');
-    //后续接入API
-  }
-
-  goToFavorites() {
-    console.log('跳转到收藏页面');
-    //后续跳转
-  }
-
-  goToViews() {
-    console.log('跳转到浏览记录页面');
-    //后续跳转
   }
 
   // 打开删除确认弹窗
@@ -555,30 +503,6 @@ export class Tab4Page implements OnDestroy {
     void this.openEditModal(taskId);
   }
 
-  viewDetails(taskId: number) {
-    console.log(`查看任务详情 ${taskId}`);
-    //后续跳转详情页
-  }
-
-  // 任务状态的UI显示
-  getStatusText(status: string): string {
-    const map: Record<string, string> = {
-      published: this.t.statusPublished,
-      inProgress: this.t.statusInProgress,
-      completed: this.t.statusCompleted,
-      review: this.t.statusPendingReview,
-    };
-    return map[status] || this.t.statusUnknown;
-  }
-
-  // 根据认证状态显示数据
-  getVerificationColor(status: string): string {
-    if (status === this.t.verified) return 'success';
-    if (status === this.t.rejected) return 'danger';
-    if (status === this.t.pending) return 'warning';
-    return 'medium';
-  }
-
   logout() {
     this.auth.logout(); // 登出会触发状态变更
     this.toastController
@@ -593,6 +517,7 @@ export class Tab4Page implements OnDestroy {
 
   ngOnDestroy(): void {
     this._sub.unsubscribe();
+    this.stopPolling();
   }
 
   // 提取的默认用户信息
@@ -623,8 +548,10 @@ export class Tab4Page implements OnDestroy {
   resetUserInfo() {
     this.userInfo = this.createDefaultUserInfo();
     this.tasks = []; // 清空任务列表
+    this.orders = [];
     this.currentUserId = null;
     this.deletingIds.clear();
+    this.stopPolling();
   }
 
   // 统一更新用户信息的工具方法
@@ -655,12 +582,6 @@ export class Tab4Page implements OnDestroy {
     else if (vs === 2) this.userInfo.isVerified = this.t.rejected;
     else if (vs === 0) this.userInfo.isVerified = this.t.pending;
     else this.userInfo.isVerified = this.t.notVerified;
-  }
-
-  // 格式化评分显示
-  formatRating(value: any): string {
-    const num = Number(value) || 0;
-    return num.toFixed(1);
   }
 
   // 从 localStorage 加载用户
