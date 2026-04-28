@@ -293,7 +293,23 @@ router.get("/events/:id", async (req, res) => {
       return res.status(404).json({ success: false, error: "事件不存在" });
     }
 
-    return res.json({ success: true, event: rows[0] });
+    const [activeOrders] = await pool.query(
+      `SELECT OrderId, OrderStatus
+       FROM Orders
+       WHERE EventId = ? AND OrderStatus <> 3
+       ORDER BY OrderCreateTime DESC
+       LIMIT 1`,
+      [eventId],
+    );
+
+    return res.json({
+      success: true,
+      event: {
+        ...rows[0],
+        canCreateOrder: activeOrders.length === 0,
+        activeOrder: activeOrders[0] || null,
+      },
+    });
   } catch (err) {
     console.error("查询事件详情失败:", err);
     return res.status(500).json({ success: false, error: "服务器内部错误" });
@@ -386,6 +402,19 @@ router.put("/events/:id", authRequired, async (req, res) => {
       return res
         .status(404)
         .json({ success: false, error: "事件不存在或无权编辑" });
+    }
+    
+    // 检查是否有进行中或待评价的订单，如果有则不允许编辑
+    const [activeOrders] = await conn.query(
+      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (1, 2) LIMIT 1",
+      [eventId],
+    );
+    
+    if (activeOrders && activeOrders.length > 0) {
+      await conn.rollback();
+      return res
+        .status(400)
+        .json({ success: false, error: "订单进行中或待评价时，不允许编辑事件" });
     }
 
     const sets = [

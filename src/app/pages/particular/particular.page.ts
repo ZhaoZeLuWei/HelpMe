@@ -80,6 +80,8 @@ export class ParticularPage implements OnInit {
   isSavingEdit = false;
   isOrderModalOpen = false;
   isSubmittingOrder = false;
+  canCreateOrder = true;
+  activeOrder: any = null;
   editForm: FormGroup = this.fb.group({
     EventTitle: ['', Validators.required],
     EventType: [0, Validators.required],
@@ -155,6 +157,8 @@ export class ParticularPage implements OnInit {
             icon: 'navigate-outline',
             distance: '距500m',
           };
+          this.canCreateOrder = rawEvent.canCreateOrder ?? true;
+          this.activeOrder = rawEvent.activeOrder || null;
           // 加载发布者信息
           if (this.event?.creatorId) {
             this.loadUserFromStorage(this.event.creatorId);
@@ -204,6 +208,8 @@ export class ParticularPage implements OnInit {
           };
 
           this.event = eventData;
+          this.canCreateOrder = data.event.canCreateOrder ?? true;
+          this.activeOrder = data.event.activeOrder || null;
 
           // 加载发布者信息
           if (this.event.creatorId) {
@@ -301,6 +307,10 @@ export class ParticularPage implements OnInit {
 
   openOrderModal() {
     if (!this.event) return;
+    if (!this.canCreateOrder) {
+      alert('该事件当前存在未完结订单，暂不可下单');
+      return;
+    }
     this.orderForm.reset({
       DetailLocation: this.event.address || '',
       AdditionalInfo: '',
@@ -343,6 +353,8 @@ export class ParticularPage implements OnInit {
         return;
       }
       this.closeOrderModal();
+      this.canCreateOrder = false;
+      this.activeOrder = { OrderId: data.orderId, OrderStatus: 0 };
       alert('下单成功，等待卖家确认');
     } catch (e) {
       console.error('submitOrder error', e);

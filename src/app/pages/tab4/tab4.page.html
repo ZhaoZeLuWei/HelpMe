@@ -35,6 +35,7 @@
       [isLoading]="isLoadingEvents"
       [filter]="eventFilter"
       [deletingIds]="deletingIds"
+      [blockedEditIds]="getBlockedEditIds()"
       [t]="t"
       (filterChange)="setEventFilter($event)"
       (viewDetail)="goToEventDetail($event)"

@@ -56,9 +56,9 @@ import {
   IonModal,
   IonList,
   IonInput,
-  IonTextarea,
   IonSelect,
   IonSelectOption,
+  IonTextarea,
   ModalController,
 } from '@ionic/angular/standalone';
 
@@ -93,9 +93,9 @@ import { Tab4OrdersPanelComponent } from '../../components/tab4-orders-panel/tab
     IonModal,
     IonList,
     IonInput,
-    IonTextarea,
     IonSelect,
     IonSelectOption,
+    IonTextarea,
     ReactiveFormsModule,
     Tab4ProfileCardComponent,
     Tab4EventsPanelComponent,
@@ -130,6 +130,7 @@ export class Tab4Page implements OnDestroy {
   isSavingProfile = false;
   profileAvatarPreview: string | null = null;
   profileAvatarFile: File | null = null;
+  profileAvatarDeleted = false;
   editProfileForm: FormGroup = this.fb.group({
     UserName: [
       '',
@@ -240,7 +241,14 @@ export class Tab4Page implements OnDestroy {
   tasks: any[] = [];
   orders: any[] = [];
   orderStats = { all: 0, pending: 0, active: 0, review: 0, done: 0 };
-  eventStats = { all: 0, published: 0, pending: 0, active: 0, review: 0, done: 0 };
+  eventStats = {
+    all: 0,
+    published: 0,
+    pending: 0,
+    active: 0,
+    review: 0,
+    done: 0,
+  };
   isLoadingEvents = false;
   isLoadingOrders = false;
   currentUserId: number | null = null;
@@ -358,6 +366,17 @@ export class Tab4Page implements OnDestroy {
     return this.orders.filter((order) => order.statusKey === this.orderFilter);
   }
 
+  // 获取有进行中/待评价订单的事件ID集合（用于禁用编辑按钮）
+  getBlockedEditIds(): Set<number> {
+    const blocked = new Set<number>();
+    for (const order of this.orders) {
+      if (order.statusKey === 'pending' || order.statusKey === 'active' || order.statusKey === 'review') {
+        blocked.add(order.eventId);
+      }
+    }
+    return blocked;
+  }
+
   getEventStatusText(statusKey: string): string {
     const map: Record<string, string> = {
       published: '我发布的',
@@ -401,13 +420,17 @@ export class Tab4Page implements OnDestroy {
   }
 
   getOrderActionLabel(order: any): string {
-    if (order.statusKey === 'pending' && order.role === 'seller') return '确认订单';
-    if (order.statusKey === 'active' && order.role === 'buyer') return '确认完成';
-    if (order.statusKey === 'review') return '去评价';
+    if (order.statusKey === 'pending' && order.role === 'seller')
+      return '确认订单';
+    if (order.statusKey === 'active' && order.role === 'buyer')
+      return '确认完成';
+    if (order.statusKey === 'review' && !order.hasReviewed) return '去评价';
+    if (order.statusKey === 'review' && order.hasReviewed) return '已评价，等待对方';
     return '查看详情';
   }
 
   isOrderActionEnabled(order: any): boolean {
+    if (order.statusKey === 'review' && order.hasReviewed) return false;
     return (
       (order.statusKey === 'pending' && order.role === 'seller') ||
       (order.statusKey === 'active' && order.role === 'buyer') ||
@@ -657,7 +680,7 @@ export class Tab4Page implements OnDestroy {
             }
           } else {
             const data = await resp.json().catch(() => null);
-      if (data?.success && data.user) {
+            if (data?.success && data.user) {
               this.updateUserFromData(data.user);
 
               await this.loadUserEvents(data.user.UserId);
@@ -720,8 +743,10 @@ export class Tab4Page implements OnDestroy {
 
       this.eventStats = {
         all: this.tasks.length,
-        published: this.tasks.filter((e: any) => e.statusKey === 'published').length,
-        pending: this.tasks.filter((e: any) => e.statusKey === 'pending').length,
+        published: this.tasks.filter((e: any) => e.statusKey === 'published')
+          .length,
+        pending: this.tasks.filter((e: any) => e.statusKey === 'pending')
+          .length,
         active: this.tasks.filter((e: any) => e.statusKey === 'active').length,
         review: this.tasks.filter((e: any) => e.statusKey === 'review').length,
         done: this.tasks.filter((e: any) => e.statusKey === 'done').length,
@@ -749,7 +774,10 @@ export class Tab4Page implements OnDestroy {
       const data = await resp.json().catch(() => null);
       const rows = Array.isArray(data?.orders) ? data.orders : [];
       const mapped = rows
-        .filter((o: any) => Number(o.ConsumerId) === userId || Number(o.ProviderId) === userId)
+        .filter(
+          (o: any) =>
+            Number(o.ConsumerId) === userId || Number(o.ProviderId) === userId,
+        )
         .map((o: any) => {
           const status = Number(o.OrderStatus);
           const meta =
@@ -777,16 +805,25 @@ export class Tab4Page implements OnDestroy {
             statusColor: meta.color,
             role: Number(o.ConsumerId) === userId ? 'buyer' : 'seller',
             reviewCount: Number(o.ReviewCount || 0),
+            hasReviewed: Number(o.HasReviewed || 0) > 0,
           };
         });
 
       this.orders = mapped;
       this.orderStats = {
         all: mapped.length,
-        pending: mapped.filter((o: { statusKey: string }) => o.statusKey === 'pending').length,
-        active: mapped.filter((o: { statusKey: string }) => o.statusKey === 'active').length,
-        review: mapped.filter((o: { statusKey: string }) => o.statusKey === 'review').length,
-        done: mapped.filter((o: { statusKey: string }) => o.statusKey === 'done').length,
+        pending: mapped.filter(
+          (o: { statusKey: string }) => o.statusKey === 'pending',
+        ).length,
+        active: mapped.filter(
+          (o: { statusKey: string }) => o.statusKey === 'active',
+        ).length,
+        review: mapped.filter(
+          (o: { statusKey: string }) => o.statusKey === 'review',
+        ).length,
+        done: mapped.filter(
+          (o: { statusKey: string }) => o.statusKey === 'done',
+        ).length,
       };
     } catch (e) {
       console.error('loadOrders error', e);
@@ -828,7 +865,9 @@ export class Tab4Page implements OnDestroy {
         return;
       }
       if (this.currentUserId) await this.loadOrders(this.currentUserId);
-      await this.presentDeleteToast(action === 'confirm' ? '订单已确认' : '订单已完成');
+      await this.presentDeleteToast(
+        action === 'confirm' ? '订单已确认' : '订单已完成',
+      );
     } catch (e) {
       console.error('performOrderAction error', e);
       await this.presentDeleteToast(this.t.networkError);
@@ -843,6 +882,11 @@ export class Tab4Page implements OnDestroy {
   });
 
   openReviewModal(orderId: number) {
+    const order = this.orders.find((o) => o.id === orderId);
+    if (order?.hasReviewed) {
+      this.presentDeleteToast('你已经评价过该订单，请等待对方评价');
+      return;
+    }
     this.reviewOrderId = orderId;
     this.isReviewModalOpen = true;
   }
@@ -854,10 +898,12 @@ export class Tab4Page implements OnDestroy {
   }
 
   async submitReview() {
-    if (!this.reviewOrderId || this.reviewForm.invalid || !this.currentUserId) return;
+    if (!this.reviewOrderId || this.reviewForm.invalid || !this.currentUserId)
+      return;
     const order = this.orders.find((o) => o.id === this.reviewOrderId);
     if (!order) return;
-    const targetUserId = order.role === 'buyer' ? order.providerId : order.consumerId;
+    const targetUserId =
+      order.role === 'buyer' ? order.providerId : order.consumerId;
 
     try {
       const resp = await fetch(`${this.API_BASE}/reviews`, {
@@ -900,6 +946,14 @@ export class Tab4Page implements OnDestroy {
         const data = await resp.json().catch(() => null);
         if (resp.ok && data?.success && data?.event) {
           source = { ...task, ...data.event };
+
+          // 检查是否有进行中或待评价的订单
+          if (!data.event.canCreateOrder) {
+            await this.presentDeleteToast(
+              '订单进行中或待评价时，不允许编辑事件',
+            );
+            return;
+          }
         }
       } catch (e) {
         console.warn('fetch event detail failed', e);
@@ -1156,6 +1210,7 @@ export class Tab4Page implements OnDestroy {
     });
     this.profileAvatarPreview = null;
     this.profileAvatarFile = null;
+    this.profileAvatarDeleted = false;
     this.isEditProfileModalOpen = true;
   }
 
@@ -1163,6 +1218,7 @@ export class Tab4Page implements OnDestroy {
     this.isEditProfileModalOpen = false;
     this.profileAvatarPreview = null;
     this.profileAvatarFile = null;
+    this.profileAvatarDeleted = false;
     this.editProfileForm.reset();
   }
 
@@ -1188,6 +1244,7 @@ export class Tab4Page implements OnDestroy {
 
     this.profileAvatarFile = file;
     this.profileAvatarPreview = URL.createObjectURL(file);
+    this.profileAvatarDeleted = false;
     input.value = '';
   }
 
@@ -1197,6 +1254,7 @@ export class Tab4Page implements OnDestroy {
     }
     this.profileAvatarPreview = null;
     this.profileAvatarFile = null;
+    this.profileAvatarDeleted = true;
     // 清理文件输入框
     if (this.profileAvatarInput?.nativeElement) {
       this.profileAvatarInput.nativeElement.value = '';
@@ -1256,6 +1314,9 @@ export class Tab4Page implements OnDestroy {
 
       if (avatarPath) {
         payload.UserAvatar = avatarPath;
+      } else if (this.profileAvatarDeleted) {
+        // 用户删除了头像，明确设置为 null
+        payload.UserAvatar = null;
       }
 
       const resp = await fetch(
@@ -1304,6 +1365,8 @@ export class Tab4Page implements OnDestroy {
       this.userInfo.introduction = payload.Introduction;
       if (avatarPath) {
         this.userInfo.avatar = avatarPath;
+      } else if (this.profileAvatarDeleted) {
+        this.userInfo.avatar = '';
       }
 
       // 更新 localStorage
@@ -1319,6 +1382,8 @@ export class Tab4Page implements OnDestroy {
       storedUser.Introduction = payload.Introduction;
       if (avatarPath) {
         storedUser.UserAvatar = avatarPath;
+      } else if (this.profileAvatarDeleted) {
+        storedUser.UserAvatar = '';
       }
       localStorage.setItem('user', JSON.stringify(storedUser));
 

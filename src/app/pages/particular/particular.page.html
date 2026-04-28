@@ -83,12 +83,14 @@
           收藏
         </ion-button>
       </ion-col>
+        @if (!isCurrentUserCreator) {
         <ion-col>
-          <ion-button expand="block" color="primary" (click)="openOrderModal()">
+          <ion-button expand="block" color="primary" (click)="openOrderModal()" [disabled]="!canCreateOrder">
             <ion-icon slot="start" name="document-text"></ion-icon>
-            下单
+            {{ canCreateOrder ? '下单' : '暂不可下单' }}
           </ion-button>
         </ion-col>
+        }
         <ion-col>
           <ion-button expand="block" (click)="onChat()">
             <ion-icon slot="start" [name]="isCurrentUserCreator ? 'create-outline' : 'chatbubble-outline'"></ion-icon>

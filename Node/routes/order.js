@@ -60,13 +60,26 @@ router.post('/orders', authRequired, async (req, res) => {
     }
 
     const event = eventRows[0];
+    
+    // 检查发布者是否尝试下单自己的事件
+    if (event.CreatorId === consumerId) {
+      await conn.rollback();
+      return res.status(400).json({
+        success: false,
+        error: '无法下单自己发布的事件',
+      });
+    }
+    
     const [existingRows] = await conn.query(
-      'SELECT OrderId FROM Orders WHERE EventId = ? LIMIT 1',
+      'SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus <> 3 LIMIT 1',
       [eventId],
     );
     if (existingRows.length > 0) {
       await conn.rollback();
-      return res.status(409).json({ success: false, error: '该事件只能生成一个订单' });
+      return res.status(409).json({
+        success: false,
+        error: '该事件当前存在未完结订单，暂不可下单',
+      });
     }
 
     const verificationCode = `ORD${Date.now().toString().slice(-8)}`;
@@ -136,14 +149,15 @@ router.get('/orders', authRequired, async (req, res) => {
         o.RefundTime, e.EventTitle,
         buyer.UserName AS ConsumerName,
         provider.UserName AS ProviderName,
-        (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId) AS ReviewCount
+        (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId) AS ReviewCount,
+        (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId = ?) AS HasReviewed
        FROM Orders o
        JOIN Events e ON o.EventId = e.EventId
        JOIN Users buyer ON o.ConsumerId = buyer.UserId
        JOIN Users provider ON o.ProviderId = provider.UserId
        WHERE ${where.join(' AND ')}
        ORDER BY o.OrderCreateTime DESC`,
-      params,
+      [...params, userId],
     );
 
     return res.json({ success: true, orders: rows });
@@ -262,6 +276,13 @@ router.put('/orders/:id/complete', authRequired, async (req, res) => {
       'UPDATE Orders SET OrderStatus = 2, CompletionTime = NOW() WHERE OrderId = ?',
       [orderId],
     );
+    
+    // 增加卖家的服务单数
+    await conn.query(
+      'UPDATE Providers SET OrderCount = OrderCount + 1 WHERE ProviderId = ?',
+      [order.ProviderId],
+    );
+    
     await conn.commit();
 
     await Message.create({

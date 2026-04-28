@@ -15,6 +15,7 @@ export class Tab4EventsPanelComponent {
   @Input() isLoading = false;
   @Input() filter: 'all' | 'published' | 'pending' | 'active' | 'review' | 'done' = 'all';
   @Input() deletingIds = new Set<number>();
+  @Input() blockedEditIds = new Set<number>();
   @Input() t: any;
 
   @Output() filterChange = new EventEmitter<'all' | 'published' | 'pending' | 'active' | 'review' | 'done'>();

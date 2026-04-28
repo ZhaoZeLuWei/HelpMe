@@ -75,26 +75,67 @@ router.post('/reviews', authRequired, async (req, res) => {
     const avgScore = Number(scoreRows?.[0]?.[0]?.avgScore || 0);
     const totalCount = Number(scoreRows?.[0]?.[0]?.totalCount || 0);
 
-    const [consumerCheck] = await conn.query(
-      'SELECT ConsumerId FROM Consumers WHERE ConsumerId = ? LIMIT 1',
-      [targetUserId],
+    // 根据谁在评价来更新对应的评分
+    // 如果是买家评价卖家，更新卖家的 ServiceRanking
+    // 如果是卖家评价买家，更新买家的 BuyerRanking
+    if (order.ConsumerId === authorId) {
+      // 买家在评价卖家
+      const [providerCheck] = await conn.query(
+        'SELECT ProviderId FROM Providers WHERE ProviderId = ? LIMIT 1',
+        [targetUserId],
+      );
+      if (providerCheck.length > 0) {
+        // 只查询来自买家的评价
+        const [providerScoreRows] = await conn.query(
+          `SELECT ROUND(AVG(c.Score), 1) AS avgScore
+           FROM Comments c
+           JOIN Orders o ON c.OrderId = o.OrderId
+           WHERE c.TargetUserId = ? AND o.ProviderId = ? AND o.ConsumerId = c.AuthorId`,
+          [targetUserId, targetUserId],
+        );
+        const providerAvgScore = Number(providerScoreRows?.[0]?.avgScore || 0);
+        await conn.query(
+          'UPDATE Providers SET ServiceRanking = ? WHERE ProviderId = ?',
+          [providerAvgScore, targetUserId],
+        );
+      }
+    } else {
+      // 卖家在评价买家
+      const [consumerCheck] = await conn.query(
+        'SELECT ConsumerId FROM Consumers WHERE ConsumerId = ? LIMIT 1',
+        [targetUserId],
+      );
+      if (consumerCheck.length > 0) {
+        // 只查询来自卖家的评价
+        const [consumerScoreRows] = await conn.query(
+          `SELECT ROUND(AVG(c.Score), 1) AS avgScore
+           FROM Comments c
+           JOIN Orders o ON c.OrderId = o.OrderId
+           WHERE c.TargetUserId = ? AND o.ConsumerId = ? AND o.ProviderId = c.AuthorId`,
+          [targetUserId, targetUserId],
+        );
+        const consumerAvgScore = Number(consumerScoreRows?.[0]?.avgScore || 0);
+        await conn.query(
+          'UPDATE Consumers SET BuyerRanking = ? WHERE ConsumerId = ?',
+          [consumerAvgScore, targetUserId],
+        );
+      }
+    }
+
+    // 检查双方是否都已评价
+    const [reviewCountRows] = await conn.query(
+      'SELECT COUNT(*) AS cnt FROM Comments WHERE OrderId = ?',
+      [orderId],
     );
-    if (consumerCheck.length > 0) {
+    const reviewCount = Number(reviewCountRows?.[0]?.cnt || 0);
+    if (reviewCount >= 2) {
+      // 双方都已评价，将订单标记为已完成
       await conn.query(
-        'UPDATE Consumers SET BuyerRanking = ? WHERE ConsumerId = ?',
-        [avgScore, targetUserId],
+        'UPDATE Orders SET OrderStatus = 3, CompletionTime = COALESCE(CompletionTime, NOW()) WHERE OrderId = ?',
+        [orderId],
       );
     }
-    const [providerCheck] = await conn.query(
-      'SELECT ProviderId FROM Providers WHERE ProviderId = ? LIMIT 1',
-      [targetUserId],
-    );
-    if (providerCheck.length > 0) {
-      await conn.query(
-        'UPDATE Providers SET ServiceRanking = ?, OrderCount = OrderCount + 1 WHERE ProviderId = ?',
-        [avgScore, targetUserId],
-      );
-    }
+    // 否则保持 OrderStatus = 2（待评价），等待另一方评价
 
     await conn.commit();
 
