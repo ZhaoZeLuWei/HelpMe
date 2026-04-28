@@ -322,6 +322,71 @@ router.put("/orders/:id/complete", authRequired, async (req, res) => {
   }
 });
 
+// 取消订单（仅待确认状态，买家或卖家均可取消）
+router.put("/orders/:id/cancel", authRequired, async (req, res) => {
+  const orderId = Number(req.params.id);
+  const userId = Number(req.user?.id);
+
+  if (!Number.isInteger(orderId) || orderId <= 0) {
+    return res.status(400).json({ success: false, error: "订单ID无效" });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    const order = await fetchOrderWithNames(conn, orderId);
+    if (!order) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, error: "订单不存在" });
+    }
+
+    // 仅买家或卖家可操作
+    if (order.ConsumerId !== userId && order.ProviderId !== userId) {
+      await conn.rollback();
+      return res.status(403).json({ success: false, error: "无权操作该订单" });
+    }
+
+    // 仅待确认状态（OrderStatus=0）可取消
+    if (Number(order.OrderStatus) !== 0) {
+      await conn.rollback();
+      return res
+        .status(400)
+        .json({ success: false, error: "当前订单状态无法取消" });
+    }
+
+    // 将订单状态设为已取消（3）
+    await conn.query(
+      "UPDATE Orders SET OrderStatus = 3, RefundTime = NOW() WHERE OrderId = ?",
+      [orderId],
+    );
+
+    await conn.commit();
+
+    // 通知对方
+    const otherUserId =
+      userId === order.ConsumerId ? order.ProviderId : order.ConsumerId;
+    const operatorRole = userId === order.ConsumerId ? "买家" : "卖家";
+
+    await Message.create({
+      roomId: `system_${otherUserId}`,
+      text: `订单"${order.EventTitle}"已被${operatorRole}取消。`,
+      senderId: userId,
+      userName: "系统通知",
+      sendTime: new Date(),
+    }).catch((err) => console.error("写入取消通知失败:", err));
+
+    return res.json({ success: true });
+  } catch (err) {
+    if (conn) await conn.rollback().catch(() => {});
+    console.error("取消订单失败:", err);
+    return res.status(500).json({ success: false, error: "服务器内部错误" });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 // 管理端订单列表
 router.get("/admin/orders", async (req, res) => {
   try {

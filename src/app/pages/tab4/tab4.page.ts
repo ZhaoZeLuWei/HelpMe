@@ -62,7 +62,7 @@ import {
   ModalController,
 } from '@ionic/angular/standalone';
 
-import { ToastController } from '@ionic/angular';
+import { ToastController, AlertController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
@@ -107,6 +107,7 @@ export class Tab4Page implements OnDestroy {
 
   private readonly auth = inject(AuthService);
   private readonly toastController = inject(ToastController);
+  private readonly alertController = inject(AlertController);
   private readonly modalController = inject(ModalController);
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
@@ -772,9 +773,27 @@ export class Tab4Page implements OnDestroy {
     await this.performOrderAction(orderId, 'complete');
   }
 
+  async cancelOrder(orderId: number) {
+    const alert = await this.alertController.create({
+      header: this.t.cancel,
+      message: '确定要取消该订单吗？取消后不可恢复。',
+      buttons: [
+        { text: this.t.cancel, role: 'cancel' },
+        {
+          text: '确认取消',
+          role: 'destructive',
+          handler: async () => {
+            await this.performOrderAction(orderId, 'cancel');
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
   private async performOrderAction(
     orderId: number,
-    action: 'confirm' | 'complete',
+    action: 'confirm' | 'complete' | 'cancel',
   ) {
     try {
       const resp = await fetch(`${this.API_BASE}/orders/${orderId}/${action}`, {
@@ -791,9 +810,13 @@ export class Tab4Page implements OnDestroy {
         return;
       }
       if (this.currentUserId) await this.loadOrders(this.currentUserId);
-      await this.presentDeleteToast(
-        action === 'confirm' ? '订单已确认' : '订单已完成',
-      );
+      const msg =
+        action === 'confirm'
+          ? '订单已确认'
+          : action === 'complete'
+            ? '订单已完成'
+            : '订单已取消';
+      await this.presentDeleteToast(msg);
     } catch (e) {
       console.error('performOrderAction error', e);
       await this.presentDeleteToast(this.t.networkError);

@@ -62,6 +62,11 @@
       <ion-item lines="none" class="task-actions">
         <ion-buttons slot="end">
           <ion-button (click)="viewDetail.emit(order.eventId)">详情</ion-button>
+          @if (order.statusKey === "pending") {
+            <ion-button color="danger" (click)="cancel.emit(order.id)"
+              >取消订单</ion-button
+            >
+          }
           @if (order.statusKey === "pending" && order.role === "seller") {
             <ion-button (click)="confirm.emit(order.id)">确认订单</ion-button>
           }
