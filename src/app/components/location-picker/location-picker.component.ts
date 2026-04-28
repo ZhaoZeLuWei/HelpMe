@@ -77,6 +77,13 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   constructor() {
     addIcons({ checkmark, locate, map, close, save });
   }
+    // 点击“搜索”按钮执行
+  doSearchAction() {
+    if (!this.keyword) return;
+    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+    // 点按钮搜，传 true（飞地图）
+    this.searchLocations(this.keyword, true);
+  }
 
   ngOnInit(): void {
     this.clearExpiredCache();
@@ -130,27 +137,24 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
 
   onKeywordChange(value: string | null | undefined) {
     this.keyword = String(value || '').trim();
-    
     if (!this.keyword) {
       this.locations.set([]);
       return;
     }
 
-    if (this.searchDebounceTimer) {
-      clearTimeout(this.searchDebounceTimer);
-    }
+    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
 
+    // 打字自动搜，传 false（不飞地图）
     this.searchDebounceTimer = window.setTimeout(() => {
-      this.searchLocations(this.keyword);
+      this.searchLocations(this.keyword, false);
     }, 300);
   }
 
   // ================= 混合模式搜索：本地缓存 + 高德 API =================
 
-  private searchLocations(keyword: string) {
+  private searchLocations(keyword: string, flyToFirst: boolean = false) {
     this.loading.set(true);
-    // 只要用户在搜索，就完全交给高德在当前城市里找，不拿本地缓存糊弄人
-    this.searchByAMap(keyword);
+    this.searchByAMap(keyword, flyToFirst); // 👈 把参数传下去
   }
 
   private searchFromCache(keyword: string): LocationOption[] | null {
@@ -188,30 +192,27 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
-  private searchByAMap(keyword: string) {
+  private searchByAMap(keyword: string, flyToFirst: boolean = false) {
     this.loading.set(true);
 
     const doSearch = () => {
-      // 1. 获取当前城市（优先用解析出来的，没有就用默认的）
       const detail = this.addressDetail();
-      const currentCity = detail?.city || detail?.province || '全国';
+      const currentCity = detail?.city || detail?.province || '';
+      
+      const center = this.map ? this.map.getCenter() : null;
+      const currentLng = center ? center.getLng() : this.centerLng;
+      const currentLat = center ? center.getLat() : this.centerLat;
 
       const placeSearch = new AMap.PlaceSearch({
         pageSize: 20,
         pageIndex: 1,
-        city: currentCity,      // 👈 核心修改：限定在当前城市搜索
-        citylimit: true,        // 👈 核心修改：严格限制不跨城市（不会搜出北京的万达了）
-        extensions: 'all',
       });
 
-      // 2. 使用全局搜索（但已经被 city 限制了范围）
-      placeSearch.search(keyword, (status: string, result: any) => {
-        console.log('【高德搜索状态】:', status);
-        console.log('【高德搜索结果】:', result);
+      // 处理结果的通用函数
+      const handleResult = (status: string, result: any, needCalcDistance: boolean) => {
         this.loading.set(false);
-        
         if (status === 'complete' && result.poiList?.pois) {
-          const list = result.poiList.pois.map((poi: any) => ({
+          let list = result.poiList.pois.map((poi: any) => ({
             id: poi.id || `amap_${Date.now()}`,
             name: poi.name || '未知地点',
             address: poi.address || poi.name || '',
@@ -220,13 +221,119 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
             district: (poi.pname || '') + (poi.cityname || '') + (poi.adname || ''),
             distanceMeters: poi.distance ? Math.round(poi.distance) : null,
           }));
-          
+
+          // 如果是全国兜底，进行智能排序
+          if (needCalcDistance) {
+            const lowerKeyword = keyword.toLowerCase();
+
+            list = list.map((item: any) => {
+              // 1. 算距离
+              if (item.lng && item.lat) {
+                item.distanceMeters = Math.round(this.calculateDistance(currentLng, currentLat, item.lng, item.lat));
+              }
+              
+              // 2. 算相关度得分（名字越精确，分越高）
+              const lowerName = (item.name || '').toLowerCase();
+              if (lowerName === lowerKeyword) {
+                item._score = 9000; // 完全匹配
+              } else if (lowerName.startsWith(lowerKeyword)) {
+                item._score = 800;  // 前缀匹配
+              } else if (lowerName.includes(lowerKeyword)) {
+                item._score = 500;  // 包含匹配
+              } else {
+                item._score = 0;    // 名字不匹配
+              }
+              
+              return item;
+            });
+
+            // 3. 综合排序
+            list.sort((a: any, b: any) => {
+              const scoreDiff = (b._score || 0) - (a._score || 0);
+              if (scoreDiff !== 0) return scoreDiff; 
+              return (a.distanceMeters || Infinity) - (b.distanceMeters || Infinity); 
+            });
+          }
+
           this.locations.set(list);
           this.cacheAMapResults(list);
+
+          // 👇 新增：如果是点击“搜索”按钮触发的，地图自动飞过去
+          if (flyToFirst && list.length > 0) {
+            const first = list[0];
+            if (first.lng && first.lat && this.map) {
+              this.map.setCenter([first.lng, first.lat]);
+              this.map.setZoom(16);
+              this.addMapMarker(first.lng, first.lat);
+              
+              // 同步更新顶部地址卡片和暂存坐标
+              this.selectedMapLocation.set({ lng: first.lng, lat: first.lat });
+              this.currentAddress.set(first.address || first.name);
+              this.pendingConfirmLocation.set(null);
+            }
+          }
         } else {
           this.locations.set([]); 
         }
-      });
+      };
+
+      // 检查搜出来的结果里，有没有【完整包含】用户输入关键词的
+      const hasExactMatch = (pois: any[]) => {
+        if (!pois || pois.length === 0) return false;
+        const lowerKeyword = keyword.toLowerCase();
+        return pois.some((poi: any) => 
+          (poi.name || '').toLowerCase().includes(lowerKeyword)
+        );
+      };
+
+      if (currentCity) {
+        // 1. 第一轮：严格限制在当前城市搜
+        placeSearch.setCity(currentCity);
+        placeSearch.setCityLimit(true); 
+        
+        placeSearch.search(keyword, (status: any, result: any) => {
+          const pois = result?.poiList?.pois || [];
+          
+          if (status === 'complete' && hasExactMatch(pois)) {
+            handleResult(status, result, false);
+          } else {
+            // 2. 第二轮：本地没精确匹配到，放开到全国搜
+            placeSearch.setCity('全国');
+            placeSearch.setCityLimit(false);
+            
+            placeSearch.search(keyword, (status2: any, result2: any) => {
+              let finalPois = result2?.poiList?.pois || [];
+              
+              if (finalPois.length > 0 && pois.length > 0) {
+                const localList = pois.map((poi: any) => ({
+                  id: poi.id,
+                  name: poi.name,
+                  address: poi.address,
+                  lng: poi.location?.lng,
+                  lat: poi.location?.lat,
+                  district: (poi.pname || '') + (poi.cityname || '') + (poi.adname || ''),
+                  distanceMeters: Math.round(this.calculateDistance(currentLng, currentLat, poi.location?.lng, poi.location?.lat)),
+                }));
+
+                finalPois = [...finalPois, ...localList];
+                const uniqueMap = new Map();
+                finalPois.forEach((p: any) => uniqueMap.set(p.id, p));
+                finalPois = Array.from(uniqueMap.values());
+              }
+
+              const mockResult = { poiList: { pois: finalPois } };
+              handleResult('complete', mockResult, true); 
+            });
+          }
+        });
+      } else {
+        // 极端情况：连当前城市都不知道，直接全国搜算距离
+        placeSearch.setCity('全国');
+        placeSearch.setCityLimit(false);
+        placeSearch.search(keyword, (status: any, result: any) => {
+          handleResult(status, result, true);
+        });
+      }
     };
 
     if (typeof AMap !== 'undefined' && AMap.PlaceSearch) {
@@ -234,6 +341,18 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
     } else {
       AMap.plugin(['AMap.PlaceSearch'], doSearch);
     }
+  }
+
+  // 👇 新增工具方法：根据两点经纬度计算直线距离（米）
+  private calculateDistance(lng1: number, lat1: number, lng2: number, lat2: number): number {
+    const radLat1 = (lat1 * Math.PI) / 180.0;
+    const radLat2 = (lat2 * Math.PI) / 180.0;
+    const a = radLat1 - radLat2;
+    const b = ((lng1 - lng2) * Math.PI) / 180.0;
+    const s = 2 * Math.asin(
+      Math.sqrt(Math.pow(Math.sin(a / 2), 2) + Math.cos(radLat1) * Math.cos(radLat2) * Math.pow(Math.sin(b / 2), 2))
+    );
+    return s * 6378137.0; // 地球半径，返回米
   }
 
   private cacheAMapResults(list: LocationOption[]) {
@@ -522,7 +641,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
         
         this.nearbyLocations.set(list);
          // ✅ 保存到后端数据库
-        this.saveNearbyToBackend(list);
+        //this.saveNearbyToBackend(list);
       }
     });
   }

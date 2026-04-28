@@ -47,6 +47,25 @@
   margin-bottom: 12px;
 }
 
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-input {
+  flex: 1;
+  --background: #fff;
+}
+
+.search-btn {
+  height: 44px;       // 和搜索框一样高
+  margin: 0;          // 去掉默认边距
+  flex-shrink: 0;     // 防止按钮被挤压变形
+  --padding-start: 16px;
+  --padding-end: 16px;
+}
+
 .section {
   background: #fff;
   margin: 0 16px 16px;

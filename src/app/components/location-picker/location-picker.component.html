@@ -48,12 +48,19 @@
 
   <!-- 搜索框 -->
   <div class="search-wrap">
-    <ion-searchbar
-      [value]="keyword"
-      placeholder="搜索地点（如：万达、家属楼、教学楼）"
-      (ionInput)="onKeywordChange($any($event.detail).value)"
-      showClearButton="always"
-    ></ion-searchbar>
+    <div class="search-row">
+      <ion-searchbar
+        class="search-input"
+        [value]="keyword"
+        placeholder="搜索地点"
+        (ionInput)="onKeywordChange($any($event.detail).value)"
+        (ionClear)="onKeywordChange('')"
+        showClearButton="always"
+      ></ion-searchbar>
+      <ion-button size="default" (click)="doSearchAction()" [disabled]="!keyword" class="search-btn">
+        搜索
+      </ion-button>
+    </div>
   </div>
 
   <!-- 附近推荐 -->
@@ -67,11 +74,15 @@
             <ion-label>
               <h3>{{ item.name }}</h3>
               <p>
-                {{
-                  item.distanceMeters
-                    ? item.distanceMeters + "m内"
-                    : item.district || "附近"
-                }}
+                @if (item.distanceMeters != null && item.distanceMeters >= 1000) {
+                  {{ (item.distanceMeters / 1000).toFixed(item.distanceMeters > 100000 ? 0 : 1) }}km内
+                } @else if (item.distanceMeters != null && item.distanceMeters < 1000) {
+                  {{ item.distanceMeters }}m内
+                } @else if (item.district) {
+                  {{ item.district }}
+                } @else {
+                  附近
+                }
               </p>
               <p class="address">{{ item.address || item.district }}</p>
             </ion-label>
@@ -107,11 +118,15 @@
             <ion-label>
               <h3>{{ item.name }}</h3>
               <p>
-                {{
-                  item.distanceMeters
-                    ? item.distanceMeters + "m内"
-                    : item.district || "附近"
-                }}
+                @if (item.distanceMeters != null && item.distanceMeters >= 1000) {
+                  {{ (item.distanceMeters / 1000).toFixed(item.distanceMeters > 100000 ? 0 : 1) }}km内
+                } @else if (item.distanceMeters != null && item.distanceMeters < 1000) {
+                  {{ item.distanceMeters }}m内
+                } @else if (item.district) {
+                  {{ item.district }}
+                } @else {
+                  附近
+                }
               </p>
               <p class="address">{{ item.address || item.district }}</p>
             </ion-label>
