@@ -62,7 +62,8 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   selectedMapLocation = signal<{ lng: number; lat: number } | null>(null);
   currentAddress = signal<string>('');
   isLocating = signal(false);
-  
+    // 👇 加上这个，用来暂存列表选中的完整数据
+  pendingConfirmLocation = signal<PickedLocation | null>(null);
   nearbyLocations = signal<LocationOption[]>([]);
   addressDetail = signal<AddressDetail | null>(null);
 
@@ -95,16 +96,36 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   async selectLocation(item: LocationOption) {
-    const text = item.name || item.shortName || this.selectedText || '';
-    const payload: PickedLocation = {
+    const text = item.name || item.shortName || '';
+    const lng = Number(item.lng);
+    const lat = Number(item.lat);
+
+    // 1. 记录当前选中的名字，用于列表高亮显示（打勾）
+    this.selectedText = text;
+
+    // 2. 把列表里的完整数据暂存起来，等点“确定”时用
+    this.pendingConfirmLocation.set({
       placeId: item.id,
       text,
       address: item.address || text,
-      lng: Number(item.lng),
-      lat: Number(item.lat),
-    };
-    await this.modalCtrl.dismiss({ selected: payload }, 'confirm');
-    this.saveToCache(payload);
+      lng,
+      lat,
+    });
+
+    // 3. 更新地图坐标
+    this.selectedMapLocation.set({ lng, lat });
+    
+    // 4. 直接把列表的地址显示在顶部卡片里（不用再等逆地理编码，秒显示）
+    this.currentAddress.set(item.address || text);
+
+    // 5. 在地图上打标记并飞过去
+    if (this.map) {
+      this.map.setCenter([lng, lat]);
+      this.map.setZoom(18);
+      this.addMapMarker(lng, lat);
+    }
+    
+    // 注意：这里绝对不要写 this.modalCtrl.dismiss 了！
   }
 
   onKeywordChange(value: string | null | undefined) {
@@ -422,18 +443,29 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   async confirmMapLocation() {
-    const location = this.selectedMapLocation();
-    const address = this.currentAddress();
-    if (!location || !address) return;
+    // 1. 优先看看有没有从列表里暂存的数据
+    let payload = this.pendingConfirmLocation();
 
-    const payload: PickedLocation = {
-      placeId: `manual_${Date.now()}`,
-      text: address,
-      address,
-      lng: location.lng,
-      lat: location.lat,
-    };
+    // 2. 如果没有（说明用户是直接在地图上点的，没点列表）
+    if (!payload) {
+      const location = this.selectedMapLocation();
+      const address = this.currentAddress();
+      if (!location || !address) {
+        this.showToast('请先在地图上选择一个位置');
+        return;
+      }
+      
+      // 用地图当前的坐标和解析出来的地址现拼一个
+      payload = {
+        placeId: `map_${Date.now()}`,
+        text: address,
+        address,
+        lng: location.lng,
+        lat: location.lat,
+      };
+    }
 
+    // 3. 真正退出并把数据传回上一页
     await this.modalCtrl.dismiss({ selected: payload }, 'confirm');
     this.saveToCache(payload);
   }
