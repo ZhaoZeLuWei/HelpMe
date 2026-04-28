@@ -1,12 +1,12 @@
-const express = require('express');
-const pool = require('../help_me_db.js');
-const { authRequired } = require('./auth.js');
-const Message = require('../models/Message');
+const express = require("express");
+const pool = require("../help_me_db.js");
+const { authRequired } = require("./auth.js");
+const Message = require("../models/Message");
 
 const router = express.Router();
 
 // 提交评价
-router.post('/reviews', authRequired, async (req, res) => {
+router.post("/reviews", authRequired, async (req, res) => {
   const authorId = Number(req.user?.id);
   const { OrderId, TargetUserId, Score, Text } = req.body || {};
   const orderId = Number(OrderId);
@@ -14,13 +14,15 @@ router.post('/reviews', authRequired, async (req, res) => {
   const score = Number(Score);
 
   if (!Number.isInteger(orderId) || orderId <= 0) {
-    return res.status(400).json({ success: false, error: '订单ID无效' });
+    return res.status(400).json({ success: false, error: "订单ID无效" });
   }
   if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
-    return res.status(400).json({ success: false, error: '被评价用户无效' });
+    return res.status(400).json({ success: false, error: "被评价用户无效" });
   }
   if (Number.isNaN(score) || score < 1 || score > 5) {
-    return res.status(400).json({ success: false, error: '评分必须在1到5之间' });
+    return res
+      .status(400)
+      .json({ success: false, error: "评分必须在1到5之间" });
   }
 
   let conn;
@@ -29,12 +31,12 @@ router.post('/reviews', authRequired, async (req, res) => {
     await conn.beginTransaction();
 
     const [orderRows] = await conn.query(
-      'SELECT OrderId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1',
+      "SELECT OrderId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1",
       [orderId],
     );
     if (!orderRows.length) {
       await conn.rollback();
-      return res.status(404).json({ success: false, error: '订单不存在' });
+      return res.status(404).json({ success: false, error: "订单不存在" });
     }
 
     const order = orderRows[0];
@@ -43,25 +45,35 @@ router.post('/reviews', authRequired, async (req, res) => {
       (order.ProviderId === authorId && order.ConsumerId === targetUserId);
     if (!canReview) {
       await conn.rollback();
-      return res.status(403).json({ success: false, error: '无权评价该订单' });
+      return res.status(403).json({ success: false, error: "无权评价该订单" });
     }
     if (Number(order.OrderStatus) !== 2) {
       await conn.rollback();
-      return res.status(400).json({ success: false, error: '订单完成后才能评价' });
+      return res
+        .status(400)
+        .json({ success: false, error: "订单完成后才能评价" });
     }
 
     const [dupRows] = await conn.query(
-      'SELECT ReviewId FROM Comments WHERE OrderId = ? AND AuthorId = ? LIMIT 1',
+      "SELECT ReviewId FROM Comments WHERE OrderId = ? AND AuthorId = ? LIMIT 1",
       [orderId, authorId],
     );
     if (dupRows.length > 0) {
       await conn.rollback();
-      return res.status(409).json({ success: false, error: '你已经评价过该订单' });
+      return res
+        .status(409)
+        .json({ success: false, error: "你已经评价过该订单" });
     }
 
     const [result] = await conn.query(
-      'INSERT INTO Comments (OrderId, AuthorId, TargetUserId, Score, Text) VALUES (?, ?, ?, ?, ?)',
-      [orderId, authorId, targetUserId, score, Text ? String(Text).trim() : null],
+      "INSERT INTO Comments (OrderId, AuthorId, TargetUserId, Score, Text) VALUES (?, ?, ?, ?, ?)",
+      [
+        orderId,
+        authorId,
+        targetUserId,
+        score,
+        Text ? String(Text).trim() : null,
+      ],
     );
 
     const scoreRows = await conn.query(
@@ -81,7 +93,7 @@ router.post('/reviews', authRequired, async (req, res) => {
     if (order.ConsumerId === authorId) {
       // 买家在评价卖家
       const [providerCheck] = await conn.query(
-        'SELECT ProviderId FROM Providers WHERE ProviderId = ? LIMIT 1',
+        "SELECT ProviderId FROM Providers WHERE ProviderId = ? LIMIT 1",
         [targetUserId],
       );
       if (providerCheck.length > 0) {
@@ -95,14 +107,14 @@ router.post('/reviews', authRequired, async (req, res) => {
         );
         const providerAvgScore = Number(providerScoreRows?.[0]?.avgScore || 0);
         await conn.query(
-          'UPDATE Providers SET ServiceRanking = ? WHERE ProviderId = ?',
+          "UPDATE Providers SET ServiceRanking = ? WHERE ProviderId = ?",
           [providerAvgScore, targetUserId],
         );
       }
     } else {
       // 卖家在评价买家
       const [consumerCheck] = await conn.query(
-        'SELECT ConsumerId FROM Consumers WHERE ConsumerId = ? LIMIT 1',
+        "SELECT ConsumerId FROM Consumers WHERE ConsumerId = ? LIMIT 1",
         [targetUserId],
       );
       if (consumerCheck.length > 0) {
@@ -116,7 +128,7 @@ router.post('/reviews', authRequired, async (req, res) => {
         );
         const consumerAvgScore = Number(consumerScoreRows?.[0]?.avgScore || 0);
         await conn.query(
-          'UPDATE Consumers SET BuyerRanking = ? WHERE ConsumerId = ?',
+          "UPDATE Consumers SET BuyerRanking = ? WHERE ConsumerId = ?",
           [consumerAvgScore, targetUserId],
         );
       }
@@ -124,14 +136,14 @@ router.post('/reviews', authRequired, async (req, res) => {
 
     // 检查双方是否都已评价
     const [reviewCountRows] = await conn.query(
-      'SELECT COUNT(*) AS cnt FROM Comments WHERE OrderId = ?',
+      "SELECT COUNT(*) AS cnt FROM Comments WHERE OrderId = ?",
       [orderId],
     );
     const reviewCount = Number(reviewCountRows?.[0]?.cnt || 0);
     if (reviewCount >= 2) {
       // 双方都已评价，将订单标记为已完成
       await conn.query(
-        'UPDATE Orders SET OrderStatus = 3, CompletionTime = COALESCE(CompletionTime, NOW()) WHERE OrderId = ?',
+        "UPDATE Orders SET OrderStatus = 3, CompletionTime = COALESCE(CompletionTime, NOW()) WHERE OrderId = ?",
         [orderId],
       );
     }
@@ -143,25 +155,30 @@ router.post('/reviews', authRequired, async (req, res) => {
       roomId: `system_${targetUserId}`,
       text: `您收到了一条新的评价，评分 ${score} 分。`,
       senderId: authorId,
-      userName: '系统通知',
+      userName: "系统通知",
       sendTime: new Date(),
-    }).catch((err) => console.error('写入评价通知失败:', err));
+    }).catch((err) => console.error("写入评价通知失败:", err));
 
-    return res.json({ success: true, reviewId: result.insertId, avgScore, totalCount });
+    return res.json({
+      success: true,
+      reviewId: result.insertId,
+      avgScore,
+      totalCount,
+    });
   } catch (err) {
     if (conn) await conn.rollback().catch(() => {});
-    console.error('提交评价失败:', err);
-    return res.status(500).json({ success: false, error: '服务器内部错误' });
+    console.error("提交评价失败:", err);
+    return res.status(500).json({ success: false, error: "服务器内部错误" });
   } finally {
     if (conn) conn.release();
   }
 });
 
 // 订单评价列表
-router.get('/reviews', async (req, res) => {
+router.get("/reviews", async (req, res) => {
   const orderId = Number(req.query.orderId);
   if (!Number.isInteger(orderId) || orderId <= 0) {
-    return res.status(400).json({ success: false, error: '订单ID无效' });
+    return res.status(400).json({ success: false, error: "订单ID无效" });
   }
 
   try {
@@ -185,13 +202,13 @@ router.get('/reviews', async (req, res) => {
 
     return res.json({ success: true, reviews: rows });
   } catch (err) {
-    console.error('查询评价失败:', err);
-    return res.status(500).json({ success: false, error: '服务器内部错误' });
+    console.error("查询评价失败:", err);
+    return res.status(500).json({ success: false, error: "服务器内部错误" });
   }
 });
 
 // 管理端评论列表
-router.get('/admin/reviews', async (_req, res) => {
+router.get("/admin/reviews", async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -216,8 +233,8 @@ router.get('/admin/reviews', async (_req, res) => {
 
     return res.json({ success: true, reviews: rows });
   } catch (err) {
-    console.error('获取管理端评价失败:', err);
-    return res.status(500).json({ success: false, error: '获取评价列表失败' });
+    console.error("获取管理端评价失败:", err);
+    return res.status(500).json({ success: false, error: "获取评价列表失败" });
   }
 });
 

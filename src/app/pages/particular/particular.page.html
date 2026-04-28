@@ -6,23 +6,18 @@
         <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
         返回
       </ion-button>
-      </ion-buttons>
+    </ion-buttons>
     <ion-buttons slot="end">
       <ion-button (click)="goHome()">
         <ion-icon slot="start" name="home-outline"></ion-icon>
         主页
       </ion-button>
     </ion-buttons>
-
-
-
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-
   <div class="detail-container">
-
     <!-- 右侧内容区 -->
     <div class="content-area">
       <!-- 发布者信息 -->
@@ -32,48 +27,61 @@
             [src]="getAvatarUrl(userInfo?.avatar)"
             alt="用户头像"
             class="user-avatar"
-          >
+          />
         </div>
         <div class="publisher-text">
-        <h3>{{ userInfo.name || event?.name }}
-          <ion-badge [color]="getServiceRoleColor(userInfo.providerRole)" class="service-badge">
-            {{ getServiceRoleText(userInfo.providerRole) }}
-          </ion-badge>
-        </h3>
-        <p class="publisher-meta">
-          买家评分: {{ (userInfo.buyerRanking || 0) }} 分
-          <br>
-          服务评分：{{  (userInfo.serviceRanking || 0)  }} 分
-          <br>
-          服务次数：{{  (userInfo.orderCount || 0)  }} 次
-          <br>
-          注册时间：{{ userInfo.CreateTime  }}
-        </p>
-      </div>
-
+          <h3>
+            {{ userInfo.name || event?.name }}
+            <ion-badge
+              [color]="getServiceRoleColor(userInfo.providerRole)"
+              class="service-badge"
+            >
+              {{ getServiceRoleText(userInfo.providerRole) }}
+            </ion-badge>
+          </h3>
+          <p class="publisher-meta">
+            买家评分: {{ (userInfo.buyerRanking || 0) }} 分
+            <br />
+            服务评分：{{ (userInfo.serviceRanking || 0) }} 分
+            <br />
+            服务次数：{{ (userInfo.orderCount || 0) }} 次
+            <br />
+            注册时间：{{ userInfo.CreateTime }}
+          </p>
+        </div>
       </div>
 
       <!-- 任务核心信息 -->
       <div class="event-info">
         <h2 class="event-title">{{event?.title}}</h2>
         <div class="event-details">
-          <p><ion-icon name="location-outline"></ion-icon> 地点：{{ event?.address }}</p>
-          <p><ion-icon name="time-outline"></ion-icon> 时间：{{ event?.createTime }}</p>
-          <p><ion-icon name="cash-outline"></ion-icon> 价格：¥{{ event?.price }}</p>
+          <p>
+            <ion-icon name="location-outline"></ion-icon> 地点：{{
+            event?.address }}
+          </p>
+          <p>
+            <ion-icon name="time-outline"></ion-icon> 时间：{{ event?.createTime
+            }}
+          </p>
+          <p>
+            <ion-icon name="cash-outline"></ion-icon> 价格：¥{{ event?.price }}
+          </p>
         </div>
         <p class="event-description">{{ event?.demand }}</p>
       </div>
 
       <!-- 任务图标区 -->
       <div class="event-icon-area">
-        <img [src]="event && event.cardImage ? apiBase + event.cardImage : ''"
-             alt="暂无任务图片"
-             class="event-icon">
+        <img
+          [src]="event && event.cardImage ? apiBase + event.cardImage : ''"
+          alt="暂无任务图片"
+          class="event-icon"
+        />
       </div>
     </div>
   </div>
 </ion-content>
-<!-- ✅ 底部固定栏：与 ion-content 并列 -->
+<!-- 底部固定栏：与 ion-content 并列 -->
 <ion-footer>
   <ion-toolbar>
     <ion-row class="bottom-actions">
@@ -83,20 +91,28 @@
           收藏
         </ion-button>
       </ion-col>
-        @if (!isCurrentUserCreator) {
-        <ion-col>
-          <ion-button expand="block" color="primary" (click)="openOrderModal()" [disabled]="!canCreateOrder">
-            <ion-icon slot="start" name="document-text"></ion-icon>
-            {{ canCreateOrder ? '下单' : '暂不可下单' }}
-          </ion-button>
-        </ion-col>
-        }
-        <ion-col>
-          <ion-button expand="block" (click)="onChat()">
-            <ion-icon slot="start" [name]="isCurrentUserCreator ? 'create-outline' : 'chatbubble-outline'"></ion-icon>
-            {{ isCurrentUserCreator ? '编辑' : '聊一聊' }}
-          </ion-button>
-        </ion-col>
+      @if (!isCurrentUserCreator) {
+      <ion-col>
+        <ion-button
+          expand="block"
+          color="primary"
+          (click)="openOrderModal()"
+          [disabled]="!canCreateOrder"
+        >
+          <ion-icon slot="start" name="document-text"></ion-icon>
+          {{ canCreateOrder ? '下单' : '暂不可下单' }}
+        </ion-button>
+      </ion-col>
+      }
+      <ion-col>
+        <ion-button expand="block" (click)="onChat()">
+          <ion-icon
+            slot="start"
+            [name]="isCurrentUserCreator ? 'create-outline' : 'chatbubble-outline'"
+          ></ion-icon>
+          {{ isCurrentUserCreator ? '编辑' : '聊一聊' }}
+        </ion-button>
+      </ion-col>
     </ion-row>
   </ion-toolbar>
 </ion-footer>
@@ -117,7 +133,10 @@
         <ion-list lines="full">
           <ion-item>
             <ion-label position="stacked">标题 *</ion-label>
-            <ion-input formControlName="EventTitle" placeholder="简明描述"></ion-input>
+            <ion-input
+              formControlName="EventTitle"
+              placeholder="简明描述"
+            ></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">类型 *</ion-label>
@@ -128,23 +147,40 @@
           </ion-item>
           <ion-item>
             <ion-label position="stacked">类别 *</ion-label>
-            <ion-input formControlName="EventCategory" placeholder="如：电脑维修"></ion-input>
+            <ion-input
+              formControlName="EventCategory"
+              placeholder="如：电脑维修"
+            ></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">位置 *</ion-label>
-            <ion-input formControlName="Location" placeholder="详细地址"></ion-input>
+            <ion-input
+              formControlName="Location"
+              placeholder="详细地址"
+            ></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">价格 (¥)</ion-label>
-            <ion-input type="number" formControlName="Price" placeholder="0 表示无偿帮助"></ion-input>
+            <ion-input
+              type="number"
+              formControlName="Price"
+              placeholder="0 表示无偿帮助"
+            ></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">详细描述 *</ion-label>
-            <ion-textarea formControlName="EventDetails" placeholder="补充说明"></ion-textarea>
+            <ion-textarea
+              formControlName="EventDetails"
+              placeholder="补充说明"
+            ></ion-textarea>
           </ion-item>
         </ion-list>
-        <div style="padding: 16px;">
-          <ion-button expand="block" (click)="submitEdit()" [disabled]="isSavingEdit">
+        <div style="padding: 16px">
+          <ion-button
+            expand="block"
+            (click)="submitEdit()"
+            [disabled]="isSavingEdit"
+          >
             {{ isSavingEdit ? '保存中...' : '保存修改' }}
           </ion-button>
         </div>
@@ -168,15 +204,26 @@
         <ion-list lines="full">
           <ion-item>
             <ion-label position="stacked">详细地址 *</ion-label>
-            <ion-input formControlName="DetailLocation" placeholder="请输入上门/交付地址"></ion-input>
+            <ion-input
+              formControlName="DetailLocation"
+              placeholder="请输入上门/交付地址"
+            ></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">补充信息</ion-label>
-            <ion-textarea formControlName="AdditionalInfo" [autoGrow]="true" placeholder="例如时间、联系方式、特殊要求"></ion-textarea>
+            <ion-textarea
+              formControlName="AdditionalInfo"
+              [autoGrow]="true"
+              placeholder="例如时间、联系方式、特殊要求"
+            ></ion-textarea>
           </ion-item>
         </ion-list>
-        <div style="padding: 16px;">
-          <ion-button expand="block" (click)="submitOrder()" [disabled]="isSubmittingOrder">
+        <div style="padding: 16px">
+          <ion-button
+            expand="block"
+            (click)="submitOrder()"
+            [disabled]="isSubmittingOrder"
+          >
             {{ isSubmittingOrder ? '提交中...' : '确认下单' }}
           </ion-button>
         </div>

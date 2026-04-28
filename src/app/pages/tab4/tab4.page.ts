@@ -370,7 +370,11 @@ export class Tab4Page implements OnDestroy {
   getBlockedEditIds(): Set<number> {
     const blocked = new Set<number>();
     for (const order of this.orders) {
-      if (order.statusKey === 'pending' || order.statusKey === 'active' || order.statusKey === 'review') {
+      if (
+        order.statusKey === 'pending' ||
+        order.statusKey === 'active' ||
+        order.statusKey === 'review'
+      ) {
         blocked.add(order.eventId);
       }
     }
@@ -425,7 +429,8 @@ export class Tab4Page implements OnDestroy {
     if (order.statusKey === 'active' && order.role === 'buyer')
       return '确认完成';
     if (order.statusKey === 'review' && !order.hasReviewed) return '去评价';
-    if (order.statusKey === 'review' && order.hasReviewed) return '已评价，等待对方';
+    if (order.statusKey === 'review' && order.hasReviewed)
+      return '已评价，等待对方';
     return '查看详情';
   }
 

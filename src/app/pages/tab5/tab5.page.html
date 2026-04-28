@@ -88,7 +88,7 @@
             >
               <ion-label position="stacked">{{ t.form.location }} *</ion-label>
               <ion-text
-                [color]="requestForm.value.Location ? 'dark' : 'medium'"
+                [color]="requestForm.value.Location ? 'primary' : 'medium'"
               >
                 {{ requestForm.value.Location || t.placeholder.reqLoc }}
               </ion-text>
@@ -206,7 +206,9 @@
             </ion-item>
             <ion-item button detail="true" (click)="openLocationPicker('help')">
               <ion-label position="stacked">{{ t.form.location }} *</ion-label>
-              <ion-text [color]="helpForm.value.Location ? 'dark' : 'medium'">
+              <ion-text
+                [color]="helpForm.value.Location ? 'primary' : 'medium'"
+              >
                 {{ helpForm.value.Location || t.placeholder.helpLoc }}
               </ion-text>
             </ion-item>
@@ -340,7 +342,7 @@
             >
               <ion-label position="stacked">{{ t.form.area }} *</ion-label>
               <ion-text
-                [color]="identityForm.value.Location ? 'dark' : 'medium'"
+                [color]="identityForm.value.Location ? 'primary' : 'medium'"
               >
                 {{ identityForm.value.Location || t.placeholder.area }}
               </ion-text>

@@ -1,36 +1,56 @@
 <div class="tasks-list">
   @if (isLoading) {
-    <div class="empty-state"><ion-text color="medium"><p>事件加载中...</p></ion-text></div>
+    <div class="empty-state">
+      <ion-text color="medium"><p>事件加载中...</p></ion-text>
+    </div>
   }
   @for (event of events; track event.id) {
-  <ion-card class="task-item">
-    <ion-item lines="none" button detail="false" (click)="viewDetail.emit(event.id)">
-      <ion-label>
-        <h2 class="task-title">{{ event.title }}</h2>
-        <p class="task-meta">{{ event.createdAt }}</p>
-      </ion-label>
-      <ion-badge slot="end" [color]="event.statusColor">{{ event.statusLabel }}</ion-badge>
-    </ion-item>
-    <ion-item lines="none" class="task-actions">
-      <ion-buttons slot="end">
-        @if (blockedEditIds.has(event.id)) {
-        <ion-button disabled color="medium" title="订单进行中或待评价时，不允许编辑事件">
-          订单进行中
-        </ion-button>
-        } @else {
-        <ion-button (click)="edit.emit(event.id)">编辑</ion-button>
-        }
-        <ion-button [disabled]="deletingIds.has(event.id)" (click)="remove.emit(event.id)">
-          @if (deletingIds.has(event.id)) { 删除中... } @else { 删除 }
-        </ion-button>
-      </ion-buttons>
-    </ion-item>
-  </ion-card>
+    <ion-card class="task-item">
+      <ion-item
+        lines="none"
+        button
+        detail="false"
+        (click)="viewDetail.emit(event.id)"
+      >
+        <ion-label>
+          <h2 class="task-title">{{ event.title }}</h2>
+          <p class="task-meta">{{ event.createdAt }}</p>
+        </ion-label>
+        <ion-badge slot="end" [color]="event.statusColor">{{
+          event.statusLabel
+        }}</ion-badge>
+      </ion-item>
+      <ion-item lines="none" class="task-actions">
+        <ion-buttons slot="end">
+          @if (blockedEditIds.has(event.id)) {
+            <ion-button
+              disabled
+              color="medium"
+              title="订单进行中或待评价时，不允许编辑事件"
+            >
+              订单进行中
+            </ion-button>
+          } @else {
+            <ion-button (click)="edit.emit(event.id)">编辑</ion-button>
+          }
+          <ion-button
+            [disabled]="deletingIds.has(event.id)"
+            (click)="remove.emit(event.id)"
+          >
+            @if (deletingIds.has(event.id)) {
+              删除中...
+            } @else {
+              删除
+            }
+          </ion-button>
+        </ion-buttons>
+      </ion-item>
+    </ion-card>
   }
   @if (!isLoading && events.length === 0) {
-  <div class="empty-state">
-    <ion-icon name="document-text" class="empty-icon"></ion-icon>
-    <ion-text color="medium"><p>暂无事件</p></ion-text>
-  </div>
+    <div class="empty-state">
+      <ion-icon name="document-text" class="empty-icon"></ion-icon>
+      <ion-text color="medium"><p>暂无事件</p></ion-text>
+    </div>
   }
 </div>
