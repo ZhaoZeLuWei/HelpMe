@@ -1,7 +1,7 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
-const Message = require("../models/Message");
+const { sendSystemMessage } = require("../chatHandler.js");
 
 const router = express.Router();
 
@@ -103,21 +103,17 @@ router.post("/orders", authRequired, async (req, res) => {
 
     await conn.commit();
 
-    await Message.create({
+    await sendSystemMessage({
       roomId: `system_${event.CreatorId}`,
-      text: `您有一个新的订单：“${event.EventTitle}”，请尽快确认。`,
+      text: `您有一个新的订单：”${event.EventTitle}”，请尽快确认。`,
       senderId: consumerId,
-      userName: "系统通知",
-      sendTime: new Date(),
-    }).catch((err) => console.error("写入下单通知失败(卖家):", err));
+    });
 
-    await Message.create({
+    await sendSystemMessage({
       roomId: `system_${consumerId}`,
-      text: `订单“${event.EventTitle}”已创建成功，等待卖家确认。`,
+      text: `订单”${event.EventTitle}”已创建成功，等待卖家确认。`,
       senderId: consumerId,
-      userName: "系统通知",
-      sendTime: new Date(),
-    }).catch((err) => console.error("写入下单通知失败(买家):", err));
+    });
 
     return res.json({
       success: true,
@@ -241,13 +237,11 @@ router.put("/orders/:id/confirm", authRequired, async (req, res) => {
     );
     await conn.commit();
 
-    await Message.create({
+    await sendSystemMessage({
       roomId: `system_${order.ConsumerId}`,
-      text: `您的订单“${order.EventTitle}”已被卖家确认。`,
+      text: `您的订单”${order.EventTitle}”已被卖家确认。`,
       senderId: userId,
-      userName: "系统通知",
-      sendTime: new Date(),
-    }).catch((err) => console.error("写入确认通知失败(买家):", err));
+    });
 
     return res.json({ success: true });
   } catch (err) {
@@ -304,13 +298,11 @@ router.put("/orders/:id/complete", authRequired, async (req, res) => {
 
     await conn.commit();
 
-    await Message.create({
+    await sendSystemMessage({
       roomId: `system_${order.ProviderId}`,
-      text: `订单“${order.EventTitle}”已完成，请及时评价。`,
+      text: `订单”${order.EventTitle}”已完成，请及时评价。`,
       senderId: userId,
-      userName: "系统通知",
-      sendTime: new Date(),
-    }).catch((err) => console.error("写入完成通知失败(卖家):", err));
+    });
 
     return res.json({ success: true });
   } catch (err) {
@@ -369,13 +361,11 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
       userId === order.ConsumerId ? order.ProviderId : order.ConsumerId;
     const operatorRole = userId === order.ConsumerId ? "买家" : "卖家";
 
-    await Message.create({
+    await sendSystemMessage({
       roomId: `system_${otherUserId}`,
       text: `订单"${order.EventTitle}"已被${operatorRole}取消。`,
       senderId: userId,
-      userName: "系统通知",
-      sendTime: new Date(),
-    }).catch((err) => console.error("写入取消通知失败:", err));
+    });
 
     return res.json({ success: true });
   } catch (err) {

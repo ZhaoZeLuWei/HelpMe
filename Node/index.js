@@ -6,6 +6,7 @@ const { createServer } = require("node:http");
 const { Server } = require("socket.io");
 const { uploadDir } = require("./routes/upload.js");
 const { registerChatHandler } = require("./chatHandler.js");
+const { setIO } = require("./socketInstance.js");
 const connectDB = require("./help_me_chat_db");
 
 //all routes imports here 这里引用路由
@@ -58,6 +59,9 @@ const io = new Server(server, {
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
+
+// 将 io 实例注册到单例，供路由中使用
+setIO(io);
 
 // get user jwt
 io.use((socket, next) => {

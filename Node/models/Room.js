@@ -1,43 +1,40 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const RoomSchema = new mongoose.Schema({
   _id: {
     type: String,
-   required: true,
-   },
+    required: true,
+  },
 
-  // 关联的事件ID
+  // 关联的事件ID（系统通知房间可为空）
   eventId: {
     type: Number,
-    required: true
   },
-  // 会话创建者ID
+  // 会话创建者ID（系统通知房间可为空）
   creatorId: {
     type: Number,
-    required: true
   },
-  // 聊天对象ID（开启聊天的人）
+  // 聊天对象ID（开启聊天的人）（系统通知房间可为空）
   partnerId: {
     type: Number,
-    required: true
   },
   // 最后一条消息内容
   lastMsg: {
     type: String,
-    default: ''
+    default: "",
   },
   // 最后时间
   updatedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   // 每个用户的未读消息数
   unreadCount: {
     type: Map,
     of: Number,
-    default: {}  // 初始化为空对象
-  }
+    default: {}, // 初始化为空对象
+  },
 });
 
 // 导出Model（对应MongoDB中的rooms集合）
-module.exports = mongoose.model('Room', RoomSchema);
+module.exports = mongoose.model("Room", RoomSchema);

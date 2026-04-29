@@ -1,7 +1,7 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
-const Message = require("../models/Message");
+const { sendSystemMessage } = require("../chatHandler.js");
 
 const router = express.Router();
 
@@ -151,13 +151,11 @@ router.post("/reviews", authRequired, async (req, res) => {
 
     await conn.commit();
 
-    await Message.create({
+    await sendSystemMessage({
       roomId: `system_${targetUserId}`,
       text: `您收到了一条新的评价，评分 ${score} 分。`,
       senderId: authorId,
-      userName: "系统通知",
-      sendTime: new Date(),
-    }).catch((err) => console.error("写入评价通知失败:", err));
+    });
 
     return res.json({
       success: true,
