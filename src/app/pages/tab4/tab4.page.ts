@@ -178,6 +178,10 @@ export class Tab4Page implements OnDestroy {
 
   deletingIds = new Set<number>();
 
+  // 订单详情弹窗
+  isOrderDetailModalOpen = false;
+  currentOrderDetail: any = null;
+
   // 编辑弹窗状态
   isEditModalOpen = false;
   editingTaskId: number | null = null;
@@ -649,13 +653,19 @@ export class Tab4Page implements OnDestroy {
         EventTitle: e.EventTitle,
         EventType: e.EventType ?? 0,
         EventCategory: e.EventCategory || '',
+        // 兼容模板中使用的小写字段名
         Location: e.Location || '',
+        location: e.Location || '',
         LocationPlaceId: e.LocationPlaceId || '',
+        locationPlaceId: e.LocationPlaceId || '',
         LocationLng: e.LocationLng != null ? Number(e.LocationLng) : null,
+        locationLng: e.LocationLng != null ? Number(e.LocationLng) : null,
         LocationLat: e.LocationLat != null ? Number(e.LocationLat) : null,
+        locationLat: e.LocationLat != null ? Number(e.LocationLat) : null,
         Price: e.Price ?? 0,
         EventDetails: e.EventDetails || '',
         Photos: e.Photos || null,
+        photos: e.Photos || null,
       }));
     } catch (e) {
       console.warn('loadUserEvents failed', e);
@@ -695,6 +705,35 @@ export class Tab4Page implements OnDestroy {
                   ? { key: 'review', label: '待评价', color: 'medium' }
                   : { key: 'done', label: '已完成', color: 'success' };
 
+          // 解析事件快照（下单时的事件信息）
+          let snapshot = null;
+          if (o.EventSnapshot) {
+            try {
+              snapshot =
+                typeof o.EventSnapshot === 'string'
+                  ? JSON.parse(o.EventSnapshot)
+                  : o.EventSnapshot;
+            } catch {
+              snapshot = null;
+            }
+          }
+
+          // 解析快照中的照片列表
+          let snapshotPhotos: string[] = [];
+          if (snapshot?.Photos) {
+            try {
+              const raw = snapshot.Photos;
+              if (typeof raw === 'string') {
+                const parsed = JSON.parse(raw);
+                snapshotPhotos = Array.isArray(parsed) ? parsed : [raw];
+              } else if (Array.isArray(raw)) {
+                snapshotPhotos = raw;
+              }
+            } catch {
+              snapshotPhotos = [];
+            }
+          }
+
           return {
             id: Number(o.OrderId),
             eventId: Number(o.EventId),
@@ -712,6 +751,14 @@ export class Tab4Page implements OnDestroy {
             role: Number(o.ConsumerId) === userId ? 'buyer' : 'seller',
             reviewCount: Number(o.ReviewCount || 0),
             hasReviewed: Number(o.HasReviewed || 0) > 0,
+            // 快照字段：下单时的事件信息
+            snapshot,
+            snapshotTitle: snapshot?.EventTitle || o.EventTitle || '',
+            snapshotPrice: snapshot?.Price ?? o.TransactionPrice ?? 0,
+            snapshotLocation: snapshot?.Location || '',
+            snapshotDetails: snapshot?.EventDetails || '',
+            snapshotCategory: snapshot?.EventCategory || '',
+            snapshotPhotos,
           };
         });
 
@@ -742,6 +789,16 @@ export class Tab4Page implements OnDestroy {
     void this.router.navigate(['/particular'], {
       queryParams: { eventId },
     });
+  }
+
+  openOrderDetail(order: any) {
+    this.currentOrderDetail = order;
+    this.isOrderDetailModalOpen = true;
+  }
+
+  closeOrderDetail() {
+    this.isOrderDetailModalOpen = false;
+    this.currentOrderDetail = null;
   }
 
   async confirmOrder(orderId: number) {

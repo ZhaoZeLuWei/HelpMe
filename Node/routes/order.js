@@ -9,8 +9,11 @@ async function fetchOrderWithNames(conn, orderId) {
   const [rows] = await conn.query(
     `SELECT
       o.*,
-      e.EventTitle,
-      e.EventDetails,
+      IFNULL(o.EventSnapshot->>'$.EventTitle', e.EventTitle) AS EventTitle,
+      IFNULL(o.EventSnapshot->>'$.EventDetails', e.EventDetails) AS EventDetails,
+      IFNULL(o.EventSnapshot->>'$.Location', e.Location) AS EventLocation,
+      IFNULL(o.EventSnapshot->>'$.Price', e.Price) AS EventPrice,
+      o.EventSnapshot AS EventSnapshot,
       buyer.UserName AS ConsumerName,
       provider.UserName AS ProviderName
      FROM Orders o
@@ -46,7 +49,9 @@ router.post("/orders", authRequired, async (req, res) => {
     await conn.beginTransaction();
 
     const [eventRows] = await conn.query(
-      `SELECT e.EventId, e.CreatorId, e.EventTitle, e.Price, e.EventDetails, u.UserName AS ProviderName
+      `SELECT e.EventId, e.CreatorId, e.EventTitle, e.EventType, e.EventCategory,
+              e.Photos, e.Location, e.Price, e.EventDetails,
+              u.UserName AS ProviderName
        FROM Events e
        JOIN Users u ON e.CreatorId = u.UserId
        WHERE e.EventId = ?
@@ -100,10 +105,22 @@ router.post("/orders", authRequired, async (req, res) => {
       ? `${String(DetailLocation).trim()}｜${String(AdditionalInfo).trim()}`
       : String(DetailLocation).trim();
 
+    // 创建事件快照，保存下单时的事件状态
+    const eventSnapshot = JSON.stringify({
+      EventTitle: event.EventTitle,
+      EventType: event.EventType,
+      EventCategory: event.EventCategory,
+      Location: event.Location,
+      Price: event.Price || 0,
+      EventDetails: event.EventDetails,
+      Photos: event.Photos || null,
+      ProviderName: event.ProviderName,
+    });
+
     const [result] = await conn.query(
       `INSERT INTO Orders
-       (EventId, ProviderId, ConsumerId, OrderStatus, TransactionPrice, DetailLocation, VerificationCode, VerificationResult)
-       VALUES (?, ?, ?, 0, ?, ?, ?, 0)`,
+       (EventId, ProviderId, ConsumerId, OrderStatus, TransactionPrice, DetailLocation, VerificationCode, VerificationResult, EventSnapshot)
+       VALUES (?, ?, ?, 0, ?, ?, ?, 0, ?)`,
       [
         eventId,
         event.CreatorId,
@@ -111,6 +128,7 @@ router.post("/orders", authRequired, async (req, res) => {
         event.Price || 0,
         orderLocation,
         verificationCode,
+        eventSnapshot,
       ],
     );
 
@@ -166,7 +184,9 @@ router.get("/orders", authRequired, async (req, res) => {
         o.OrderId, o.EventId, o.ProviderId, o.ConsumerId, o.OrderStatus,
         o.TransactionPrice, o.DetailLocation, o.OrderCreateTime, o.PaymentTime,
         o.VerificationCode, o.VerificationResult, o.ServiceTime, o.CompletionTime,
-        o.RefundTime, e.EventTitle,
+        o.RefundTime, o.EventSnapshot,
+        IFNULL(o.EventSnapshot->>'$.EventTitle', e.EventTitle) AS EventTitle,
+        IFNULL(o.EventSnapshot->>'$.EventDetails', e.EventDetails) AS EventDetails,
         buyer.UserName AS ConsumerName,
         provider.UserName AS ProviderName,
         (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId) AS ReviewCount,

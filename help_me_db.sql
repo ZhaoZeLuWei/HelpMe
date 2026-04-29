@@ -104,6 +104,7 @@ CREATE TABLE Orders (
   ServiceTime        TIMESTAMP      NULL,
   CompletionTime     TIMESTAMP      NULL,
   RefundTime         TIMESTAMP      NULL,
+  EventSnapshot      JSON           NULL,
 
   KEY idx_orders_event (EventId),
   KEY idx_orders_consumer (ConsumerId),

@@ -39,17 +39,13 @@
   }
   @for (order of orders; track order.id) {
     <ion-card class="task-item">
-      <ion-item
-        lines="none"
-        button
-        detail="false"
-        (click)="viewDetail.emit(order.eventId)"
-      >
+      <ion-item lines="none">
         <ion-label>
-          <h2 class="task-title">{{ order.title }}</h2>
+          <h2 class="task-title">{{ order.snapshotTitle || order.title }}</h2>
           <p class="task-meta">
-            {{ order.role === "buyer" ? "买家" : "卖家" }} ·
-            {{ order.location }}
+            {{ order.role === "buyer" ? "买家" : "卖家" }} · ¥{{
+              order.snapshotPrice || order.price
+            }}
           </p>
           <p class="task-meta">
             订单号：{{ order.id }} · {{ order.createdAt }}
@@ -61,7 +57,10 @@
       </ion-item>
       <ion-item lines="none" class="task-actions">
         <ion-buttons slot="end">
-          <ion-button (click)="viewDetail.emit(order.eventId)">详情</ion-button>
+          <ion-button (click)="viewOrder.emit(order)">订单详情</ion-button>
+          <ion-button (click)="viewEvent.emit(order.eventId)"
+            >事件详情</ion-button
+          >
           @if (order.statusKey === "pending") {
             <ion-button color="danger" (click)="cancel.emit(order.id)"
               >取消订单</ion-button

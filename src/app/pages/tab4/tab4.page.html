@@ -57,7 +57,8 @@
     [filter]="orderFilter"
     [t]="t"
     (filterChange)="setOrderFilter($event)"
-    (viewDetail)="goToEventDetail($event)"
+    (viewEvent)="goToEventDetail($event)"
+    (viewOrder)="openOrderDetail($event)"
     (confirm)="confirmOrder($event)"
     (complete)="completeOrder($event)"
     (review)="openReviewModal($event)"
@@ -396,6 +397,86 @@
             </ion-button>
           </div>
         </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- 订单详情弹窗（显示下单时的快照信息） -->
+  <ion-modal
+    [isOpen]="isOrderDetailModalOpen"
+    (didDismiss)="closeOrderDetail()"
+  >
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>订单详情</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeOrderDetail()"
+              >关闭</ion-button
+            >
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        @if (currentOrderDetail) {
+        <div class="order-detail-content">
+          <!-- 订单基本信息 -->
+          <div class="detail-section">
+            <h3>订单信息</h3>
+            <p><strong>订单号：</strong>{{ currentOrderDetail.id }}</p>
+            <p><strong>下单时间：</strong>{{ currentOrderDetail.createdAt }}</p>
+            <p>
+              <strong>角色：</strong>{{ currentOrderDetail.role === 'buyer' ?
+              '买家' : '卖家' }}
+            </p>
+            <p><strong>订单状态：</strong>{{ currentOrderDetail.status }}</p>
+            <p><strong>成交价格：</strong>¥{{ currentOrderDetail.price }}</p>
+          </div>
+
+          <!-- 下单时的事件快照 -->
+          <div class="detail-section snapshot-section">
+            <h3>
+              <ion-icon name="time-outline"></ion-icon>
+              下单时的事件信息
+            </h3>
+            <p><strong>标题：</strong>{{ currentOrderDetail.snapshotTitle }}</p>
+            <p>
+              <strong>类别：</strong>{{ currentOrderDetail.snapshotCategory ||
+              '未分类' }}
+            </p>
+            <p>
+              <strong>地点：</strong>{{ currentOrderDetail.snapshotLocation ||
+              '未填写' }}
+            </p>
+            <p>
+              <strong>价格：</strong>¥{{ currentOrderDetail.snapshotPrice }}
+            </p>
+            @if (currentOrderDetail.snapshotDetails) {
+            <p>
+              <strong>描述：</strong>{{ currentOrderDetail.snapshotDetails }}
+            </p>
+            }
+
+            <!-- 照片展示 -->
+            @if (currentOrderDetail.snapshotPhotos?.length > 0) {
+            <div class="snapshot-photos">
+              <p><strong>事件照片：</strong></p>
+              <div class="photo-grid">
+                @for (photo of currentOrderDetail.snapshotPhotos; track $index)
+                {
+                <img
+                  [src]="getAssetUrl(photo)"
+                  alt="事件照片"
+                  class="snapshot-photo"
+                  (error)="$event.target.src = 'assets/icon/default-image.svg'"
+                />
+                }
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
       </ion-content>
     </ng-template>
   </ion-modal>

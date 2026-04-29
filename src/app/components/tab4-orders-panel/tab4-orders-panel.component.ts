@@ -38,7 +38,8 @@ export class Tab4OrdersPanelComponent {
   @Output() filterChange = new EventEmitter<
     'all' | 'pending' | 'active' | 'review' | 'done'
   >();
-  @Output() viewDetail = new EventEmitter<number>();
+  @Output() viewEvent = new EventEmitter<number>();
+  @Output() viewOrder = new EventEmitter<any>();
   @Output() confirm = new EventEmitter<number>();
   @Output() complete = new EventEmitter<number>();
   @Output() review = new EventEmitter<number>();
