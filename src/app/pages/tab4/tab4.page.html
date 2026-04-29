@@ -65,6 +65,7 @@
     (complete)="completeOrder($event)"
     (review)="openReviewModal($event)"
     (cancel)="cancelOrder($event)"
+    (viewReview)="openReviewDetail($event)"
   ></app-tab4-orders-panel>
   }
 
@@ -110,6 +111,60 @@
             <ion-button (click)="submitReview()">提交评价</ion-button>
           </div>
         </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal [isOpen]="isReviewDetailOpen" (didDismiss)="closeReviewDetail()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>订单评价详情</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeReviewDetail()"
+              >关闭</ion-button
+            >
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        @if (isLoadingReviews) {
+        <div class="empty-state">
+          <ion-text color="medium"><p>加载中...</p></ion-text>
+        </div>
+        } @else if (reviewDetailList.length === 0) {
+        <div class="empty-state">
+          <ion-icon
+            name="chatbubble-ellipses-outline"
+            class="empty-icon"
+          ></ion-icon>
+          <ion-text color="medium"><p>暂无评价</p></ion-text>
+        </div>
+        } @else {
+        <div class="review-detail-list">
+          @for (r of reviewDetailList; track r.id) {
+          <ion-card class="review-item">
+            <ion-item lines="none">
+              <ion-avatar slot="start">
+                <img [src]="getReviewAvatar(r.authorAvatar)" alt="头像" />
+              </ion-avatar>
+              <ion-label>
+                <h2>{{ r.authorName }}</h2>
+                <p>{{ r.createTime }}</p>
+              </ion-label>
+              <ion-badge slot="end" color="warning" class="review-score-badge"
+                >{{ r.rating }} 分</ion-badge
+              >
+            </ion-item>
+            @if (r.content) {
+            <ion-item lines="none">
+              <ion-text>{{ r.content }}</ion-text>
+            </ion-item>
+            }
+          </ion-card>
+          }
+        </div>
+        }
       </ion-content>
     </ng-template>
   </ion-modal>

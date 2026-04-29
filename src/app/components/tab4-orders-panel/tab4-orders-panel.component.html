@@ -78,6 +78,14 @@
           }
           @if (order.statusKey === "review" && order.hasReviewed) {
             <ion-button disabled color="medium">已评价，等待对方</ion-button>
+            <ion-button (click)="viewReview.emit(order.id)"
+              >查看评价</ion-button
+            >
+          }
+          @if (order.statusKey === "done") {
+            <ion-button (click)="viewReview.emit(order.id)"
+              >查看评价</ion-button
+            >
           }
         </ion-buttons>
       </ion-item>

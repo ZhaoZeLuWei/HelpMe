@@ -59,6 +59,10 @@ import {
   IonSelect,
   IonSelectOption,
   IonTextarea,
+  IonText,
+  IonCard,
+  IonAvatar,
+  IonBadge,
   ModalController,
 } from '@ionic/angular/standalone';
 
@@ -96,6 +100,10 @@ import { Tab4OrdersPanelComponent } from '../../components/tab4-orders-panel/tab
     IonSelect,
     IonSelectOption,
     IonTextarea,
+    IonText,
+    IonCard,
+    IonAvatar,
+    IonBadge,
     ReactiveFormsModule,
     Tab4ProfileCardComponent,
     Tab4EventsPanelComponent,
@@ -830,6 +838,11 @@ export class Tab4Page implements OnDestroy {
     Text: ['', [Validators.maxLength(200)]],
   });
 
+  // 查看评价详情相关
+  isReviewDetailOpen = false;
+  isLoadingReviews = false;
+  reviewDetailList: any[] = [];
+
   openReviewModal(orderId: number) {
     const order = this.orders.find((o) => o.id === orderId);
     if (order?.hasReviewed) {
@@ -880,6 +893,36 @@ export class Tab4Page implements OnDestroy {
       console.error('submitReview error', e);
       await this.presentDeleteToast(this.t.networkError);
     }
+  }
+
+  // ---- 查看评价详情 ----
+  async openReviewDetail(orderId: number) {
+    this.isReviewDetailOpen = true;
+    this.isLoadingReviews = true;
+    this.reviewDetailList = [];
+    try {
+      const resp = await fetch(`${this.API_BASE}/reviews?orderId=${orderId}`);
+      const data = await resp.json().catch(() => null);
+      if (resp.ok && data?.success && Array.isArray(data.reviews)) {
+        this.reviewDetailList = data.reviews;
+      }
+    } catch (e) {
+      console.error('load reviews error', e);
+    } finally {
+      this.isLoadingReviews = false;
+    }
+  }
+
+  closeReviewDetail() {
+    this.isReviewDetailOpen = false;
+    this.reviewDetailList = [];
+  }
+
+  getReviewAvatar(avatarPath?: string): string {
+    if (!avatarPath) return 'assets/icon/user.svg';
+    return avatarPath.startsWith('http')
+      ? avatarPath
+      : `${this.API_BASE}${avatarPath}`;
   }
 
   private async openEditModal(taskId: number): Promise<void> {

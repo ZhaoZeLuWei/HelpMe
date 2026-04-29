@@ -43,6 +43,7 @@ export class Tab4OrdersPanelComponent {
   @Output() complete = new EventEmitter<number>();
   @Output() review = new EventEmitter<number>();
   @Output() cancel = new EventEmitter<number>();
+  @Output() viewReview = new EventEmitter<number>();
 
   setFilter(filter: 'all' | 'pending' | 'active' | 'review' | 'done') {
     this.filterChange.emit(filter);
