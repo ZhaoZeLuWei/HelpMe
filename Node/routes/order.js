@@ -82,6 +82,19 @@ router.post("/orders", authRequired, async (req, res) => {
       });
     }
 
+    // 确保消费者在 Consumers 表中存在
+    const [consumerExists] = await conn.query(
+      "SELECT ConsumerId FROM Consumers WHERE ConsumerId = ? LIMIT 1",
+      [consumerId],
+    );
+    if (consumerExists.length === 0) {
+      // 自动创建消费者记录
+      await conn.query(
+        "INSERT INTO Consumers (ConsumerId, BuyerRanking) VALUES (?, 0.0)",
+        [consumerId],
+      );
+    }
+
     const verificationCode = `ORD${Date.now().toString().slice(-8)}`;
     const orderLocation = AdditionalInfo
       ? `${String(DetailLocation).trim()}｜${String(AdditionalInfo).trim()}`

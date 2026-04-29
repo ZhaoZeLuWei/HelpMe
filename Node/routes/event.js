@@ -410,12 +410,10 @@ router.put("/events/:id", authRequired, async (req, res) => {
 
     if (activeOrders && activeOrders.length > 0) {
       await conn.rollback();
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error: "订单进行中或待评价时，不允许编辑事件",
-        });
+      return res.status(400).json({
+        success: false,
+        error: "订单进行中或待评价时，不允许编辑事件",
+      });
     }
 
     const sets = [
@@ -494,6 +492,19 @@ router.delete("/events/:id", authRequired, async (req, res) => {
       return res
         .status(404)
         .json({ success: false, error: "事件不存在或无权删除" });
+    }
+
+    // 检查是否存在未完结的订单（待确认、进行中、待评价）
+    const [activeOrders] = await conn.query(
+      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
+      [eventId],
+    );
+
+    if (activeOrders && activeOrders.length > 0) {
+      await conn.rollback();
+      return res
+        .status(400)
+        .json({ success: false, error: "存在未完结订单，无法删除事件" });
     }
 
     // 提取出标题

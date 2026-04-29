@@ -77,3 +77,6 @@ Thumbs.db
 *.md
 Node/help_me_db.js
 *.png
+*.svg
+*.jpg
+/.claude

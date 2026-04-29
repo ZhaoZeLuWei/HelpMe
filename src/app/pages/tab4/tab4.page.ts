@@ -54,6 +54,7 @@ import {
   IonItem,
   IonNote,
   IonModal,
+  IonAlert,
   IonList,
   IonInput,
   IonSelect,
@@ -95,6 +96,7 @@ import { Tab4OrdersPanelComponent } from '../../components/tab4-orders-panel/tab
     IonItem,
     IonNote,
     IonModal,
+    IonAlert,
     IonList,
     IonInput,
     IonSelect,
@@ -244,22 +246,12 @@ export class Tab4Page implements OnDestroy {
   ];
 
   activeSection: 'events' | 'orders' = 'events';
-  eventFilter: 'all' | 'published' | 'pending' | 'active' | 'review' | 'done' =
-    'all';
   orderFilter: 'all' | 'pending' | 'active' | 'review' | 'done' = 'all';
 
   userInfo: any = this.createDefaultUserInfo();
   tasks: any[] = [];
   orders: any[] = [];
   orderStats = { all: 0, pending: 0, active: 0, review: 0, done: 0 };
-  eventStats = {
-    all: 0,
-    published: 0,
-    pending: 0,
-    active: 0,
-    review: 0,
-    done: 0,
-  };
   isLoadingEvents = false;
   isLoadingOrders = false;
   currentUserId: number | null = null;
@@ -381,18 +373,8 @@ export class Tab4Page implements OnDestroy {
     if (value) this.activeSection = value;
   }
 
-  setEventFilter(filter: string) {
-    this.eventFilter = filter as typeof this.eventFilter;
-  }
-
   setOrderFilter(filter: string) {
     this.orderFilter = filter as typeof this.orderFilter;
-  }
-
-  // 根据当前标签筛选显示事件
-  getFilteredEvents() {
-    if (this.eventFilter === 'all') return this.tasks;
-    return this.tasks.filter((event) => event.statusKey === this.eventFilter);
   }
 
   // 根据当前标签筛选显示订单
@@ -658,7 +640,7 @@ export class Tab4Page implements OnDestroy {
       if (!Array.isArray(data)) return;
 
       this.tasks = data.map((e: any) => ({
-        id: e.EventId,
+        id: Number(e.EventId),
         publisher: this.userInfo.name || '',
         title: e.EventTitle,
         status: 'published',
@@ -675,17 +657,6 @@ export class Tab4Page implements OnDestroy {
         EventDetails: e.EventDetails || '',
         Photos: e.Photos || null,
       }));
-
-      this.eventStats = {
-        all: this.tasks.length,
-        published: this.tasks.filter((e: any) => e.statusKey === 'published')
-          .length,
-        pending: this.tasks.filter((e: any) => e.statusKey === 'pending')
-          .length,
-        active: this.tasks.filter((e: any) => e.statusKey === 'active').length,
-        review: this.tasks.filter((e: any) => e.statusKey === 'review').length,
-        done: this.tasks.filter((e: any) => e.statusKey === 'done').length,
-      };
     } catch (e) {
       console.warn('loadUserEvents failed', e);
     } finally {

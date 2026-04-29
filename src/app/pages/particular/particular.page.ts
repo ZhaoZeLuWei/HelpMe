@@ -360,10 +360,9 @@ export class ParticularPage implements OnInit {
   checkUserIsCreator() {
     const currentUserId = this.authService.currentUserId;
     const creatorId = this.event?.creatorId;
+    // 使用 == 进行宽松比较，避免字符串和数字类型不匹配的问题
     this.isCurrentUserCreator =
-      currentUserId !== null &&
-      creatorId !== null &&
-      currentUserId === creatorId;
+      currentUserId != null && creatorId != null && currentUserId == creatorId;
   }
 
   async onChat() {
