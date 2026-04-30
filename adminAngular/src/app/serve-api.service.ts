@@ -70,4 +70,24 @@ export class ServeAPIService {
   deleteUser(userId: number): Observable<any> {
     return this.http.delete<any>(`${this.adminUsersUrl}/${userId}`);
   }
+
+  // ========== 订单管理相关 ==========
+
+  getAdminOrdersList(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/admin/orders`);
+  }
+
+  deleteAdminOrder(orderId: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/admin/orders/${orderId}`);
+  }
+
+  // ========== 事件管理相关 ==========
+
+  getAdminEventsList(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/admin/events`);
+  }
+
+  deleteAdminEvent(eventId: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/admin/events/${eventId}`);
+  }
 }

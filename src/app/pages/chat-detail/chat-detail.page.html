@@ -7,46 +7,48 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content #chatContent class="ion-padding">
   <div class="chat-container">
     @for (msg of messages(); track $index) {
-      <div class="message-group" [class.me]="isMyMessage(msg)">
-        <div class="message-row">
-          <ion-avatar class="message-avatar">
-            <img
-              [src]="getMessageAvatar(msg)"
-              alt="用户头像"
-              (error)="onAvatarError($event)"
-            />
-          </ion-avatar>
-          <div class="message-main">
-            <div class="message-meta">
-              <span class="user-name">{{ isMyMessage(msg) ? (myself?.name || '我') : (msg.userName || roomInfoTab3?.name || '对方') }}</span>
-              <span class="timestamp"> {{ msg.sendTime | date:'HH:mm' }}</span>
-            </div>
-            <div class="message-bubble">
-              {{ msg.text }}
-            </div>
+    <div class="message-group" [class.me]="isMyMessage(msg)">
+      <div class="message-row">
+        <ion-avatar class="message-avatar">
+          <img
+            [src]="getMessageAvatar(msg)"
+            alt="用户头像"
+            (error)="onAvatarError($event)"
+          />
+        </ion-avatar>
+        <div class="message-main">
+          <div class="message-meta">
+            <span class="user-name"
+              >{{ isMyMessage(msg) ? (myself?.name || '我') : (msg.userName ||
+              roomInfoTab3?.name || '对方') }}</span
+            >
+            <span class="timestamp"> {{ msg.sendTime | date:'HH:mm' }}</span>
           </div>
+          <div class="message-bubble">{{ msg.text }}</div>
         </div>
       </div>
+    </div>
     }
   </div>
 </ion-content>
 
 @if (showChat) {
-  <ion-footer>
-    <ion-toolbar>
-      <ion-item lines="none">
-        <ion-input
-          [formControl]="messageInput"
-          placeholder="输入消息..."
-          (keyup.enter)="sendMessage()">
-        </ion-input>
-        <ion-button slot="end" fill="clear" (click)="sendMessage()">
-          发送
-        </ion-button>
-      </ion-item>
-    </ion-toolbar>
-  </ion-footer>
+<ion-footer>
+  <ion-toolbar>
+    <ion-item lines="none">
+      <ion-input
+        [formControl]="messageInput"
+        placeholder="输入消息..."
+        (keyup.enter)="sendMessage()"
+      >
+      </ion-input>
+      <ion-button slot="end" fill="clear" (click)="sendMessage()">
+        发送
+      </ion-button>
+    </ion-item>
+  </ion-toolbar>
+</ion-footer>
 }
