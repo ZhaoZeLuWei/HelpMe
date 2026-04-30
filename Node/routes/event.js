@@ -250,7 +250,7 @@ router.post(
 
       await sendSystemMessage({
         roomId: `system_${creatorId}`,
-        text: `您的订单：”${EventTitle}”发布成功！请耐心等待...`,
+        text: `您的事件：“${EventTitle}”发布成功！请耐心等待...`,
         senderId: creatorId,
       });
 
