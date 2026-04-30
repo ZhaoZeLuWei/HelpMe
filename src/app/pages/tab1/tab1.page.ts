@@ -1,3 +1,4 @@
+/* src/app/tab1/tab1.page.ts（修复版） */
 import {
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
@@ -7,17 +8,17 @@ import {
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { map, Observable, forkJoin } from 'rxjs';
+import { map } from 'rxjs';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
-import { UniversalSearchComponent } from '../../components/universal-search/universal-search.component';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
 import { LanguageService } from '../../services/language.service';
+import { TranslateService } from '../../services/translate.service';
 
 // 卡片数据接口
 interface CardItem {
   id: string;
-  creatorId: number; // 新增
+  creatorId: number;
   cardImage: string;
   icon: string;
   distance: string;
@@ -26,8 +27,8 @@ interface CardItem {
   demand: string;
   price: string;
   avatar: string;
-  createTime: string; // 新增
-  title: string; // 新增
+  createTime: string;
+  title: string;
 }
 
 @Component({
@@ -39,39 +40,38 @@ interface CardItem {
     IonicModule,
     CommonModule,
     ShowEventComponent,
-    HttpClientModule, // 【修复1】这里加上了逗号
+    HttpClientModule,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class Tab1Page implements OnInit {
   private readonly API_BASE = environment.apiBase;
-  // 使用 inject() 函数替代构造函数注入
   private http = inject(HttpClient);
   private router = inject(Router);
   private langService = inject(LanguageService);
+  private translateService = inject(TranslateService);
 
+  // --- 原有功能变量 ---
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
-
-  // 页面翻译对象
+  eventData: CardItem[] = [];
+  private searchKeyword = '';
+  currentLang = '中文';
+  showLangConfirmModal = false;
   t = this.langService.getTranslations('zh').tab1;
 
-  // 按钮显示的文字（从t对象取）
+  // --- 翻译功能变量 ---
+  public dynamicSourceText: string = '你好，这是测试翻译的文本'; // 直接写死测试文本，避免空值
+  public translatedText: string = '';
+  public sourceLang: string = 'zh';
+  public targetLang: string = 'en';
+
   get currentLangBtnText() {
     return this.t.btnText;
   }
 
-  // 【修复2】在类中定义了缺失的 eventData 属性
-  // 初始化为空数组，类型为 CardItem[]
-  eventData: CardItem[] = [];
-
-  private searchKeyword = '';
-  currentLang = '中文';
-  showLangConfirmModal = false;
-
-  //constructor(private http: HttpClient, private router: Router) {}
   ngOnInit() {
-    // --- 保留你原有的数据加载逻辑 ---
+    // 原有卡片加载逻辑
     this.getCardData('request').subscribe((data) => {
       this.requestList = data;
       this.updateEventData();
@@ -81,13 +81,15 @@ export class Tab1Page implements OnInit {
       this.updateEventData();
     });
 
-    // --- 新增：监听语言变化 ---
+    // 语言监听
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
       this.t = this.langService.getTranslations(lang).tab1;
     });
+
+    // 【关键】注释掉报错的动态文本加载
+    // this.loadDynamicText();
   }
 
-  // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
   ionViewWillEnter() {
     this.loadCardLists();
   }
@@ -95,57 +97,43 @@ export class Tab1Page implements OnInit {
   private loadCardLists() {
     this.getCardData('request').subscribe((data) => {
       this.requestList = data;
-      this.updateEventData(); // 更新总数据
+      this.updateEventData();
     });
     this.getCardData('help').subscribe((data) => {
       this.helpList = data;
-      this.updateEventData(); // 更新总数据
+      this.updateEventData();
     });
   }
 
-  // 新增辅助方法：合并 request 和 help 数据，供搜索组件使用
   private updateEventData() {
     this.eventData = [...this.requestList, ...this.helpList];
   }
 
-  // 封装：请求卡片数据 + 随机显示4个逻辑
   private getCardData(type: 'request' | 'help') {
     return this.http.get<any[]>(`${this.API_BASE}/api/cards?type=${type}`).pipe(
       map((rawData) => {
-        // 1. 基础数据处理：格式化字段
         const processedData = rawData.map((item) => ({
           ...item,
           icon: 'navigate-outline',
           distance: '距500m',
           price: item.price ? item.price.toString() : '0.00元',
         }));
-
         let finalData = processedData;
-
-        // 如果数据库返回的数据超过4个，则进行随机截取
         if (processedData.length > 4) {
           finalData = this.shuffleArray(processedData).slice(0, 4);
         }
-
         return finalData;
       }),
     );
   }
 
-  //随机打乱数组
   shuffleArray(array: any[]): any[] {
     let currentIndex = array.length;
     let randomIndex;
-
     const newArray = [...array];
-
-    // 当还剩有元素未洗牌时
     while (currentIndex != 0) {
-      // 选取一个剩余元素
       randomIndex = Math.floor(Math.random() * currentIndex);
       currentIndex--;
-
-      // 交换它与当前元素
       [newArray[currentIndex], newArray[randomIndex]] = [
         newArray[randomIndex],
         newArray[currentIndex],
@@ -154,39 +142,33 @@ export class Tab1Page implements OnInit {
     return newArray;
   }
 
-  //去到搜索页面,并且搜索框自动聚焦
   goToSearchPage() {
     this.router.navigate(['/search'], {
-      queryParams: { returnTo: 'tabs/tab2' }, // 统一回到 Tab2
+      queryParams: { returnTo: 'tabs/tab2' },
     });
   }
-  //只去到搜索页面
+
   goToTab2Search(type?: 'request' | 'help') {
     this.router.navigate(['/tabs/tab2'], {
       queryParams: { type: type },
     });
   }
 
-  // 切换语言
   toggleLanguage() {
     this.showLangConfirmModal = true;
   }
 
-  // 确认切换语言
   confirmSwitchLanguage() {
     this.langService.toggleLanguage();
     this.showLangConfirmModal = false;
   }
 
-  // 取消切换语言
   cancelSwitchLanguage() {
     this.showLangConfirmModal = false;
   }
 
-  // 卡片点击反馈
   cardClickFeedback(item: CardItem) {
     console.log('点击了小卡片：', item.name, 'ID：', item.id);
-    // 跳转到详情页面，传递完整的item对象
     this.router.navigate(['/particular'], {
       queryParams: {
         eventId: item.id,
@@ -195,15 +177,57 @@ export class Tab1Page implements OnInit {
     });
   }
 
-  // 更多按钮点击
   onBigCardMoreClick(type: 'request' | 'help') {
     console.log(
       `点击了【${type === 'request' ? '求助' : '帮助'}】大卡片的更多按钮`,
     );
   }
 
-  // 列表跟踪标识
   trackById(index: number, item: CardItem): string {
     return item.id;
+  }
+
+
+  // 绑定你原有的翻译按钮
+  public onTranslateBtnClick(): void {
+    this.handleStaticTranslate();
+    this.handleDynamicTranslate();
+  }
+
+  // 你的静态翻译逻辑
+  private handleStaticTranslate(): void {
+    console.log('静态文本翻译已执行');
+    // 在此处粘贴你已完成的静态翻译代码
+  }
+
+  // 动态文本翻译 - 调用后端接口
+  private handleDynamicTranslate(): void {
+    if (!this.dynamicSourceText.trim()) {
+      console.warn('无待翻译的动态文本');
+      return;
+    }
+
+    this.translateService.translateText({
+      sourceText: this.dynamicSourceText,
+      sourceLang: this.sourceLang,
+      targetLang: this.targetLang
+    }).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.translatedText = res.targetText;
+          console.log('✅ 翻译成功，结果：', this.translatedText);
+          alert('翻译成功：' + this.translatedText); // 弹窗提示，方便测试
+        }
+      },
+      error: (err) => {
+        console.error('❌ 翻译失败', err);
+        alert('翻译失败，请检查后端服务是否启动');
+      }
+    });
+  }
+
+
+  public toggleTranslateLanguage(): void {
+    [this.sourceLang, this.targetLang] = [this.targetLang, this.sourceLang];
   }
 }
