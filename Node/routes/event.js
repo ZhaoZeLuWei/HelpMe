@@ -452,7 +452,7 @@ router.put("/events/:id", authRequired, async (req, res) => {
 
     await sendSystemMessage({
       roomId: `system_${creatorId}`,
-      text: `您的订单：”${EventTitle}”信息修改成功。`,
+      text: `您的事件“${EventTitle}”信息修改成功。`,
       senderId: creatorId,
     });
 
@@ -524,7 +524,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
     //使用查到的 deletedTitle
     await sendSystemMessage({
       roomId: `system_${creatorId}`,
-      text: `您的订单：”${deletedTitle}”已成功删除。`,
+      text: `您的事件“${deletedTitle}”已成功删除。`,
       senderId: creatorId,
     });
 

@@ -460,7 +460,7 @@ router.get("/orders-status-meta", (_req, res) => {
       { value: 0, label: "待确认" },
       { value: 1, label: "进行中" },
       { value: 2, label: "待评价" },
-      { value: 3, label: "已取消" },
+      { value: 3, label: "已完成" },
     ],
   });
 });
