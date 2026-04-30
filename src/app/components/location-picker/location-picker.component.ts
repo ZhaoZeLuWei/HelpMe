@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit, inject, signal } from '@angular/core';
+import { Component, Input, OnInit, inject, signal, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ToastController } from '@ionic/angular';
 import { ModalController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { checkmark } from 'ionicons/icons';
+import { checkmark, locate, map, close, save } from 'ionicons/icons';
 import { environment } from '../../../environments/environment';
+
+declare const AMap: any;
 
 export interface PickedLocation {
   placeId: string;
@@ -27,6 +29,16 @@ interface LocationOption {
   distanceMeters?: number | null;
 }
 
+interface AddressDetail {
+  province: string;
+  city: string;
+  district: string;
+  township: string;
+  street: string;
+  formattedAddress: string;
+  poiName?: string;
+}
+
 @Component({
   selector: 'app-location-picker',
   standalone: true,
@@ -34,7 +46,7 @@ interface LocationOption {
   styleUrls: ['./location-picker.component.scss'],
   imports: [CommonModule, FormsModule, IonicModule],
 })
-export class LocationPickerComponent implements OnInit {
+export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() selectedPlaceId?: string;
   @Input() selectedText?: string;
   @Input() centerLng = 109.41318;
@@ -47,13 +59,43 @@ export class LocationPickerComponent implements OnInit {
   keyword = '';
   loading = signal(false);
   locations = signal<LocationOption[]>([]);
+  selectedMapLocation = signal<{ lng: number; lat: number } | null>(null);
+  currentAddress = signal<string>('');
+  isLocating = signal(false);
+    // 👇 加上这个，用来暂存列表选中的完整数据
+  pendingConfirmLocation = signal<PickedLocation | null>(null);
+  nearbyLocations = signal<LocationOption[]>([]);
+  addressDetail = signal<AddressDetail | null>(null);
+
+  private map: any = null;
+  private geocoder: any = null;
+  private geocodeDebounceTimer: number | null = null;
+  private searchDebounceTimer: number | null = null; // 👈 加上这行
+  private isSatelliteMode = false;
+  private readonly CACHE_KEY = 'cachedLocations';
 
   constructor() {
-    addIcons({ checkmark });
+    addIcons({ checkmark, locate, map, close, save });
+  }
+    // 点击“搜索”按钮执行
+  doSearchAction() {
+    if (!this.keyword) return;
+    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+    // 点按钮搜，传 true（飞地图）
+    this.searchLocations(this.keyword, true);
   }
 
   ngOnInit(): void {
-    this.loadSuggestions();
+    this.clearExpiredCache();
+  }
+
+  ngAfterViewInit(): void {
+    this.initMap();
+  }
+
+  ngOnDestroy(): void {
+    if (this.geocodeDebounceTimer) clearTimeout(this.geocodeDebounceTimer);
+    if (this.map) this.map.destroy();
   }
 
   async close() {
@@ -61,53 +103,625 @@ export class LocationPickerComponent implements OnInit {
   }
 
   async selectLocation(item: LocationOption) {
-    const text = item.name || item.shortName || this.selectedText || '';
-    const payload: PickedLocation = {
+    const text = item.name || item.shortName || '';
+    const lng = Number(item.lng);
+    const lat = Number(item.lat);
+
+    // 1. 记录当前选中的名字，用于列表高亮显示（打勾）
+    this.selectedText = text;
+
+    // 2. 把列表里的完整数据暂存起来，等点“确定”时用
+    this.pendingConfirmLocation.set({
       placeId: item.id,
       text,
       address: item.address || text,
-      lng: Number(item.lng),
-      lat: Number(item.lat),
-    };
+      lng,
+      lat,
+    });
 
-    await this.modalCtrl.dismiss({ selected: payload }, 'confirm');
+    // 3. 更新地图坐标
+    this.selectedMapLocation.set({ lng, lat });
+    
+    // 4. 直接把列表的地址显示在顶部卡片里（不用再等逆地理编码，秒显示）
+    this.currentAddress.set(item.address || text);
+
+    // 5. 在地图上打标记并飞过去
+    if (this.map) {
+      this.map.setCenter([lng, lat]);
+      this.map.setZoom(18);
+      this.addMapMarker(lng, lat);
+    }
+    
+    // 注意：这里绝对不要写 this.modalCtrl.dismiss 了！
   }
 
   onKeywordChange(value: string | null | undefined) {
     this.keyword = String(value || '').trim();
-    this.loadSuggestions();
+    if (!this.keyword) {
+      this.locations.set([]);
+      return;
+    }
+
+    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+
+    // 打字自动搜，传 false（不飞地图）
+    this.searchDebounceTimer = window.setTimeout(() => {
+      this.searchLocations(this.keyword, false);
+    }, 300);
   }
 
-  private async loadSuggestions() {
+  // ================= 混合模式搜索：本地缓存 + 高德 API =================
+
+  private searchLocations(keyword: string, flyToFirst: boolean = false) {
     this.loading.set(true);
+    this.searchByAMap(keyword, flyToFirst); // 👈 把参数传下去
+  }
 
-    const params = new URLSearchParams();
-    if (this.keyword) params.append('q', this.keyword);
-    params.append('lng', String(this.centerLng));
-    params.append('lat', String(this.centerLat));
-    params.append('limit', '20');
-
+  private searchFromCache(keyword: string): LocationOption[] | null {
     try {
-      const resp = await fetch(
-        `${this.apiBase}/locations/suggest?${params.toString()}`,
-      );
-      const data = await resp.json().catch(() => null);
+      const data = localStorage.getItem(this.CACHE_KEY);
+      if (!data) return null;
 
-      if (!resp.ok || !data?.success) {
-        throw new Error(data?.error || '加载地点失败');
+      const cached: any[] = JSON.parse(data);
+      const lowerKeyword = keyword.toLowerCase();
+
+      const matched = cached.filter(item => {
+        const name = (item.text || '').toLowerCase();
+        const address = (item.address || '').toLowerCase();
+        return name.includes(lowerKeyword) || address.includes(lowerKeyword);
+      });
+
+      if (matched.length > 0) {
+        return matched
+          .sort((a: any, b: any) => (b.useCount || 0) - (a.useCount || 0))
+          .slice(0, 10)
+          .map((item: any) => ({
+            id: item.placeId,
+            name: item.text,
+            address: item.address,
+            district: '',
+            lng: item.lng,
+            lat: item.lat,
+            distanceMeters: null,
+          }));
       }
 
-      this.locations.set(Array.isArray(data.locations) ? data.locations : []);
-    } catch (err: any) {
-      this.locations.set([]);
-      const t = await this.toastCtrl.create({
-        message: err?.message || '无法获取地点列表',
-        duration: 1600,
-        position: 'bottom',
-      });
-      await t.present();
-    } finally {
-      this.loading.set(false);
+      return null;
+    } catch (e) {
+      return null;
     }
+  }
+
+  private searchByAMap(keyword: string, flyToFirst: boolean = false) {
+    this.loading.set(true);
+
+    const doSearch = () => {
+      const detail = this.addressDetail();
+      const currentCity = detail?.city || detail?.province || '';
+      
+      const center = this.map ? this.map.getCenter() : null;
+      const currentLng = center ? center.getLng() : this.centerLng;
+      const currentLat = center ? center.getLat() : this.centerLat;
+
+      const placeSearch = new AMap.PlaceSearch({
+        pageSize: 20,
+        pageIndex: 1,
+      });
+
+      // 处理结果的通用函数
+      const handleResult = (status: string, result: any, needCalcDistance: boolean) => {
+        this.loading.set(false);
+        if (status === 'complete' && result.poiList?.pois) {
+          let list = result.poiList.pois.map((poi: any) => ({
+            id: poi.id || `amap_${Date.now()}`,
+            name: poi.name || '未知地点',
+            address: poi.address || poi.name || '',
+            lng: poi.location?.lng || 0,
+            lat: poi.location?.lat || 0,
+            district: (poi.pname || '') + (poi.cityname || '') + (poi.adname || ''),
+            distanceMeters: poi.distance ? Math.round(poi.distance) : null,
+          }));
+
+          // 如果是全国兜底，进行智能排序
+          if (needCalcDistance) {
+            const lowerKeyword = keyword.toLowerCase();
+
+            list = list.map((item: any) => {
+              // 1. 算距离
+              if (item.lng && item.lat) {
+                item.distanceMeters = Math.round(this.calculateDistance(currentLng, currentLat, item.lng, item.lat));
+              }
+              
+              // 2. 算相关度得分（名字越精确，分越高）
+              const lowerName = (item.name || '').toLowerCase();
+              if (lowerName === lowerKeyword) {
+                item._score = 9000; // 完全匹配
+              } else if (lowerName.startsWith(lowerKeyword)) {
+                item._score = 800;  // 前缀匹配
+              } else if (lowerName.includes(lowerKeyword)) {
+                item._score = 500;  // 包含匹配
+              } else {
+                item._score = 0;    // 名字不匹配
+              }
+              
+              return item;
+            });
+
+            // 3. 综合排序
+            list.sort((a: any, b: any) => {
+              const scoreDiff = (b._score || 0) - (a._score || 0);
+              if (scoreDiff !== 0) return scoreDiff; 
+              return (a.distanceMeters || Infinity) - (b.distanceMeters || Infinity); 
+            });
+          }
+
+          this.locations.set(list);
+          this.cacheAMapResults(list);
+
+          // 👇 新增：如果是点击“搜索”按钮触发的，地图自动飞过去
+          if (flyToFirst && list.length > 0) {
+            const first = list[0];
+            if (first.lng && first.lat && this.map) {
+              this.map.setCenter([first.lng, first.lat]);
+              this.map.setZoom(16);
+              this.addMapMarker(first.lng, first.lat);
+              
+              // 同步更新顶部地址卡片和暂存坐标
+              this.selectedMapLocation.set({ lng: first.lng, lat: first.lat });
+              this.currentAddress.set(first.address || first.name);
+              this.pendingConfirmLocation.set(null);
+            }
+          }
+        } else {
+          this.locations.set([]); 
+        }
+      };
+
+      // 检查搜出来的结果里，有没有【完整包含】用户输入关键词的
+      const hasExactMatch = (pois: any[]) => {
+        if (!pois || pois.length === 0) return false;
+        const lowerKeyword = keyword.toLowerCase();
+        return pois.some((poi: any) => 
+          (poi.name || '').toLowerCase().includes(lowerKeyword)
+        );
+      };
+
+      if (currentCity) {
+        // 1. 第一轮：严格限制在当前城市搜
+        placeSearch.setCity(currentCity);
+        placeSearch.setCityLimit(true); 
+        
+        placeSearch.search(keyword, (status: any, result: any) => {
+          const pois = result?.poiList?.pois || [];
+          
+          if (status === 'complete' && hasExactMatch(pois)) {
+            handleResult(status, result, false);
+          } else {
+            // 2. 第二轮：本地没精确匹配到，放开到全国搜
+            placeSearch.setCity('全国');
+            placeSearch.setCityLimit(false);
+            
+            placeSearch.search(keyword, (status2: any, result2: any) => {
+              let finalPois = result2?.poiList?.pois || [];
+              
+              if (finalPois.length > 0 && pois.length > 0) {
+                const localList = pois.map((poi: any) => ({
+                  id: poi.id,
+                  name: poi.name,
+                  address: poi.address,
+                  lng: poi.location?.lng,
+                  lat: poi.location?.lat,
+                  district: (poi.pname || '') + (poi.cityname || '') + (poi.adname || ''),
+                  distanceMeters: Math.round(this.calculateDistance(currentLng, currentLat, poi.location?.lng, poi.location?.lat)),
+                }));
+
+                finalPois = [...finalPois, ...localList];
+                const uniqueMap = new Map();
+                finalPois.forEach((p: any) => uniqueMap.set(p.id, p));
+                finalPois = Array.from(uniqueMap.values());
+              }
+
+              const mockResult = { poiList: { pois: finalPois } };
+              handleResult('complete', mockResult, true); 
+            });
+          }
+        });
+      } else {
+        // 极端情况：连当前城市都不知道，直接全国搜算距离
+        placeSearch.setCity('全国');
+        placeSearch.setCityLimit(false);
+        placeSearch.search(keyword, (status: any, result: any) => {
+          handleResult(status, result, true);
+        });
+      }
+    };
+
+    if (typeof AMap !== 'undefined' && AMap.PlaceSearch) {
+      doSearch();
+    } else {
+      AMap.plugin(['AMap.PlaceSearch'], doSearch);
+    }
+  }
+
+  // 👇 新增工具方法：根据两点经纬度计算直线距离（米）
+  private calculateDistance(lng1: number, lat1: number, lng2: number, lat2: number): number {
+    const radLat1 = (lat1 * Math.PI) / 180.0;
+    const radLat2 = (lat2 * Math.PI) / 180.0;
+    const a = radLat1 - radLat2;
+    const b = ((lng1 - lng2) * Math.PI) / 180.0;
+    const s = 2 * Math.asin(
+      Math.sqrt(Math.pow(Math.sin(a / 2), 2) + Math.cos(radLat1) * Math.cos(radLat2) * Math.pow(Math.sin(b / 2), 2))
+    );
+    return s * 6378137.0; // 地球半径，返回米
+  }
+
+  private cacheAMapResults(list: LocationOption[]) {
+    try {
+      const cachedLocations = this.getCachedLocations();
+      
+      list.forEach(poi => {
+        if (!poi.address || poi.address === poi.name) return;
+
+        const existingIndex = cachedLocations.findIndex(
+          (item: any) => item.placeId === poi.id
+        );
+
+        if (existingIndex > -1) {
+          cachedLocations[existingIndex].timestamp = Date.now();
+        } else {
+          cachedLocations.push({
+            placeId: poi.id,
+            text: poi.name,
+            address: poi.address,
+            lng: poi.lng,
+            lat: poi.lat,
+            useCount: 0,
+            timestamp: Date.now(),
+          });
+        }
+      });
+
+      const sorted = cachedLocations
+        .sort((a: any, b: any) => (b.useCount || 0) - (a.useCount || 0))
+        .slice(0, 50);
+
+      localStorage.setItem(this.CACHE_KEY, JSON.stringify(sorted));
+    } catch (e) {
+      console.error('缓存高德结果失败:', e);
+    }
+  }
+
+  // ================= 地图初始化 =================
+
+  private initMap() {
+    const mapContainer = document.getElementById('mapContainer');
+    if (!mapContainer || typeof AMap === 'undefined') {
+      this.showToast('地图加载失败');
+      return;
+    }
+
+    // 1. 先无脑把地图画出来（不依赖任何插件）
+    this.map = new AMap.Map(mapContainer, {
+      center: [this.centerLng, this.centerLat],
+      zoom: 18,
+      resizeEnable: true,
+      rotateEnable: false,
+    });
+
+    // 地图点击选点
+    this.map.on('click', (e: any) => {
+      const lng = e.lnglat.getLng();
+      const lat = e.lnglat.getLat();
+      this.selectedMapLocation.set({ lng, lat });
+      this.debounceReverseGeocode(lng, lat);
+      this.addMapMarker(lng, lat);
+    });
+
+    // 地图移动结束
+    this.map.on('moveend', () => {
+      const center = this.map.getCenter();
+      this.debounceReverseGeocode(center.getLng(), center.getLat());
+    });
+
+    // 2. 然后再偷偷去加载插件（失败了也不影响地图展示）
+    AMap.plugin(['AMap.Geocoder', 'AMap.PlaceSearch'], () => {
+      this.geocoder = new AMap.Geocoder({
+        city: '全国',
+        radius: 1000,
+      });
+      
+      // 👇 关键：插件加载完后，立刻主动去查一次当前坐标的周边和地址
+      this.reverseGeocode(this.centerLng, this.centerLat);
+    });
+
+    setTimeout(() => {
+      if (this.map) {
+        this.map.resize();
+      }
+    }, 100);
+  }
+
+  private addMapMarker(lng: number, lat: number) {
+    if (!this.map) return;
+    this.map.clearMap();
+    new AMap.Marker({
+      position: [lng, lat],
+      map: this.map,
+    });
+  }
+
+  // ================= 定位与卫星图切换 =================
+
+  async getCurrentLocation() {
+    if (!navigator.geolocation) {
+      this.showToast('您的浏览器不支持定位功能');
+      return;
+    }
+
+    this.isLocating.set(true);
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        });
+      });
+
+      const lng = position.coords.longitude;
+      const lat = position.coords.latitude;
+
+      this.selectedMapLocation.set({ lng, lat });
+      
+      if (this.map) {
+        this.map.setCenter([lng, lat]);
+        this.map.setZoom(16);
+        this.addMapMarker(lng, lat);
+      }
+
+      await this.reverseGeocode(lng, lat);
+    } catch (err: any) {
+      let msg = '定位失败，请手动选择';
+      if (err.code === 1) msg = '您拒绝了定位权限，请手动选择';
+      if (err.code === 2) msg = '无法获取位置信息，请检查网络';
+      this.showToast(msg);
+    } finally {
+      this.isLocating.set(false);
+    }
+  }
+
+  toggleSatellite() {
+    if (!this.map) return;
+
+    this.isSatelliteMode = !this.isSatelliteMode;
+    
+    if (this.isSatelliteMode) {
+      this.map.setLayers([
+        new AMap.TileLayer.Satellite(),
+        new AMap.TileLayer.RoadNet()
+      ]);
+    } else {
+      this.map.setLayers([new AMap.TileLayer()]);
+    }
+  }
+
+  // ================= 地址解析 =================
+
+  private debounceReverseGeocode(lng: number, lat: number) {
+    if (this.geocodeDebounceTimer) clearTimeout(this.geocodeDebounceTimer);
+    this.geocodeDebounceTimer = window.setTimeout(() => {
+      this.reverseGeocode(lng, lat);
+    }, 500);
+  }
+
+  private async reverseGeocode(lng: number, lat: number) {
+    if (!this.geocoder) return;
+
+    return new Promise<void>((resolve) => {
+      this.geocoder.getAddress([lng, lat], (status: string, result: any) => {
+        if (status === 'complete' && result.info === 'OK') {
+          const address = result.regeocode;
+          const detail: AddressDetail = {
+            province: address.addressComponent.province || '',
+            city: address.addressComponent.city || '',
+            district: address.addressComponent.district || '',
+            township: address.addressComponent.township || '',
+            street: address.addressComponent.street || '',
+            formattedAddress: address.formattedAddress,
+            poiName: address.pois?.[0]?.name,
+          };
+
+          this.currentAddress.set(detail.formattedAddress);
+          this.addressDetail.set(detail);
+          this.loadNearbyLocations(lng, lat);
+        }
+        resolve();
+      });
+    });
+  }
+
+  // ================= 数据加载 =================
+
+  private async loadNearbyLocations(lng: number, lat: number) {
+    const params = new URLSearchParams();
+    params.append('lng', String(lng));
+    params.append('lat', String(lat));
+    params.append('limit', '10');
+
+    try {
+      const resp = await fetch(`${this.apiBase}/locations/suggest?${params.toString()}&_t=${Date.now()}`);
+      const data = await resp.json().catch(() => null);
+
+      if (resp.ok && data?.success && Array.isArray(data.locations) && data.locations.length > 0) {
+        this.nearbyLocations.set(data.locations);
+      }
+    } catch (err) {}
+
+    this.loadNearbyFromAMap(lng, lat);
+  }
+
+  async confirmMapLocation() {
+    // 1. 优先看看有没有从列表里暂存的数据
+    let payload = this.pendingConfirmLocation();
+
+    // 2. 如果没有（说明用户是直接在地图上点的，没点列表）
+    if (!payload) {
+      const location = this.selectedMapLocation();
+      const address = this.currentAddress();
+      if (!location || !address) {
+        this.showToast('请先在地图上选择一个位置');
+        return;
+      }
+      
+      // 用地图当前的坐标和解析出来的地址现拼一个
+      payload = {
+        placeId: `map_${Date.now()}`,
+        text: address,
+        address,
+        lng: location.lng,
+        lat: location.lat,
+      };
+    }
+
+    // 3. 真正退出并把数据传回上一页
+    await this.modalCtrl.dismiss({ selected: payload }, 'confirm');
+    this.saveToCache(payload);
+  }
+
+
+  // private async loadNearbyLocations(lng: number, lat: number) {
+  //   const params = new URLSearchParams();
+  //   params.append('lng', String(lng));
+  //   params.append('lat', String(lat));
+  //   params.append('limit', '10');
+
+  //   try {
+  //     const resp = await fetch(`${this.apiBase}/locations/suggest?${params.toString()}&_t=${Date.now()}`);
+  //     const data = await resp.json().catch(() => null);
+      
+  //     // 如果后端有你们自己的私有数据，直接用
+  //     if (resp.ok && data?.success && Array.isArray(data.locations) && data.locations.length > 0) {
+  //       this.nearbyLocations.set(data.locations);
+  //       return; // 有数据就结束，不打扰高德
+  //     }
+  //   } catch (err) {
+  //     // 后端报错也不管，继续走下面的高德兜底
+  //   }
+
+  //   // 👇 核心兜底逻辑：后端没数据，用高德地图搜索周边填充列表
+  //   this.loadNearbyFromAMap(lng, lat);
+  // }
+
+  // 新增：调用高德地图搜索周边
+  private loadNearbyFromAMap(lng: number, lat: number) {
+    // 确保高德插件加载完毕
+    if (typeof AMap === 'undefined' || !AMap.PlaceSearch) {
+      return;
+    }
+
+    const placeSearch = new AMap.PlaceSearch({
+      pageSize: 10,
+      pageIndex: 1,
+    });
+
+    const center = new AMap.LngLat(lng, lat);
+
+    // 搜索周边 500 米内的地点
+    placeSearch.searchNearBy('', center, 500, (status: string, result: any) => {
+      if (status === 'complete' && result.poiList?.pois) {
+        const list = result.poiList.pois.map((poi: any) => ({
+          id: poi.id || `amap_${Date.now()}`,
+          name: poi.name || '未知地点',
+          address: poi.address || poi.name || '',
+          lng: poi.location?.lng || 0,
+          lat: poi.location?.lat || 0,
+          distanceMeters: poi.distance ? Math.round(poi.distance) : null,
+        }));
+        
+        this.nearbyLocations.set(list);
+         // ✅ 保存到后端数据库
+        //this.saveNearbyToBackend(list);
+      }
+    });
+  }
+  // 新增：保存附近地点到后端数据库
+private async saveNearbyToBackend(locations: LocationOption[]) {
+  try {
+    const resp = await fetch(`${this.apiBase}/locations/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locations }),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      console.log(`成功保存 ${data.count} 个地点到数据库`);
+    }
+  } catch (err) {
+    console.error('保存地点到后端失败:', err);
+  }
+}
+  // ================= 缓存方法 =================
+
+  private saveToCache(location: PickedLocation): void {
+    try {
+      const cachedLocations = this.getCachedLocations();
+      const existingIndex = cachedLocations.findIndex(
+        (item: any) => item.placeId === location.placeId
+      );
+
+      if (existingIndex > -1) {
+        cachedLocations[existingIndex].useCount = (cachedLocations[existingIndex].useCount || 0) + 1;
+        cachedLocations[existingIndex].timestamp = Date.now();
+      } else {
+        cachedLocations.push({
+          ...location,
+          useCount: 1,
+          timestamp: Date.now(),
+        });
+      }
+
+      const sorted = cachedLocations
+        .sort((a: any, b: any) => b.useCount - a.useCount)
+        .slice(0, 20);
+
+      localStorage.setItem(this.CACHE_KEY, JSON.stringify(sorted));
+    } catch (err) {
+      console.error('缓存地址失败:', err);
+    }
+  }
+
+  private getCachedLocations(): any[] {
+    try {
+      const data = localStorage.getItem(this.CACHE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  private clearExpiredCache(): void {
+    try {
+      const locations = this.getCachedLocations();
+      const now = Date.now();
+      const validLocations = locations.filter((item: any) => {
+        const hoursDiff = (now - item.timestamp) / (1000 * 60 * 60);
+        const expireHours = item.useCount > 3 ? 24 * 30 : 24 * 7;
+        return hoursDiff < expireHours;
+      });
+
+      if (validLocations.length < locations.length) {
+        localStorage.setItem(this.CACHE_KEY, JSON.stringify(validLocations));
+      }
+    } catch (err) {
+      console.error('清理过期缓存失败:', err);
+    }
+  }
+
+  // ================= 工具方法 =================
+  
+  private async showToast(message: string) {
+    const t = await this.toastCtrl.create({ message, duration: 2000, position: 'bottom' });
+    await t.present();
   }
 }

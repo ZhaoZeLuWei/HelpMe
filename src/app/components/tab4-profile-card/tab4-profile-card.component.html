@@ -1,0 +1,85 @@
+<ion-card class="user-card">
+  <div class="user-header">
+    <ion-avatar class="user-avatar">
+      @if (userInfo?.avatar) {
+        <img [src]="getAvatarUrl(userInfo.avatar)" alt="avatar" />
+      } @else {
+        <ion-icon name="person-circle"></ion-icon>
+      }
+    </ion-avatar>
+    <div class="user-basic-info">
+      <div class="user-name-row">
+        <h2 class="user-name">{{ userInfo?.name }}</h2>
+        <ion-badge
+          [color]="userInfo?.isVerified === t?.verified ? 'success' : 'medium'"
+          class="verified-badge"
+        >
+          {{ userInfo?.isVerified }}
+        </ion-badge>
+      </div>
+      <div class="user-location">
+        <ion-icon name="location-outline"></ion-icon>
+        <span>{{ userInfo?.location || t?.locationNotSet }}</span>
+      </div>
+    </div>
+    <div class="edit-profile-action">
+      <ion-button
+        fill="clear"
+        color="light"
+        class="edit-profile-btn-inline"
+        (click)="onEditProfile()"
+      >
+        <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </div>
+  </div>
+
+  <div class="user-info-section">
+    @if (userInfo?.realName) {
+      <div class="info-row">
+        <span class="info-label">真实姓名：</span>
+        <span class="info-value">{{ userInfo.realName }}</span>
+      </div>
+    }
+    @if (userInfo?.introduction) {
+      <div class="info-row">
+        <span class="info-label">个人介绍：</span>
+        <span class="info-value">{{ userInfo.introduction }}</span>
+      </div>
+    }
+    @if (userInfo?.birthDate) {
+      <div class="info-row">
+        <span class="info-label">出生日期：</span>
+        <span class="info-value">{{ userInfo.birthDate }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="user-ratings">
+    <div class="rating-item">
+      <ion-icon name="star" color="warning"></ion-icon>
+      <div class="rating-content">
+        <span class="rating-label">{{ t?.buyerRating }}</span>
+        <span class="rating-value">{{
+          formatRating(userInfo?.buyerRanking)
+        }}</span>
+      </div>
+    </div>
+    <div class="rating-item">
+      <ion-icon name="ribbon" color="primary"></ion-icon>
+      <div class="rating-content">
+        <span class="rating-label">{{ t?.serviceRating }}</span>
+        <span class="rating-value">{{
+          formatRating(userInfo?.serviceRanking)
+        }}</span>
+      </div>
+    </div>
+    <div class="rating-item">
+      <ion-icon name="briefcase" color="success"></ion-icon>
+      <div class="rating-content">
+        <span class="rating-label">{{ t?.orderCount }}</span>
+        <span class="rating-value">{{ userInfo?.orderCount || 0 }}</span>
+      </div>
+    </div>
+  </div>
+</ion-card>

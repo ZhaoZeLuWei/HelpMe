@@ -1,4 +1,23 @@
-<div class="placeholder-page">
+<div class="page-shell">
   <h2>订单管理</h2>
-  <p>订单管理功能开发中...</p>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>事件</th><th>买家</th><th>卖家</th><th>金额</th><th>状态</th><th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (order of orders; track order.OrderId) {
+      <tr>
+        <td>{{ order.OrderId }}</td>
+        <td>{{ order.EventTitle }}</td>
+        <td>{{ order.ConsumerName }}</td>
+        <td>{{ order.ProviderName }}</td>
+        <td>¥{{ order.TransactionPrice }}</td>
+        <td>{{ getStatusText(order.OrderStatus) }}</td>
+        <td><button (click)="deleteOrder(order.OrderId)">删除</button></td>
+      </tr>
+      }
+    </tbody>
+  </table>
 </div>

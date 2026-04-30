@@ -25,6 +25,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { EventCardData } from '../../components/show-event/show-event.component';
 import { ModalController } from '@ionic/angular/standalone';
+import { ToastController } from '@ionic/angular';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
 import { NavController } from '@ionic/angular';
@@ -70,6 +71,7 @@ export class ParticularPage implements OnInit {
   private location = inject(Location);
   private authService = inject(AuthService);
   private modalCtrl = inject(ModalController);
+  private toastController = inject(ToastController);
   private navCtrl = inject(NavController);
   private fb = inject(FormBuilder);
   readonly apiBase = environment.apiBase;
@@ -78,6 +80,10 @@ export class ParticularPage implements OnInit {
 
   isEditModalOpen = false;
   isSavingEdit = false;
+  isOrderModalOpen = false;
+  isSubmittingOrder = false;
+  canCreateOrder = true;
+  activeOrder: any = null;
   editForm: FormGroup = this.fb.group({
     EventTitle: ['', Validators.required],
     EventType: [0, Validators.required],
@@ -85,6 +91,10 @@ export class ParticularPage implements OnInit {
     Location: ['', Validators.required],
     Price: [0, [Validators.min(0)]],
     EventDetails: ['', Validators.required],
+  });
+  orderForm: FormGroup = this.fb.group({
+    DetailLocation: ['', Validators.required],
+    AdditionalInfo: ['', [Validators.maxLength(200)]],
   });
 
   // 新增 userInfo 对象，模拟队友的数据结构
@@ -149,6 +159,8 @@ export class ParticularPage implements OnInit {
             icon: 'navigate-outline',
             distance: '距500m',
           };
+          this.canCreateOrder = rawEvent.canCreateOrder ?? true;
+          this.activeOrder = rawEvent.activeOrder || null;
           // 加载发布者信息
           if (this.event?.creatorId) {
             this.loadUserFromStorage(this.event.creatorId);
@@ -159,54 +171,6 @@ export class ParticularPage implements OnInit {
       }
     } catch (error) {
       console.error('加载事件详情失败:', error);
-    }
-  }
-
-  // 根据 ID 加载活动详情
-  // 根据 ID 加载活动详情
-  async loadEventById(eventId: number): Promise<void> {
-    try {
-      const resp = await fetch(`${this.apiBase}/events/${eventId}`);
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data?.success && data.event) {
-          // 解析图片数组
-          let cardImage = null;
-          if (data.event.Photos) {
-            try {
-              const photos = JSON.parse(data.event.Photos);
-              cardImage = Array.isArray(photos) ? photos[0] : photos;
-            } catch {
-              cardImage = data.event.Photos;
-            }
-          }
-
-          // 创建符合 EventCardData 的对象
-          const eventData: EventCardData = {
-            id: data.event.EventId,
-            title: data.event.EventTitle,
-            address: data.event.Location,
-            price: data.event.Price,
-            demand: data.event.EventDetails,
-            createTime: data.event.CreateTime,
-            cardImage: cardImage,
-            creatorId: data.event.CreatorId,
-            name: '',
-            avatar: '',
-            icon: 'navigate-outline',
-            distance: '距500m',
-          };
-
-          this.event = eventData;
-
-          // 加载发布者信息
-          if (this.event.creatorId) {
-            await this.loadUserFromStorage(this.event.creatorId);
-          }
-        }
-      }
-    } catch (e) {
-      console.error('加载活动详情失败:', e);
     }
   }
 
@@ -293,11 +257,70 @@ export class ParticularPage implements OnInit {
     this.router.navigate(['/tabs/tab1']);
   }
 
+  openOrderModal() {
+    if (!this.event) return;
+    if (!this.canCreateOrder) {
+      this.showToast('该事件当前存在未完结订单，暂不可下单');
+      return;
+    }
+    this.orderForm.reset({
+      DetailLocation: this.event.address || '',
+      AdditionalInfo: '',
+    });
+    this.isOrderModalOpen = true;
+  }
+
+  closeOrderModal() {
+    this.isOrderModalOpen = false;
+    this.orderForm.reset();
+  }
+
+  async submitOrder() {
+    if (!this.event || this.orderForm.invalid || this.isSubmittingOrder) return;
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      const { LoginPage } = await import('../login/login.page');
+      const modal = await this.modalCtrl.create({ component: LoginPage });
+      await modal.present();
+      return;
+    }
+
+    this.isSubmittingOrder = true;
+    try {
+      const resp = await fetch(`${this.apiBase}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.authService.getAuthHeader(),
+        },
+        body: JSON.stringify({
+          EventId: this.event.id,
+          DetailLocation: this.orderForm.value.DetailLocation,
+          AdditionalInfo: this.orderForm.value.AdditionalInfo || '',
+        }),
+      });
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok || !data?.success) {
+        this.showToast(data?.error || '下单失败');
+        return;
+      }
+      this.closeOrderModal();
+      this.canCreateOrder = false;
+      this.activeOrder = { OrderId: data.orderId, OrderStatus: 0 };
+      this.showToast('下单成功，等待卖家确认');
+    } catch (e) {
+      console.error('submitOrder error', e);
+      this.showToast('网络错误，请稍后重试');
+    } finally {
+      this.isSubmittingOrder = false;
+    }
+  }
+
   // 关注按钮点击事件
   async onFollow() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      console.log('请先登录');
+      this.showToast('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
         component: LoginPage,
@@ -311,13 +334,13 @@ export class ParticularPage implements OnInit {
       await modal.present();
       return;
     }
-    console.log('关注按钮点击');
+    // TODO: 关注功能
   }
 
   async onCollect() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      console.log('请先登录');
+      this.showToast('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
         component: LoginPage,
@@ -331,22 +354,21 @@ export class ParticularPage implements OnInit {
       await modal.present();
       return;
     }
-    console.log('收藏按钮点击');
+    // TODO: 收藏功能
   }
 
   checkUserIsCreator() {
     const currentUserId = this.authService.currentUserId;
     const creatorId = this.event?.creatorId;
+    // 使用 == 进行宽松比较，避免字符串和数字类型不匹配的问题
     this.isCurrentUserCreator =
-      currentUserId !== null &&
-      creatorId !== null &&
-      currentUserId === creatorId;
+      currentUserId != null && creatorId != null && currentUserId == creatorId;
   }
 
   async onChat() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      console.log('请先登录');
+      this.showToast('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
         component: LoginPage,
@@ -432,16 +454,27 @@ export class ParticularPage implements OnInit {
       const data = await resp.json();
 
       if (data.success) {
-        console.log('修改成功');
+        this.showToast('修改成功');
         this.closeEditModal();
         this.loadEventDetail(String(this.event.id));
       } else {
-        console.error('修改失败', data.error);
+        this.showToast(data.error || '修改失败');
       }
     } catch (e) {
       console.error('提交修改失败', e);
+      this.showToast('网络错误，请稍后重试');
     } finally {
       this.isSavingEdit = false;
     }
+  }
+
+  private async showToast(message: string) {
+    const toast = await this.toastController.create({
+      message,
+      duration: 2000,
+      position: 'bottom',
+      positionAnchor: 'particular-footer',
+    });
+    await toast.present();
   }
 }

@@ -1,336 +1,172 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title> {{ t.title }} </ion-title>
+    <ion-title>{{ t.title }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" color="medium" (click)="logout()">
+        <ion-icon slot="icon-only" name="log-out"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   @if (!isLoggedIn) {
-  <!-- 未登录时显示登录提示 -->
   <div class="login-prompt">
     <ion-icon name="person-circle" class="prompt-icon"></ion-icon>
     <h2>{{ t.welcome }}</h2>
     <p>{{ t.loginHint }}</p>
     <div class="auth-buttons">
       <ion-button (click)="openLoginModal()">{{ t.loginBtn }}</ion-button>
-      <ion-button fill="outline" (click)="openRegisterModal()">{{ t.registerBtn }}</ion-button>
+      <ion-button fill="outline" (click)="openRegisterModal()"
+        >{{ t.registerBtn }}</ion-button
+      >
     </div>
   </div>
   } @if (isLoggedIn) {
-  <!-- 用户信息 -->
-  <ion-card class="user-card">
-    <!-- 头部区域：头像和基本信息 -->
-    <div class="user-header">
-      <div class="avatar-section">
-        <ion-avatar class="user-avatar">
-          @if (userInfo.avatar) {
-          <img [src]="getAssetUrl(userInfo.avatar)" alt="avatar" />
-          } @else {
-          <ion-icon name="person-circle"></ion-icon>
-          }
-        </ion-avatar>
-      </div>
-      <div class="user-basic-info">
-        <div class="user-name-row">
-          <h2 class="user-name">{{ userInfo.name }}</h2>
-          <ion-badge
-            class="verified-badge"
-            [color]="getVerificationColor(userInfo.isVerified)"
-          >
-            {{ userInfo.isVerified }}
-          </ion-badge>
-        </div>
-        <div class="user-location">
-          <ion-icon name="location-outline"></ion-icon>
-          <span>{{ userInfo.location || t.locationNotSet }}</span>
-        </div>
-      </div>
-    </div>
+  <app-tab4-profile-card
+    [userInfo]="userInfo"
+    [t]="t"
+    (editProfile)="openEditProfileModal()"
+  ></app-tab4-profile-card>
 
-    <!-- 个人介绍 -->
-    <div class="user-intro-section">
-      <p class="user-intro">
-        {{ userInfo.introduction || t.introPlaceholder }}
-      </p>
-    </div>
-
-    <!-- 评分信息 -->
-    <div class="user-ratings">
-      <div class="rating-item">
-        <ion-icon name="star" color="warning"></ion-icon>
-        <div class="rating-content">
-          <span class="rating-label">{{ t.buyerRating }}</span>
-          <span class="rating-value"
-            >{{ formatRating(userInfo.buyerRanking) }}</span
-          >
-        </div>
-      </div>
-      <div class="rating-item">
-        <ion-icon name="ribbon" color="primary"></ion-icon>
-        <div class="rating-content">
-          <span class="rating-label">{{ t.serviceRating }}</span>
-          <span class="rating-value"
-            >{{ formatRating(userInfo.serviceRanking) }}</span
-          >
-        </div>
-      </div>
-      <div class="rating-item">
-        <ion-icon name="briefcase" color="success"></ion-icon>
-        <div class="rating-content">
-          <span class="rating-label">{{ t.orderCount }}</span>
-          <span class="rating-value">{{ userInfo.orderCount || 0 }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 操作按钮 -->
-    <div class="user-button-group">
-      <ion-button fill="outline" size="small" (click)="openEditProfileModal()">
-        <ion-icon name="create-outline" slot="start"></ion-icon>
-        {{ t.editProfile }}
-      </ion-button>
-      <ion-button color="danger" fill="outline" size="small" (click)="logout()">
-        <ion-icon name="log-out" slot="start"></ion-icon>
-        {{ t.logout }}
-      </ion-button>
-    </div>
-    <div class="user-actions">
-      <ion-button fill="outline" (click)="goToFollow()">
-        <ion-icon name="heart-outline"></ion-icon>
-        <span>{{ t.follow }}({{ userInfo.stats.follows }})</span>
-      </ion-button>
-      <ion-button fill="outline" (click)="goToFavorites()">
-        <ion-icon name="heart"></ion-icon>
-        <span>{{ t.favorite }}({{ userInfo.stats.favorites }})</span>
-      </ion-button>
-      <ion-button fill="outline" (click)="goToViews()">
-        <ion-icon name="eye"></ion-icon>
-        <span>{{ t.view }}({{ userInfo.stats.views }})</span>
-      </ion-button>
-    </div>
-  </ion-card>
-  <!-- 分类标签 -->
-  <ion-segment [value]="activeTab" (ionChange)="onTabChange($event)">
-    <ion-segment-button value="published">
-      <ion-icon name="document-text"></ion-icon>
-      <ion-label>{{ t.tabPublished }}</ion-label>
-    </ion-segment-button>
-    <ion-segment-button value="inProgress">
-      <ion-icon name="time"></ion-icon>
-      <ion-label>{{ t.tabInProgress }}</ion-label>
-    </ion-segment-button>
-    <ion-segment-button value="completed">
-      <ion-icon name="checkmark-done"></ion-icon>
-      <ion-label>{{ t.tabCompleted }}</ion-label>
-    </ion-segment-button>
-    <ion-segment-button value="review">
-      <ion-icon name="star"></ion-icon>
-      <ion-label>{{ t.tabReview }}</ion-label>
-    </ion-segment-button>
+  <ion-segment [value]="activeSection" (ionChange)="onSectionChange($event)">
+    <ion-segment-button value="events"
+      ><ion-label>我的事件</ion-label></ion-segment-button
+    >
+    <ion-segment-button value="orders"
+      ><ion-label>我的订单</ion-label></ion-segment-button
+    >
   </ion-segment>
 
-  <!-- 任务列表 -->
-  <div class="tasks-list">
-    @for (task of getFilteredTasks(); track task.id) {
-    <ion-card class="task-item">
-      <ion-item lines="none">
-        <div slot="start" class="task-icon-wrap">
-          <ion-icon
-            [name]="task.EventType === 1 ? 'heart' : 'hand-left'"
-            class="task-icon"
-          ></ion-icon>
-          <div class="task-type-label">
-            {{ task.EventType === 1 ? '帮助' : '求助' }}
-          </div>
-        </div>
-        <ion-label>
-          <h2 class="task-title">{{ task.publisher }} · {{ task.title }}</h2>
-          <p class="task-meta">{{ t.publishTime }}: {{ task.createdAt }}</p>
-        </ion-label>
-        <ion-badge
-          slot="end"
-          [color]="getStatusColor(task.status)"
-          class="status-badge"
-        >
-          {{ getStatusText(task.status) }}
-        </ion-badge>
-      </ion-item>
-      <ion-item lines="none" class="task-actions">
-        <ion-buttons slot="end">
-          @if (task.status === 'published') {
-          <ion-button
-            [disabled]="deletingIds.has(task.id)"
-            (click)="openDeleteAlert(task.id)"
-          >
-            @if (deletingIds.has(task.id)) { {{ t.deleting }} } @else { {{ t.delete }} }
-          </ion-button>
-          <ion-button (click)="editTask(task.id)">{{ t.edit }}</ion-button>
-          } @if (task.status === 'inProgress') {
-          <ion-button (click)="viewDetails(task.id)">{{ t.viewDetails }}</ion-button>
-          } @if (task.status === 'completed') {
-          <ion-button
-            [disabled]="deletingIds.has(task.id)"
-            (click)="openDeleteAlert(task.id)"
-          >
-            @if (deletingIds.has(task.id)) { {{ t.deleting }} } @else { {{ t.delete }} }
-          </ion-button>
-          <ion-button (click)="viewDetails(task.id)">{{ t.viewDetails }}</ion-button>
-          } @if (task.status === 'review') {
-          <ion-button (click)="goToReview(task.id)">{{ t.review }}</ion-button>
-          }
-        </ion-buttons>
-      </ion-item>
-    </ion-card>
-    } @if (getFilteredTasks().length === 0) {
-    <div class="empty-state">
-      <ion-icon name="document-text" class="empty-icon"></ion-icon>
-      <ion-text color="medium">
-        <p>{{ t.noTasks }}</p>
-      </ion-text>
-    </div>
-    }
-  </div>
+  @if (activeSection === 'events') {
+  <app-tab4-events-panel
+    [events]="tasks"
+    [isLoading]="isLoadingEvents"
+    [deletingIds]="deletingIds"
+    [blockedEditIds]="getBlockedEditIds()"
+    [t]="t"
+    (viewDetail)="goToEventDetail($event)"
+    (edit)="editTask($event)"
+    (remove)="openDeleteAlert($event)"
+  ></app-tab4-events-panel>
+  } @else {
+  <app-tab4-orders-panel
+    [orders]="getFilteredOrders()"
+    [orderStats]="orderStats"
+    [isLoading]="isLoadingOrders"
+    [filter]="orderFilter"
+    [t]="t"
+    (filterChange)="setOrderFilter($event)"
+    (viewEvent)="goToEventDetail($event)"
+    (viewOrder)="openOrderDetail($event)"
+    (confirm)="confirmOrder($event)"
+    (complete)="completeOrder($event)"
+    (review)="openReviewModal($event)"
+    (cancel)="cancelOrder($event)"
+    (viewReview)="openReviewDetail($event)"
+  ></app-tab4-orders-panel>
+  }
 
-  <!-- 删除确认弹窗 -->
-  <ion-alert
-    [isOpen]="isDeleteAlertOpen"
-    [header]="t.deleteConfirmTitle"
-    [message]="t.deleteConfirmMsg"
-    [buttons]="alertButtons"
-    (didDismiss)="onDeleteAlertDismiss()"
-  >
-  </ion-alert>
-
-  <!-- 编辑事件弹窗（表单） -->
-  <ion-modal [isOpen]="isEditModalOpen" (didDismiss)="closeEditModal()">
+  <ion-modal [isOpen]="isReviewModalOpen" (didDismiss)="closeReviewModal()">
     <ng-template>
-      <ion-header [translucent]="true">
+      <ion-header>
         <ion-toolbar>
-          <ion-title>{{ t.editEventTitle }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeEditModal()">{{ t.close }}</ion-button>
-          </ion-buttons>
+          <ion-title>订单评价</ion-title>
+          <ion-buttons slot="end"
+            ><ion-button fill="clear" (click)="closeReviewModal()"
+              >关闭</ion-button
+            ></ion-buttons
+          >
         </ion-toolbar>
       </ion-header>
-      <ion-content [fullscreen]="true" class="edit-modal-content">
-        <form [formGroup]="editForm">
-          <ion-list lines="full">
-            <ion-item>
-              <ion-label position="stacked">{{ t.titleLabel }} *</ion-label>
-              <ion-input
-                formControlName="EventTitle"
-                [placeholder]="t.titlePlaceholder"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.typeLabel }} *</ion-label>
-              <ion-select
-                formControlName="EventType"
-                interface="popover"
-                [placeholder]="t.typePlaceholder"
-              >
-                <ion-select-option [value]="0">{{ t.typeRequest }}</ion-select-option>
-                <ion-select-option [value]="1">{{ t.typeHelp }}</ion-select-option>
-              </ion-select>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.categoryLabel }} *</ion-label>
-              <ion-input
-                formControlName="EventCategory"
-                [placeholder]="t.categoryPlaceholder"
-              ></ion-input>
-            </ion-item>
-            <ion-item
-              button
-              detail="true"
-              (click)="openLocationPicker('eventEdit')"
-            >
-              <ion-label position="stacked">位置 *</ion-label>
-              <ion-text [color]="editForm.value.Location ? 'dark' : 'medium'">
-                {{ editForm.value.Location || '请选择地点' }}
-              </ion-text>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.priceLabel }}</ion-label>
-              <ion-input
-                type="number"
-                step="0.01"
-                formControlName="Price"
-                [placeholder]="t.pricePlaceholder"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.detailsLabel }} *</ion-label>
-              <ion-textarea
-                formControlName="EventDetails"
-                [autoGrow]="true"
-                [placeholder]="t.detailsPlaceholder"
-              ></ion-textarea>
-            </ion-item>
-
-            <ion-item lines="none">
-              <ion-label position="stacked">{{ t.editPhotoLabel }}</ion-label>
-            </ion-item>
-
-            <div class="photo-upload-area" (click)="triggerEditFileInput()">
-              <input
-                #editFileInput
-                type="file"
-                accept="image/*"
-                multiple
-                (change)="onEditFileSelected($event)"
-                style="display: none"
-              />
-
-              <div class="photo-preview-container">
-                @for (photo of getEditPhotoItems(); track $index) {
-                <div class="photo-preview">
-                  <img [src]="photo.preview" alt="预览" />
-                  <ion-icon
-                    name="close-circle"
-                    class="remove-photo"
-                    (click)="removeEditPhoto(photo.isExisting ? 'existing' : 'new', photo.index); $event.stopPropagation()"
-                  ></ion-icon>
-                </div>
-                } @if (getEditPhotoCount() === 0) {
-                <div class="upload-placeholder">
-                  <ion-icon name="image-outline"></ion-icon>
-                  <p>{{ t.uploadPhoto }}</p>
-                </div>
-                } @else if (getEditPhotoCount() < 5) {
-                <div class="upload-placeholder">
-                  <ion-icon name="add-circle-outline"></ion-icon>
-                </div>
-                }
-              </div>
-
-              <ion-text color="medium" class="upload-hint">
-                <p>{{ t.uploadHint }}</p>
-              </ion-text>
-            </div>
-          </ion-list>
-
+      <ion-content>
+        <form [formGroup]="reviewForm" class="review-form">
+          <ion-item>
+            <ion-label position="stacked">评分</ion-label>
+            <ion-select formControlName="Score" interface="popover">
+              <ion-select-option [value]="5">5 分</ion-select-option>
+              <ion-select-option [value]="4">4 分</ion-select-option>
+              <ion-select-option [value]="3">3 分</ion-select-option>
+              <ion-select-option [value]="2">2 分</ion-select-option>
+              <ion-select-option [value]="1">1 分</ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">评价内容</ion-label>
+            <ion-textarea
+              formControlName="Text"
+              [autoGrow]="true"
+              placeholder="写下你的评价"
+            ></ion-textarea>
+          </ion-item>
           <div class="modal-actions">
             <ion-button
-              type="button"
               fill="outline"
               color="medium"
-              (click)="closeEditModal()"
-              >{{ t.cancel }}</ion-button
+              (click)="closeReviewModal()"
+              >取消</ion-button
             >
-            <ion-button
-              type="button"
-              (click)="submitEdit()"
-              [disabled]="isSavingEdit"
-              >{{ isSavingEdit ? t.saving : t.save }}</ion-button
-            >
+            <ion-button (click)="submitReview()">提交评价</ion-button>
           </div>
         </form>
       </ion-content>
     </ng-template>
   </ion-modal>
 
-  <!-- 用户信息编辑弹窗 -->
+  <ion-modal [isOpen]="isReviewDetailOpen" (didDismiss)="closeReviewDetail()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>订单评价详情</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeReviewDetail()"
+              >关闭</ion-button
+            >
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        @if (isLoadingReviews) {
+        <div class="empty-state">
+          <ion-text color="medium"><p>加载中...</p></ion-text>
+        </div>
+        } @else if (reviewDetailList.length === 0) {
+        <div class="empty-state">
+          <ion-icon
+            name="chatbubble-ellipses-outline"
+            class="empty-icon"
+          ></ion-icon>
+          <ion-text color="medium"><p>暂无评价</p></ion-text>
+        </div>
+        } @else {
+        <div class="review-detail-list">
+          @for (r of reviewDetailList; track r.id) {
+          <ion-card class="review-item">
+            <ion-item lines="none">
+              <ion-avatar slot="start">
+                <img [src]="getReviewAvatar(r.authorAvatar)" alt="头像" />
+              </ion-avatar>
+              <ion-label>
+                <h2>{{ r.authorName }}</h2>
+                <p>{{ r.createTime }}</p>
+              </ion-label>
+              <ion-badge slot="end" color="warning" class="review-score-badge"
+                >{{ r.rating }} 分</ion-badge
+              >
+            </ion-item>
+            @if (r.content) {
+            <ion-item lines="none">
+              <ion-text>{{ r.content }}</ion-text>
+            </ion-item>
+            }
+          </ion-card>
+          }
+        </div>
+        }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
   <ion-modal
     [isOpen]="isEditProfileModalOpen"
     (didDismiss)="closeEditProfileModal()"
@@ -340,31 +176,39 @@
         <ion-toolbar>
           <ion-title>{{ t.editProfileTitle }}</ion-title>
           <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeEditProfileModal()">{{ t.close }}</ion-button>
+            <ion-button fill="clear" (click)="closeEditProfileModal()"
+              >{{ t.close }}</ion-button
+            >
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <ion-content [fullscreen]="true" class="edit-profile-modal-content">
         <form [formGroup]="editProfileForm">
           <ion-list lines="full">
-            <!-- 头像上传 -->
             <div class="avatar-upload-section">
               <div class="avatar-preview">
                 @if (profileAvatarPreview) {
                 <img [src]="profileAvatarPreview" alt="头像预览" />
-                } @else if (userInfo.avatar) {
+                } @else if (!profileAvatarDeleted && userInfo.avatar) {
                 <img [src]="getAssetUrl(userInfo.avatar)" alt="当前头像" />
                 } @else {
                 <ion-icon name="person-circle"></ion-icon>
                 }
               </div>
               <div class="avatar-actions">
-                <ion-button size="small" (click)="triggerProfileAvatarInput()">
-                  {{ profileAvatarPreview || userInfo.avatar ? t.changeAvatar : t.uploadAvatar }}
-                </ion-button>
-                @if (profileAvatarPreview || userInfo.avatar) {
                 <ion-button
                   size="small"
+                  type="button"
+                  (click)="triggerProfileAvatarInput()"
+                >
+                  {{ profileAvatarPreview || (!profileAvatarDeleted &&
+                  userInfo.avatar) ? t.changeAvatar : t.uploadAvatar }}
+                </ion-button>
+                @if (profileAvatarPreview || (!profileAvatarDeleted &&
+                userInfo.avatar)) {
+                <ion-button
+                  size="small"
+                  type="button"
                   fill="outline"
                   color="danger"
                   (click)="removeProfileAvatar()"
@@ -421,14 +265,16 @@
               <ion-label>所在地 *</ion-label>
               <ion-note
                 slot="end"
-                [color]="editProfileForm.value.Location ? 'dark' : 'medium'"
+                [color]="editProfileForm.value.Location ? 'primary' : 'medium'"
               >
                 {{ editProfileForm.value.Location || '请选择地点' }}
               </ion-note>
             </ion-item>
 
             <ion-item>
-              <ion-label position="floating">{{ t.birthDateLabel }} *</ion-label>
+              <ion-label position="floating"
+                >{{ t.birthDateLabel }} *</ion-label
+              >
               <ion-input type="date" formControlName="BirthDate"></ion-input>
             </ion-item>
 
@@ -466,5 +312,173 @@
     </ng-template>
   </ion-modal>
 
+  <!-- 删除确认弹窗 -->
+  <ion-alert
+    [isOpen]="isDeleteAlertOpen"
+    [header]="t.deleteConfirmTitle || '确认删除'"
+    [message]="t.deleteConfirmMsg || '确定要删除这个事件吗？此操作不可撤销。'"
+    [buttons]="alertButtons"
+    (didDismiss)="onDeleteAlertDismiss()"
+  ></ion-alert>
+
+  <!-- 编辑事件弹窗 -->
+  <ion-modal [isOpen]="isEditModalOpen" (didDismiss)="closeEditModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>编辑事件</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeEditModal()"
+              >关闭</ion-button
+            >
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <form [formGroup]="editForm">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">标题 *</ion-label>
+              <ion-input
+                formControlName="EventTitle"
+                placeholder="简明描述"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">类型 *</ion-label>
+              <ion-select formControlName="EventType" interface="popover">
+                <ion-select-option [value]="0">求助</ion-select-option>
+                <ion-select-option [value]="1">帮助</ion-select-option>
+              </ion-select>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">类别 *</ion-label>
+              <ion-input
+                formControlName="EventCategory"
+                placeholder="如：电脑维修"
+              ></ion-input>
+            </ion-item>
+            <ion-item
+              button
+              detail="true"
+              (click)="openLocationPicker('eventEdit')"
+            >
+              <ion-label>位置 *</ion-label>
+              <ion-note
+                slot="end"
+                [color]="editForm.value.Location ? 'primary' : 'medium'"
+              >
+                {{ editForm.value.Location || '请选择地点' }}
+              </ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">价格 (¥)</ion-label>
+              <ion-input
+                type="number"
+                formControlName="Price"
+                placeholder="0 表示无偿帮助"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">详细描述 *</ion-label>
+              <ion-textarea
+                formControlName="EventDetails"
+                placeholder="补充说明"
+              ></ion-textarea>
+            </ion-item>
+          </ion-list>
+          <div style="padding: 16px">
+            <ion-button
+              expand="block"
+              (click)="submitEdit()"
+              [disabled]="isSavingEdit"
+            >
+              {{ isSavingEdit ? '保存中...' : '保存修改' }}
+            </ion-button>
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- 订单详情弹窗（显示下单时的快照信息） -->
+  <ion-modal
+    [isOpen]="isOrderDetailModalOpen"
+    (didDismiss)="closeOrderDetail()"
+  >
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>订单详情</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeOrderDetail()"
+              >关闭</ion-button
+            >
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        @if (currentOrderDetail) {
+        <div class="order-detail-content">
+          <!-- 订单基本信息 -->
+          <div class="detail-section">
+            <h3>订单信息</h3>
+            <p><strong>订单号：</strong>{{ currentOrderDetail.id }}</p>
+            <p><strong>下单时间：</strong>{{ currentOrderDetail.createdAt }}</p>
+            <p>
+              <strong>角色：</strong>{{ currentOrderDetail.role === 'buyer' ?
+              '买家' : '卖家' }}
+            </p>
+            <p><strong>订单状态：</strong>{{ currentOrderDetail.status }}</p>
+            <p><strong>成交价格：</strong>¥{{ currentOrderDetail.price }}</p>
+          </div>
+
+          <!-- 下单时的事件快照 -->
+          <div class="detail-section snapshot-section">
+            <h3>
+              <ion-icon name="time-outline"></ion-icon>
+              下单时的事件信息
+            </h3>
+            <p><strong>标题：</strong>{{ currentOrderDetail.snapshotTitle }}</p>
+            <p>
+              <strong>类别：</strong>{{ currentOrderDetail.snapshotCategory ||
+              '未分类' }}
+            </p>
+            <p>
+              <strong>地点：</strong>{{ currentOrderDetail.snapshotLocation ||
+              '未填写' }}
+            </p>
+            <p>
+              <strong>价格：</strong>¥{{ currentOrderDetail.snapshotPrice }}
+            </p>
+            @if (currentOrderDetail.snapshotDetails) {
+            <p>
+              <strong>描述：</strong>{{ currentOrderDetail.snapshotDetails }}
+            </p>
+            }
+
+            <!-- 照片展示 -->
+            @if (currentOrderDetail.snapshotPhotos?.length > 0) {
+            <div class="snapshot-photos">
+              <p><strong>事件照片：</strong></p>
+              <div class="photo-grid">
+                @for (photo of currentOrderDetail.snapshotPhotos; track $index)
+                {
+                <img
+                  [src]="getAssetUrl(photo)"
+                  alt="事件照片"
+                  class="snapshot-photo"
+                  (error)="$event.target.src = 'assets/icon/default-image.svg'"
+                />
+                }
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
   }
 </ion-content>
