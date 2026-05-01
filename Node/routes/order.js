@@ -2,6 +2,7 @@ const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
 const { sendSystemMessage } = require("../chatHandler.js");
+const { getIO } = require("../socketInstance.js");
 
 const router = express.Router();
 
@@ -76,7 +77,7 @@ router.post("/orders", authRequired, async (req, res) => {
     }
 
     const [existingRows] = await conn.query(
-      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus <> 3 LIMIT 1",
+      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
       [eventId],
     );
     if (existingRows.length > 0) {
@@ -136,15 +137,25 @@ router.post("/orders", authRequired, async (req, res) => {
 
     await sendSystemMessage({
       roomId: `system_${event.CreatorId}`,
-      text: `您有一个新的订单：”${event.EventTitle}”，请尽快确认。`,
+      text: `您有一个新的订单："${event.EventTitle}"，请尽快确认。`,
       senderId: consumerId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
 
     await sendSystemMessage({
       roomId: `system_${consumerId}`,
-      text: `订单”${event.EventTitle}”已创建成功，等待卖家确认。`,
+      text: `订单"${event.EventTitle}"已创建成功，等待卖家确认。`,
       senderId: consumerId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 通过Socket.IO实时推送新订单通知给卖家
+    const io = getIO();
+    if (io) {
+      io.to(String(event.CreatorId)).emit("orderStatusUpdate", {
+        orderId: result.insertId,
+        newStatus: 0,
+        eventId: eventId,
+      });
+    }
 
     return res.json({
       success: true,
@@ -164,6 +175,12 @@ router.post("/orders", authRequired, async (req, res) => {
 router.get("/orders", authRequired, async (req, res) => {
   const userId = Number(req.user?.id);
   const role = String(req.query.role || "all");
+
+  // role 参数白名单验证
+  const allowedRoles = ["all", "buyer", "seller"];
+  if (!allowedRoles.includes(role)) {
+    return res.status(400).json({ success: false, error: "无效的角色参数" });
+  }
 
   try {
     const where = [];
@@ -272,9 +289,19 @@ router.put("/orders/:id/confirm", authRequired, async (req, res) => {
 
     await sendSystemMessage({
       roomId: `system_${order.ConsumerId}`,
-      text: `您的订单”${order.EventTitle}”已被卖家确认。`,
+      text: `您的订单"${order.EventTitle}"已被卖家确认。`,
       senderId: userId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 通过Socket.IO实时推送订单状态变更
+    const io = getIO();
+    if (io) {
+      io.to(String(order.ConsumerId)).emit("orderStatusUpdate", {
+        orderId,
+        newStatus: 1,
+        eventId: order.EventId,
+      });
+    }
 
     return res.json({ success: true });
   } catch (err) {
@@ -333,9 +360,19 @@ router.put("/orders/:id/complete", authRequired, async (req, res) => {
 
     await sendSystemMessage({
       roomId: `system_${order.ProviderId}`,
-      text: `订单”${order.EventTitle}”已完成，请及时评价。`,
+      text: `订单"${order.EventTitle}"已完成，请及时评价。`,
       senderId: userId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 通过Socket.IO实时推送订单状态变更
+    const io = getIO();
+    if (io) {
+      io.to(String(order.ProviderId)).emit("orderStatusUpdate", {
+        orderId,
+        newStatus: 2,
+        eventId: order.EventId,
+      });
+    }
 
     return res.json({ success: true });
   } catch (err) {
@@ -381,9 +418,9 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
         .json({ success: false, error: "当前订单状态无法取消" });
     }
 
-    // 将订单状态设为已取消（3）
+    // 将订单状态设为已取消（4）
     await conn.query(
-      "UPDATE Orders SET OrderStatus = 3, RefundTime = NOW() WHERE OrderId = ?",
+      "UPDATE Orders SET OrderStatus = 4, RefundTime = NOW() WHERE OrderId = ?",
       [orderId],
     );
 
@@ -398,7 +435,22 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
       roomId: `system_${otherUserId}`,
       text: `订单"${order.EventTitle}"已被${operatorRole}取消。`,
       senderId: userId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 通过Socket.IO实时推送订单状态变更
+    const io = getIO();
+    if (io) {
+      io.to(String(order.ConsumerId)).emit("orderStatusUpdate", {
+        orderId,
+        newStatus: 4,
+        eventId: order.EventId,
+      });
+      io.to(String(order.ProviderId)).emit("orderStatusUpdate", {
+        orderId,
+        newStatus: 4,
+        eventId: order.EventId,
+      });
+    }
 
     return res.json({ success: true });
   } catch (err) {
@@ -411,7 +463,7 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
 });
 
 // 管理端订单列表
-router.get("/admin/orders", async (req, res) => {
+router.get("/admin/orders", authRequired, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -435,7 +487,7 @@ router.get("/admin/orders", async (req, res) => {
 });
 
 // 管理端删除订单
-router.delete("/admin/orders/:id", async (req, res) => {
+router.delete("/admin/orders/:id", authRequired, async (req, res) => {
   const orderId = Number(req.params.id);
   if (!Number.isInteger(orderId) || orderId <= 0) {
     return res.status(400).json({ success: false, error: "订单ID无效" });
@@ -461,6 +513,7 @@ router.get("/orders-status-meta", (_req, res) => {
       { value: 1, label: "进行中" },
       { value: 2, label: "待评价" },
       { value: 3, label: "已完成" },
+      { value: 4, label: "已取消" },
     ],
   });
 });

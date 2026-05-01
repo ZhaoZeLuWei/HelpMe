@@ -283,7 +283,6 @@ module.exports.registerChatHandler = (io, socket) => {
     //user join into private chat list server room
     if (socket.user && socket.user.id) {
       socket.join(socket.user.id.toString());
-      console.log(`User ${socket.user.id} joined private room`);
     }
 
     if (!roomId) return;

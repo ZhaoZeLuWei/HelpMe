@@ -29,6 +29,12 @@
     (click)="setFilter('done')"
     >已完成 {{ orderStats?.done || 0 }}</ion-button
   >
+  <ion-button
+    fill="clear"
+    [class.active-filter]="filter === 'cancelled'"
+    (click)="setFilter('cancelled')"
+    >已取消 {{ orderStats?.cancelled || 0 }}</ion-button
+  >
 </div>
 
 <div class="tasks-list">

@@ -25,7 +25,15 @@ export class OrderManagementComponent implements OnInit {
   }
 
   getStatusText(status: number): string {
-    return status === 0 ? '待确认' : status === 1 ? '进行中' : status === 2 ? '待评价' : '已完成';
+    return status === 0
+      ? '待确认'
+      : status === 1
+        ? '进行中'
+        : status === 2
+          ? '待评价'
+          : status === 3
+            ? '已完成'
+            : '已取消';
   }
 
   deleteOrder(orderId: number) {
