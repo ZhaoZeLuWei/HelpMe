@@ -1,23 +1,137 @@
-<div class="page-shell">
-  <h2>订单管理</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th><th>事件</th><th>买家</th><th>卖家</th><th>金额</th><th>状态</th><th>操作</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (order of orders; track order.OrderId) {
-      <tr>
-        <td>{{ order.OrderId }}</td>
-        <td>{{ order.EventTitle }}</td>
-        <td>{{ order.ConsumerName }}</td>
-        <td>{{ order.ProviderName }}</td>
-        <td>¥{{ order.TransactionPrice }}</td>
-        <td>{{ getStatusText(order.OrderStatus) }}</td>
-        <td><button (click)="deleteOrder(order.OrderId)">删除</button></td>
-      </tr>
-      }
-    </tbody>
-  </table>
+<div class="page-container">
+  <div class="page-header">
+    <h1>订单管理</h1>
+    <span class="count">共 {{ filteredOrders.length }} 条订单</span>
+  </div>
+
+  <!-- 搜索和筛选 -->
+  <div class="filter-bar">
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        #searchInput
+        (input)="onSearchChange()"
+        placeholder="搜索事件、买家、卖家或订单号..."
+      />
+    </div>
+    <select #statusSelect (change)="onFilterChange()">
+      <option value="all">全部状态</option>
+      <option value="0">待确认</option>
+      <option value="1">进行中</option>
+      <option value="2">待评价</option>
+      <option value="3">已完成</option>
+      <option value="4">已取消</option>
+    </select>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>订单号</th>
+          <th>事件</th>
+          <th>买家</th>
+          <th>卖家</th>
+          <th>金额</th>
+          <th>状态</th>
+          <th>创建时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of filteredOrders">
+          <td class="id-cell">#{{ order.OrderId }}</td>
+          <td class="title-cell">{{ order.EventTitle }}</td>
+          <td>{{ order.ConsumerName }}</td>
+          <td>{{ order.ProviderName }}</td>
+          <td class="price-cell">¥{{ order.TransactionPrice }}</td>
+          <td>
+            <span
+              class="status-tag"
+              [class]="getStatusClass(order.OrderStatus)"
+            >
+              {{ getStatusText(order.OrderStatus) }}
+            </span>
+          </td>
+          <td class="time-cell">
+            {{ order.OrderCreateTime | date: "yyyy-MM-dd HH:mm" }}
+          </td>
+          <td class="actions-cell">
+            <button class="btn-view" (click)="viewDetail(order)">详情</button>
+            <button class="btn-delete" (click)="confirmDelete(order)">
+              删除
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredOrders.length === 0">
+          <td colspan="8" class="empty-cell">暂无订单数据</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
+
+<!-- 删除确认弹窗 -->
+<app-confirm-dialog
+  [visible]="showDeleteDialog"
+  title="删除订单"
+  [message]="
+    '确定要删除订单 #' +
+    (orderToDelete?.OrderId || '') +
+    ' 吗？此操作不可撤销。'
+  "
+  confirmText="确定删除"
+  type="danger"
+  (confirmed)="onDeleteConfirmed()"
+  (cancelled)="onDeleteCancelled()"
+></app-confirm-dialog>
+
+<!-- 详情弹窗 -->
+<app-detail-modal
+  [visible]="showDetailModal"
+  title="订单详情"
+  (closed)="closeDetail()"
+>
+  <div class="detail-grid" *ngIf="selectedOrder">
+    <div class="detail-item">
+      <label>订单号</label>
+      <span>#{{ selectedOrder.OrderId }}</span>
+    </div>
+    <div class="detail-item">
+      <label>状态</label>
+      <span
+        class="status-tag"
+        [class]="getStatusClass(selectedOrder.OrderStatus)"
+      >
+        {{ getStatusText(selectedOrder.OrderStatus) }}
+      </span>
+    </div>
+    <div class="detail-item">
+      <label>事件</label>
+      <span>{{ selectedOrder.EventTitle }}</span>
+    </div>
+    <div class="detail-item">
+      <label>金额</label>
+      <span class="price-cell">¥{{ selectedOrder.TransactionPrice }}</span>
+    </div>
+    <div class="detail-item">
+      <label>买家</label>
+      <span>{{ selectedOrder.ConsumerName }}</span>
+    </div>
+    <div class="detail-item">
+      <label>卖家</label>
+      <span>{{ selectedOrder.ProviderName }}</span>
+    </div>
+    <div class="detail-item full-width">
+      <label>地址</label>
+      <span>{{ selectedOrder.DetailLocation || "未填写" }}</span>
+    </div>
+    <div class="detail-item">
+      <label>创建时间</label>
+      <span>{{
+        selectedOrder.OrderCreateTime | date: "yyyy-MM-dd HH:mm:ss"
+      }}</span>
+    </div>
+  </div>
+</app-detail-modal>

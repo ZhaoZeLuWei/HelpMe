@@ -1,213 +1,185 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { ServeAPIService } from '../../serve-api.service';
+import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-list-verify-post',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, ConfirmDialogComponent, MatIconModule],
   templateUrl: './list-verify-post.component.html',
   styleUrl: './list-verify-post.component.css',
 })
 export class ListVerifyPostComponent implements OnInit {
-  // 认证列表
+  @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('statusSelect') statusSelect!: ElementRef<HTMLSelectElement>;
+  @ViewChild('reviewTextarea') reviewTextarea!: ElementRef<HTMLTextAreaElement>;
+
   providers: any[] = [];
-
-  // 当前查看的详情
+  filteredProviders: any[] = [];
   currentDetail: any = null;
+  showDetailModal = false;
 
-  // 是否显示详情弹窗
-  showDetailModal: boolean = false;
+  // 删除确认
+  showDeleteDialog = false;
+  deleteTarget: any = null;
 
-  // 审核回复内容
-  reviewComment: string = '';
+  // 警告弹窗
+  showWarningDialog = false;
+  warningMessage = '';
 
-  // 注入API服务
   private api = inject(ServeAPIService);
-
   public baseUrl: string = this.api.getBaseUrl();
 
   ngOnInit(): void {
     this.loadVerifyList();
   }
 
-  // 加载认证列表
   loadVerifyList() {
     this.api.getAdminVerifyList().subscribe({
       next: (res) => {
         this.providers = res.data;
-        console.log('认证列表:', this.providers);
+        this.applyFilter();
       },
-      error: (err) => {
-        console.error('加载认证列表失败', err);
-        alert('加载认证列表失败');
-      },
+      error: () => alert('加载认证列表失败'),
     });
   }
 
-  // 获取认证状态文本
+  applyFilter() {
+    const searchText = this.searchInput?.nativeElement.value || '';
+    const statusFilter = this.statusSelect?.nativeElement.value || 'all';
+
+    let result = [...this.providers];
+
+    if (searchText) {
+      const text = searchText.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.UserName?.toLowerCase().includes(text) ||
+          p.ProviderId?.toString().includes(text),
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      const status = Number(statusFilter);
+      result = result.filter((p) => {
+        if (status === -1) return p.VerificationStatus === undefined || p.VerificationStatus === null;
+        return p.VerificationStatus === status;
+      });
+    }
+
+    this.filteredProviders = result;
+  }
+
+  onSearchChange() {
+    this.applyFilter();
+  }
+
+  onFilterChange() {
+    this.applyFilter();
+  }
+
   getVerifyText(p: any): string {
-    // VerificationStatus: 0=待审核, 1=已通过, 2=已驳回
-    // 如果没有VerificationStatus字段或为null，表示未认证
-    if (p.VerificationStatus === undefined || p.VerificationStatus === null) {
-      return '未认证';
-    }
-    switch (p.VerificationStatus) {
-      case 0:
-        return '待审核';
-      case 1:
-        return '已通过';
-      case 2:
-        return '已驳回';
-      default:
-        return '未知';
-    }
+    if (p.VerificationStatus === undefined || p.VerificationStatus === null) return '未认证';
+    const map: Record<number, string> = { 0: '待审核', 1: '已通过', 2: '已驳回' };
+    return map[p.VerificationStatus] || '未知';
   }
 
-  // 获取认证状态CSS类
   getVerifyClass(p: any): string {
-    if (
-      !p ||
-      p.VerificationStatus === undefined ||
-      p.VerificationStatus === null
-    ) {
-      return 'status-unverified';
-    }
-    switch (p.VerificationStatus) {
-      case 0:
-        return 'status-pending';
-      case 1:
-        return 'status-approved';
-      case 2:
-        return 'status-rejected';
-      default:
-        return 'status-unknown';
-    }
+    if (p?.VerificationStatus === undefined || p?.VerificationStatus === null) return 'status-unverified';
+    const map: Record<number, string> = { 0: 'status-pending', 1: 'status-approved', 2: 'status-rejected' };
+    return map[p.VerificationStatus] || 'status-unknown';
   }
 
-  // ProviderRole 映射：1 热心群众，2 专业人士
   getProviderRoleText(role: number | null | undefined): string {
     if (role === undefined || role === null) return '未知';
-    switch (Number(role)) {
-      case 1:
-        return '热心群众';
-      case 2:
-        return '专业人士';
-      default:
-        return '未知';
-    }
+    const map: Record<number, string> = { 1: '热心群众', 2: '专业人士' };
+    return map[Number(role)] || '未知';
   }
 
-  // ServiceCategory 映射：1 全职，2 兼职，3 商家
   getServiceCategoryText(category: number | null | undefined): string {
     if (category === undefined || category === null) return '未设置';
-    switch (Number(category)) {
-      case 1:
-        return '全职';
-      case 2:
-        return '兼职';
-      case 3:
-        return '商家';
-      default:
-        return '未知';
-    }
+    const map: Record<number, string> = { 1: '全职', 2: '兼职', 3: '商家' };
+    return map[Number(category)] || '未知';
   }
 
-  // 查看详情
+  getStatusText(status: number | null | undefined): string {
+    return this.getVerifyText({ VerificationStatus: status });
+  }
+
   viewDetail(providerId: number) {
     this.api.getVerifyDetail(providerId).subscribe({
       next: (res) => {
         if (res.success) {
           this.currentDetail = res.data;
           this.showDetailModal = true;
-          this.reviewComment = '';
-          console.log('认证详情:', this.currentDetail);
         }
       },
-      error: (err) => {
-        console.error('获取详情失败', err);
-        alert('获取认证详情失败');
-      },
+      error: () => alert('获取认证详情失败'),
     });
   }
 
-  // 关闭详情弹窗
   closeDetail() {
     this.showDetailModal = false;
     this.currentDetail = null;
-    this.reviewComment = '';
   }
 
-  // 审核通过
   approveVerification() {
     if (!this.currentDetail) return;
-
-    const comment = this.reviewComment.trim() || '审核通过';
-
-    if (confirm(`确定通过该认证申请吗？`)) {
-      this.api
-        .approveVerification(this.currentDetail.UserId, comment)
-        .subscribe({
-          next: (res) => {
-            if (res.success) {
-              alert('审核通过成功！');
-              this.closeDetail();
-              this.loadVerifyList();
-            }
-          },
-          error: (err) => {
-            console.error('审核通过失败', err);
-            alert('审核通过失败');
-          },
-        });
-    }
+    const comment = this.reviewTextarea?.nativeElement.value?.trim() || '审核通过';
+    this.showDeleteDialog = true;
+    this.deleteTarget = { type: 'approve', id: this.currentDetail.UserId, comment };
   }
 
-  // 审核驳回
   rejectVerification() {
     if (!this.currentDetail) return;
-
-    const comment = this.reviewComment.trim();
-
+    const comment = this.reviewTextarea?.nativeElement.value?.trim() || '';
     if (!comment) {
-      alert('驳回申请必须填写原因！');
+      this.warningMessage = '驳回申请必须填写原因！';
+      this.showWarningDialog = true;
       return;
     }
-
-    if (confirm(`确定驳回该认证申请吗？`)) {
-      this.api
-        .rejectVerification(this.currentDetail.UserId, comment)
-        .subscribe({
-          next: (res) => {
-            if (res.success) {
-              alert('审核驳回成功！');
-              this.closeDetail();
-              this.loadVerifyList();
-            }
-          },
-          error: (err) => {
-            console.error('审核驳回失败', err);
-            alert('审核驳回失败');
-          },
-        });
-    }
+    this.showDeleteDialog = true;
+    this.deleteTarget = { type: 'reject', id: this.currentDetail.UserId, comment };
   }
 
-  // 获取认证状态文本
-  getStatusText(status: number | null | undefined): string {
-    if (status === undefined || status === null) {
-      return '未认证';
+  onConfirmAction() {
+    if (!this.deleteTarget) return;
+
+    if (this.deleteTarget.type === 'approve') {
+      this.api.approveVerification(this.deleteTarget.id, this.deleteTarget.comment).subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.closeDetail();
+            this.loadVerifyList();
+          }
+        },
+        error: () => alert('审核通过失败'),
+      });
+    } else {
+      this.api.rejectVerification(this.deleteTarget.id, this.deleteTarget.comment).subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.closeDetail();
+            this.loadVerifyList();
+          }
+        },
+        error: () => alert('审核驳回失败'),
+      });
     }
-    switch (status) {
-      case 0:
-        return '待审核';
-      case 1:
-        return '已通过';
-      case 2:
-        return '已驳回';
-      default:
-        return '未知';
-    }
+
+    this.showDeleteDialog = false;
+    this.deleteTarget = null;
+  }
+
+  onCancelAction() {
+    this.showDeleteDialog = false;
+    this.deleteTarget = null;
+  }
+
+  closeWarning() {
+    this.showWarningDialog = false;
+    this.warningMessage = '';
   }
 }

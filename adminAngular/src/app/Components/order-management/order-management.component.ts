@@ -1,17 +1,35 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ViewChild, ElementRef } from '@angular/core';
 import { ServeAPIService } from '../../serve-api.service';
+import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
+import { DetailModalComponent } from '../shared/detail-modal.component';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-order-management',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    ConfirmDialogComponent,
+    DetailModalComponent,
+    MatIconModule,
+  ],
   templateUrl: './order-management.component.html',
   styleUrl: './order-management.component.css',
 })
 export class OrderManagementComponent implements OnInit {
+  @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('statusSelect') statusSelect!: ElementRef<HTMLSelectElement>;
+
   private api = inject(ServeAPIService);
   orders: any[] = [];
+  filteredOrders: any[] = [];
+
+  // 弹窗状态
+  showDeleteDialog = false;
+  showDetailModal = false;
+  selectedOrder: any = null;
+  orderToDelete: any = null;
 
   ngOnInit(): void {
     this.loadOrders();
@@ -19,28 +37,98 @@ export class OrderManagementComponent implements OnInit {
 
   loadOrders() {
     this.api.getAdminOrdersList().subscribe({
-      next: (res) => (this.orders = res.orders || []),
+      next: (res) => {
+        this.orders = res.orders || [];
+        this.applyFilter();
+      },
       error: () => alert('加载订单失败'),
     });
   }
 
-  getStatusText(status: number): string {
-    return status === 0
-      ? '待确认'
-      : status === 1
-        ? '进行中'
-        : status === 2
-          ? '待评价'
-          : status === 3
-            ? '已完成'
-            : '已取消';
+  applyFilter() {
+    const searchText = this.searchInput?.nativeElement.value || '';
+    const statusFilter = this.statusSelect?.nativeElement.value || 'all';
+
+    let result = [...this.orders];
+
+    if (searchText) {
+      const text = searchText.toLowerCase();
+      result = result.filter(
+        (o) =>
+          o.EventTitle?.toLowerCase().includes(text) ||
+          o.ConsumerName?.toLowerCase().includes(text) ||
+          o.ProviderName?.toLowerCase().includes(text) ||
+          o.OrderId?.toString().includes(text),
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      const status = Number(statusFilter);
+      result = result.filter((o) => o.OrderStatus === status);
+    }
+
+    this.filteredOrders = result;
   }
 
-  deleteOrder(orderId: number) {
-    if (!confirm('确定删除该订单吗？')) return;
-    this.api.deleteAdminOrder(orderId).subscribe({
-      next: () => this.loadOrders(),
+  onSearchChange() {
+    this.applyFilter();
+  }
+
+  onFilterChange() {
+    this.applyFilter();
+  }
+
+  getStatusText(status: number): string {
+    const map: Record<number, string> = {
+      0: '待确认',
+      1: '进行中',
+      2: '待评价',
+      3: '已完成',
+      4: '已取消',
+    };
+    return map[status] || '未知';
+  }
+
+  getStatusClass(status: number): string {
+    const map: Record<number, string> = {
+      0: 'status-pending',
+      1: 'status-active',
+      2: 'status-review',
+      3: 'status-completed',
+      4: 'status-cancelled',
+    };
+    return map[status] || '';
+  }
+
+  viewDetail(order: any) {
+    this.selectedOrder = order;
+    this.showDetailModal = true;
+  }
+
+  closeDetail() {
+    this.showDetailModal = false;
+    this.selectedOrder = null;
+  }
+
+  confirmDelete(order: any) {
+    this.orderToDelete = order;
+    this.showDeleteDialog = true;
+  }
+
+  onDeleteConfirmed() {
+    if (!this.orderToDelete) return;
+    this.api.deleteAdminOrder(this.orderToDelete.OrderId).subscribe({
+      next: () => {
+        this.loadOrders();
+        this.showDeleteDialog = false;
+        this.orderToDelete = null;
+      },
       error: () => alert('删除订单失败'),
     });
+  }
+
+  onDeleteCancelled() {
+    this.showDeleteDialog = false;
+    this.orderToDelete = null;
   }
 }

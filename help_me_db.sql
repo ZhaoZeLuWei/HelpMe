@@ -186,9 +186,9 @@ INSERT INTO Consumers (ConsumerId, BuyerRanking) VALUES
 -- 3) Providers（服务者）
 INSERT INTO Providers (ProviderId, ProviderRole, OrderCount, ServiceRanking) VALUES
 (100001, 1, 12, 4.7),
-(100002, 1, 35, 4.9),
+(100002, 2, 35, 4.9),
 (100004, 1, 18, 4.6),
-(100006, 1, 40, 4.8),
+(100006, 2, 40, 4.8),
 (100008, 1,  9, 4.5);
 
 -- 4) Events（服务/活动发布）
