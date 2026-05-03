@@ -30,7 +30,9 @@
         <tr>
           <th>ID</th>
           <th>用户名</th>
-          <th>角色</th>
+          <th>申请时角色</th>
+          <th>申请角色</th>
+          <th>当前角色</th>
           <th>认证状态</th>
           <th>操作</th>
         </tr>
@@ -39,6 +41,8 @@
         <tr *ngFor="let p of filteredProviders">
           <td class="id-cell">#{{ p.ProviderId }}</td>
           <td class="title-cell">{{ p.UserName }}</td>
+          <td>{{ getProviderRoleText(p.OriginalProviderRole) }}</td>
+          <td>{{ getServiceCategoryText(p.ServiceCategory) }}</td>
           <td>{{ getProviderRoleText(p.ProviderRole) }}</td>
           <td>
             <span class="status-tag" [class]="getVerifyClass(p)">
@@ -52,7 +56,7 @@
           </td>
         </tr>
         <tr *ngIf="filteredProviders.length === 0">
-          <td colspan="5" class="empty-cell">暂无认证记录</td>
+          <td colspan="7" class="empty-cell">暂无认证记录</td>
         </tr>
       </tbody>
     </table>

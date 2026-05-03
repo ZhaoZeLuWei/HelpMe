@@ -1,4 +1,10 @@
-import { Component, inject, OnInit, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ServeAPIService } from '../../serve-api.service';
 import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
@@ -64,7 +70,10 @@ export class ListVerifyPostComponent implements OnInit {
     if (statusFilter !== 'all') {
       const status = Number(statusFilter);
       result = result.filter((p) => {
-        if (status === -1) return p.VerificationStatus === undefined || p.VerificationStatus === null;
+        if (status === -1)
+          return (
+            p.VerificationStatus === undefined || p.VerificationStatus === null
+          );
         return p.VerificationStatus === status;
       });
     }
@@ -81,26 +90,44 @@ export class ListVerifyPostComponent implements OnInit {
   }
 
   getVerifyText(p: any): string {
-    if (p.VerificationStatus === undefined || p.VerificationStatus === null) return '未认证';
-    const map: Record<number, string> = { 0: '待审核', 1: '已通过', 2: '已驳回' };
+    if (p.VerificationStatus === undefined || p.VerificationStatus === null)
+      return '未认证';
+    const map: Record<number, string> = {
+      0: '待审核',
+      1: '已通过',
+      2: '已驳回',
+    };
     return map[p.VerificationStatus] || '未知';
   }
 
   getVerifyClass(p: any): string {
-    if (p?.VerificationStatus === undefined || p?.VerificationStatus === null) return 'status-unverified';
-    const map: Record<number, string> = { 0: 'status-pending', 1: 'status-approved', 2: 'status-rejected' };
+    if (p?.VerificationStatus === undefined || p?.VerificationStatus === null)
+      return 'status-unverified';
+    const map: Record<number, string> = {
+      0: 'status-pending',
+      1: 'status-approved',
+      2: 'status-rejected',
+    };
     return map[p.VerificationStatus] || 'status-unknown';
   }
 
   getProviderRoleText(role: number | null | undefined): string {
-    if (role === undefined || role === null) return '未知';
-    const map: Record<number, string> = { 1: '热心群众', 2: '专业人士', 3: '商家' };
-    return map[Number(role)] || '未知';
+    if (role === undefined || role === null || role === 0) return '普通用户';
+    const map: Record<number, string> = {
+      1: '热心群众',
+      2: '专业人士',
+      3: '商家',
+    };
+    return map[Number(role)] || '普通用户';
   }
 
   getServiceCategoryText(category: number | null | undefined): string {
     if (category === undefined || category === null) return '未设置';
-    const map: Record<number, string> = { 1: '热心群众', 2: '专业人士', 3: '商家' };
+    const map: Record<number, string> = {
+      1: '热心群众',
+      2: '专业人士',
+      3: '商家',
+    };
     return map[Number(category)] || '未知';
   }
 
@@ -127,9 +154,14 @@ export class ListVerifyPostComponent implements OnInit {
 
   approveVerification() {
     if (!this.currentDetail) return;
-    const comment = this.reviewTextarea?.nativeElement.value?.trim() || '审核通过';
+    const comment =
+      this.reviewTextarea?.nativeElement.value?.trim() || '审核通过';
     this.showDeleteDialog = true;
-    this.deleteTarget = { type: 'approve', id: this.currentDetail.UserId, comment };
+    this.deleteTarget = {
+      type: 'approve',
+      id: this.currentDetail.UserId,
+      comment,
+    };
   }
 
   rejectVerification() {
@@ -141,32 +173,40 @@ export class ListVerifyPostComponent implements OnInit {
       return;
     }
     this.showDeleteDialog = true;
-    this.deleteTarget = { type: 'reject', id: this.currentDetail.UserId, comment };
+    this.deleteTarget = {
+      type: 'reject',
+      id: this.currentDetail.UserId,
+      comment,
+    };
   }
 
   onConfirmAction() {
     if (!this.deleteTarget) return;
 
     if (this.deleteTarget.type === 'approve') {
-      this.api.approveVerification(this.deleteTarget.id, this.deleteTarget.comment).subscribe({
-        next: (res) => {
-          if (res.success) {
-            this.closeDetail();
-            this.loadVerifyList();
-          }
-        },
-        error: () => alert('审核通过失败'),
-      });
+      this.api
+        .approveVerification(this.deleteTarget.id, this.deleteTarget.comment)
+        .subscribe({
+          next: (res) => {
+            if (res.success) {
+              this.closeDetail();
+              this.loadVerifyList();
+            }
+          },
+          error: () => alert('审核通过失败'),
+        });
     } else {
-      this.api.rejectVerification(this.deleteTarget.id, this.deleteTarget.comment).subscribe({
-        next: (res) => {
-          if (res.success) {
-            this.closeDetail();
-            this.loadVerifyList();
-          }
-        },
-        error: () => alert('审核驳回失败'),
-      });
+      this.api
+        .rejectVerification(this.deleteTarget.id, this.deleteTarget.comment)
+        .subscribe({
+          next: (res) => {
+            if (res.success) {
+              this.closeDetail();
+              this.loadVerifyList();
+            }
+          },
+          error: () => alert('审核驳回失败'),
+        });
     }
 
     this.showDeleteDialog = false;

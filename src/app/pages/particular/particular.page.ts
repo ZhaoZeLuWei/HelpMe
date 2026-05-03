@@ -214,9 +214,11 @@ export class ParticularPage implements OnInit {
   getServiceRoleText(providerRole: number): string {
     switch (providerRole) {
       case 1:
-        return '热心用户';
+        return '热心群众';
       case 2:
-        return '服务达人';
+        return '专业人士';
+      case 3:
+        return '商家';
       default:
         return '普通用户';
     }
@@ -228,6 +230,8 @@ export class ParticularPage implements OnInit {
       case 1:
         return 'warning'; // 黄色
       case 2:
+        return 'success'; // 绿色
+      case 3:
         return 'success'; // 绿色
       default:
         return 'medium'; // 灰色

@@ -73,15 +73,16 @@ CREATE TABLE Events (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE Verifications (
-  VerificationId     INT(10) AUTO_INCREMENT PRIMARY KEY,
-  ProviderId         INT(10)      NOT NULL,
-  ServiceCategory    TINYINT(1)   NOT NULL,
-  VerificationStatus TINYINT(1)   NOT NULL DEFAULT 0,
-  IdCardPhoto        VARCHAR(255) NOT NULL,
-  ProfessionPhoto    VARCHAR(255) NULL,
-  SubmissionTime     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PassingTime        TIMESTAMP    NULL,
-  Results            VARCHAR(255) NULL,
+  VerificationId       INT(10) AUTO_INCREMENT PRIMARY KEY,
+  ProviderId           INT(10)      NOT NULL,
+  ServiceCategory      TINYINT(1)   NOT NULL,
+  OriginalProviderRole TINYINT(1)   NOT NULL DEFAULT 0,
+  VerificationStatus   TINYINT(1)   NOT NULL DEFAULT 0,
+  IdCardPhoto          VARCHAR(255) NOT NULL,
+  ProfessionPhoto      VARCHAR(255) NULL,
+  SubmissionTime       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PassingTime          TIMESTAMP    NULL,
+  Results              VARCHAR(255) NULL,
 
   KEY idx_verifications_provider (ProviderId),
   CONSTRAINT fk_verifications_provider

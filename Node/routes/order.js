@@ -101,6 +101,18 @@ router.post("/orders", authRequired, async (req, res) => {
       );
     }
 
+    // 确保卖家在 Providers 表中存在（发布事件的用户）
+    const [providerExists] = await conn.query(
+      "SELECT ProviderId FROM Providers WHERE ProviderId = ? LIMIT 1",
+      [event.CreatorId],
+    );
+    if (providerExists.length === 0) {
+      await conn.query(
+        "INSERT INTO Providers (ProviderId, ProviderRole, OrderCount, ServiceRanking) VALUES (?, 0, 0, 0)",
+        [event.CreatorId],
+      );
+    }
+
     const verificationCode = `ORD${Date.now().toString().slice(-8)}`;
     const orderLocation = AdditionalInfo
       ? `${String(DetailLocation).trim()}｜${String(AdditionalInfo).trim()}`
