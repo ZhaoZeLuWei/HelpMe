@@ -94,13 +94,13 @@ export class ListVerifyPostComponent implements OnInit {
 
   getProviderRoleText(role: number | null | undefined): string {
     if (role === undefined || role === null) return '未知';
-    const map: Record<number, string> = { 1: '热心群众', 2: '专业人士' };
+    const map: Record<number, string> = { 1: '热心群众', 2: '专业人士', 3: '商家' };
     return map[Number(role)] || '未知';
   }
 
   getServiceCategoryText(category: number | null | undefined): string {
     if (category === undefined || category === null) return '未设置';
-    const map: Record<number, string> = { 1: '全职', 2: '兼职', 3: '商家' };
+    const map: Record<number, string> = { 1: '热心群众', 2: '专业人士', 3: '商家' };
     return map[Number(category)] || '未知';
   }
 
