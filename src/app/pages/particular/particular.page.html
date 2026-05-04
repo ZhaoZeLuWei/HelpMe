@@ -202,13 +202,25 @@
     <ion-content>
       <form [formGroup]="orderForm">
         <ion-list lines="full">
+          <!-- 地图选择地址 -->
+          <ion-item button detail="true" (click)="openOrderLocationPicker()">
+            <ion-label>详细地址 *</ion-label>
+            <ion-note
+              slot="end"
+              [color]="orderForm.value.DetailLocation ? 'primary' : 'medium'"
+            >
+              {{ pickedLocationDisplay || '请选择地点' }}
+            </ion-note>
+          </ion-item>
+          <!-- 具体位置（门牌号、楼栋号等） -->
           <ion-item>
-            <ion-label position="stacked">详细地址 *</ion-label>
+            <ion-label position="stacked">具体位置</ion-label>
             <ion-input
-              formControlName="DetailLocation"
-              placeholder="请输入上门/交付地址"
+              formControlName="SpecificLocation"
+              placeholder="如：3栋2单元501室"
             ></ion-input>
           </ion-item>
+          <!-- 补充信息 -->
           <ion-item>
             <ion-label position="stacked">补充信息</ion-label>
             <ion-textarea
@@ -222,7 +234,7 @@
           <ion-button
             expand="block"
             (click)="submitOrder()"
-            [disabled]="isSubmittingOrder"
+            [disabled]="isSubmittingOrder || orderForm.invalid"
           >
             {{ isSubmittingOrder ? '提交中...' : '确认下单' }}
           </ion-button>

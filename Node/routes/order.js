@@ -31,7 +31,8 @@ async function fetchOrderWithNames(conn, orderId) {
 // 创建订单
 router.post("/orders", authRequired, async (req, res) => {
   const consumerId = Number(req.user?.id);
-  const { EventId, DetailLocation, AdditionalInfo } = req.body || {};
+  const { EventId, DetailLocation, SpecificLocation, AdditionalInfo } =
+    req.body || {};
   const eventId = Number(EventId);
 
   if (!Number.isInteger(consumerId) || consumerId <= 0) {
@@ -114,9 +115,15 @@ router.post("/orders", authRequired, async (req, res) => {
     }
 
     const verificationCode = `ORD${Date.now().toString().slice(-8)}`;
-    const orderLocation = AdditionalInfo
-      ? `${String(DetailLocation).trim()}｜${String(AdditionalInfo).trim()}`
-      : String(DetailLocation).trim();
+    // 拼接地址：地址｜具体位置｜补充信息
+    const parts = [String(DetailLocation).trim()];
+    if (SpecificLocation && String(SpecificLocation).trim()) {
+      parts.push(String(SpecificLocation).trim());
+    }
+    if (AdditionalInfo && String(AdditionalInfo).trim()) {
+      parts.push(String(AdditionalInfo).trim());
+    }
+    const orderLocation = parts.join("｜");
 
     // 创建事件快照，保存下单时的事件状态
     const eventSnapshot = JSON.stringify({
@@ -128,6 +135,12 @@ router.post("/orders", authRequired, async (req, res) => {
       EventDetails: event.EventDetails,
       Photos: event.Photos || null,
       ProviderName: event.ProviderName,
+      // 交付地址结构化数据
+      DeliveryAddress: String(DetailLocation).trim(),
+      DeliverySpecific: SpecificLocation ? String(SpecificLocation).trim() : "",
+      DeliveryAdditionalInfo: AdditionalInfo
+        ? String(AdditionalInfo).trim()
+        : "",
     });
 
     const [result] = await conn.query(

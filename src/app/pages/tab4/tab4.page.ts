@@ -777,6 +777,11 @@ export class Tab4Page implements OnDestroy {
             snapshotDetails: snapshot?.EventDetails || '',
             snapshotCategory: snapshot?.EventCategory || '',
             snapshotPhotos,
+            // 交付地址结构化数据
+            deliveryAddress:
+              snapshot?.DeliveryAddress || o.DetailLocation || '',
+            deliverySpecific: snapshot?.DeliverySpecific || '',
+            deliveryAdditionalInfo: snapshot?.DeliveryAdditionalInfo || '',
           };
         });
 
