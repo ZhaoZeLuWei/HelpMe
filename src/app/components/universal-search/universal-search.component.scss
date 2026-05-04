@@ -14,15 +14,15 @@
   display: flex;
   align-items: center;
   padding: 10px 15px;
-  background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
+  background: var(--ion-background-color);
+  border-bottom: 1px solid var(--ion-background-color-step-150);
   gap: 10px;
 }
 
 .search-bar-custom {
   flex: 1;
-  max-width: 400px;          // 与队友一致
-  --background: #FFFFFF;
+  max-width: 400px;
+  --background: var(--ion-card-background, var(--ion-background-color));
   --box-shadow: none;
   --border-radius: 20px;
   --padding-start: 15px;
@@ -39,16 +39,16 @@
 
 /* ===== 筛选按钮行 – 与小卡片筛选条同风格 ===== */
 .filter-row {
-  background: #FFFFFF;
+  background: var(--ion-card-background, var(--ion-background-color));
   padding: 10px 0;
-  border-bottom: 1px solid #E2E8F0;
+  border-bottom: 1px solid var(--ion-background-color-step-150);
   ion-col { padding: 0 5px; }
 }
 
 /* ===== 列表容器 – 同队友网格 ===== */
 .event-list-container {
   padding: 10px;
-  background-color: #F8FAFC;
+  background-color: var(--ion-background-color);
 }
 
 /* ===== 空状态 – 直接复用队友空状态 ===== */
@@ -59,16 +59,16 @@
   align-items: center;
   justify-content: center;
   padding: 40px 10px;
-  color: #94A3B8;
+  color: var(--ion-color-medium);
   text-align: center;
-  background-color: #F8FAFC;
-  border: 2px dashed #E2E8F0;
+  background-color: var(--ion-background-color);
+  border: 2px dashed var(--ion-background-color-step-150);
   border-radius: 12px;
   margin: 0 10px;
 
   .material-icons {
     font-size: 48px;
-    color: #CBD5E1;
+    color: var(--ion-background-color-step-200);
     margin-bottom: 10px;
   }
   p { font-size: 15px; margin: 0; font-weight: 500; }
