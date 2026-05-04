@@ -49,6 +49,19 @@
             注册时间：{{ userInfo.CreateTime }}
           </p>
         </div>
+        @if (!isCurrentUserCreator && currentUserId) {
+        <div class="follow-button-container" (click)="$event.stopPropagation()">
+          <ion-button
+            [fill]="isFollowingCreator ? 'solid' : 'outline'"
+            [color]="isFollowingCreator ? 'danger' : 'medium'"
+            size="small"
+            (click)="onFollow()"
+          >
+            <ion-icon slot="start" [name]="isFollowingCreator ? 'heart' : 'heart-outline'"></ion-icon>
+            {{ isFollowingCreator ? '已关注' : '关注' }}
+          </ion-button>
+        </div>
+        }
       </div>
 
       <!-- 任务核心信息 -->
@@ -86,9 +99,14 @@
   <ion-toolbar>
     <ion-row class="bottom-actions">
       <ion-col>
-        <ion-button expand="block" fill="outline" (click)="onCollect()">
-          <ion-icon slot="start" name="star-outline"></ion-icon>
-          收藏
+        <ion-button
+          expand="block"
+          [fill]="isFavorited ? 'solid' : 'outline'"
+          [color]="isFavorited ? 'warning' : 'medium'"
+          (click)="onCollect()"
+        >
+          <ion-icon slot="start" [name]="isFavorited ? 'star' : 'star-outline'"></ion-icon>
+          {{ isFavorited ? '已收藏' : '收藏' }}
         </ion-button>
       </ion-col>
       @if (!isCurrentUserCreator) {

@@ -18,6 +18,7 @@ const orderRoutes = require("./routes/order.js");
 const verifyRoutes = require("./routes/verify.js");
 
 const reviewRoutes = require("./routes/review.js");
+const favoriteRoutes = require("./routes/favorite.js");
 const chatRoutes = require("./routes/chat.js");
 const locationRoutes = require("./routes/location.js");
 const translationRoutes = require("./routes/translation.js");
@@ -33,6 +34,7 @@ app.use(eventRoutes);
 app.use(orderRoutes);
 app.use(verifyRoutes);
 app.use(reviewRoutes);
+app.use(favoriteRoutes);
 app.use(chatRoutes);
 app.use(locationRoutes);
 app.use(translationRoutes);

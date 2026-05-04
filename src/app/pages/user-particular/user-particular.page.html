@@ -54,10 +54,22 @@
         </div>
         <!-- 关注/编辑按钮 -->
         <div class="follow-button-container" (click)="$event.stopPropagation()">
-          <ion-button fill="outline" size="small" (click)="isCurrentUser ? goToEditProfile() : onFollow()">
-            <ion-icon slot="start" [name]="isCurrentUser ? 'create-outline' : 'heart-outline'"></ion-icon>
-            {{ isCurrentUser ? '编辑' : '关注' }}
+          @if (isCurrentUser) {
+          <ion-button fill="outline" size="small" (click)="goToEditProfile()">
+            <ion-icon slot="start" name="create-outline"></ion-icon>
+            编辑
           </ion-button>
+          } @else {
+          <ion-button
+            [fill]="isFollowing ? 'solid' : 'outline'"
+            [color]="isFollowing ? 'danger' : 'medium'"
+            size="small"
+            (click)="onFollow()"
+          >
+            <ion-icon slot="start" [name]="isFollowing ? 'heart' : 'heart-outline'"></ion-icon>
+            {{ isFollowing ? '已关注' : '关注' }}
+          </ion-button>
+          }
         </div>
       </div>
       <!-- 标签页导航 -->

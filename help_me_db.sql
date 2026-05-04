@@ -5,6 +5,8 @@ USE help_me_db;
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS Favorites;
+DROP TABLE IF EXISTS Follows;
 DROP TABLE IF EXISTS Comments;
 DROP TABLE IF EXISTS Orders;
 DROP TABLE IF EXISTS Verifications;
@@ -146,6 +148,44 @@ CREATE TABLE Comments (
   CONSTRAINT fk_comments_target
     FOREIGN KEY (TargetUserId) REFERENCES Users(UserId)
     ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE Favorites (
+  FavoriteId  INT(10) AUTO_INCREMENT PRIMARY KEY,
+  UserId      INT(10)     NOT NULL,
+  EventId     INT(10)     NOT NULL,
+  CreateTime  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  UNIQUE KEY uk_favorites_user_event (UserId, EventId),
+  KEY idx_favorites_user (UserId),
+  KEY idx_favorites_event (EventId),
+
+  CONSTRAINT fk_favorites_user
+    FOREIGN KEY (UserId) REFERENCES Users(UserId)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+
+  CONSTRAINT fk_favorites_event
+    FOREIGN KEY (EventId) REFERENCES Events(EventId)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE Follows (
+  FollowId    INT(10) AUTO_INCREMENT PRIMARY KEY,
+  FollowerId  INT(10)     NOT NULL,
+  FollowingId INT(10)     NOT NULL,
+  CreateTime  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  UNIQUE KEY uk_follows_pair (FollowerId, FollowingId),
+  KEY idx_follows_follower (FollowerId),
+  KEY idx_follows_following (FollowingId),
+
+  CONSTRAINT fk_follows_follower
+    FOREIGN KEY (FollowerId) REFERENCES Users(UserId)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+
+  CONSTRAINT fk_follows_following
+    FOREIGN KEY (FollowingId) REFERENCES Users(UserId)
+    ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
