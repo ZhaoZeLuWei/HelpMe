@@ -113,14 +113,11 @@ export class ParticularPage implements OnInit {
   };
 
   event: EventCardData | null = null;
-  private returnToPath = '/tabs/tab1';
 
   ngOnInit() {
     this.route.queryParams.subscribe((params) => {
       const eventId = params['eventId'];
-      this.returnToPath = params['returnTo'] || '/tabs/tab1';
       if (eventId) {
-        // 根据eventId从后端获取完整数据
         this.loadEventDetail(eventId);
       }
     });
@@ -248,10 +245,12 @@ export class ParticularPage implements OnInit {
       });
     }
   }
-  // 返回上一页
   goBack() {
-    // 优先回到来源主页面，避免历史栈把用户带回聊天室
-    this.router.navigateByUrl(this.returnToPath, { replaceUrl: true });
+    if (window.history.length > 1) {
+      this.location.back();
+    } else {
+      this.router.navigate(['/tabs/tab1']);
+    }
   }
   goHome() {
     this.router.navigate(['/tabs/tab1']);

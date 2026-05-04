@@ -183,28 +183,7 @@ router.get("/locations/nearby", async (req, res) => {
   }
 });
 
-// 地点详情
-router.get("/locations/:id", async (req, res) => {
-  const db = await getLocationDb();
-  const places = db.collection(COLLECTION_NAME);
 
-  const { id } = req.params;
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ success: false, error: "无效地点ID" });
-  }
-
-  try {
-    const row = await places.findOne({ _id: new ObjectId(id), isActive: true });
-    if (!row) {
-      return res.status(404).json({ success: false, error: "地点不存在" });
-    }
-
-    return res.json({ success: true, location: mapPlace(row) });
-  } catch (err) {
-    console.error("查询地点详情失败:", err);
-    return res.status(500).json({ success: false, error: "查询地点详情失败" });
-  }
-});
 // 保存地点（从高德地图获取后存入数据库）
 router.post("/locations/save", async (req, res) => {
   const db = await getLocationDb();
@@ -277,5 +256,27 @@ router.get("/admin/locations", async (req, res) => {
 });
 router.get("/test", (req, res) => {
   res.json({ message: "location routes working" });
+});
+// 地点详情
+router.get("/locations/:id", async (req, res) => {
+  const db = await getLocationDb();
+  const places = db.collection(COLLECTION_NAME);
+
+  const { id } = req.params;
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ success: false, error: "无效地点ID" });
+  }
+
+  try {
+    const row = await places.findOne({ _id: new ObjectId(id), isActive: true });
+    if (!row) {
+      return res.status(404).json({ success: false, error: "地点不存在" });
+    }
+
+    return res.json({ success: true, location: mapPlace(row) });
+  } catch (err) {
+    console.error("查询地点详情失败:", err);
+    return res.status(500).json({ success: false, error: "查询地点详情失败" });
+  }
 });
 module.exports = router;
