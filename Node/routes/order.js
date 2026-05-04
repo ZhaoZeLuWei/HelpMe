@@ -1,7 +1,9 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
-const { sendSystemMessage } = require("../chatHandler.js");
+const { sendSystemMessage, sendOrderSystemMessage } = require("../chatHandler.js");
+const { getIO } = require("../socketInstance.js");
+const Room = require("../models/Room.js");
 
 const router = express.Router();
 
@@ -30,7 +32,8 @@ async function fetchOrderWithNames(conn, orderId) {
 // 创建订单
 router.post("/orders", authRequired, async (req, res) => {
   const consumerId = Number(req.user?.id);
-  const { EventId, DetailLocation, AdditionalInfo } = req.body || {};
+  const { EventId, DetailLocation, SpecificLocation, AdditionalInfo } =
+    req.body || {};
   const eventId = Number(EventId);
 
   if (!Number.isInteger(consumerId) || consumerId <= 0) {
@@ -76,7 +79,7 @@ router.post("/orders", authRequired, async (req, res) => {
     }
 
     const [existingRows] = await conn.query(
-      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus <> 3 LIMIT 1",
+      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
       [eventId],
     );
     if (existingRows.length > 0) {
@@ -100,10 +103,27 @@ router.post("/orders", authRequired, async (req, res) => {
       );
     }
 
-    const verificationCode = `ORD${Date.now().toString().slice(-8)}`;
-    const orderLocation = AdditionalInfo
-      ? `${String(DetailLocation).trim()}｜${String(AdditionalInfo).trim()}`
-      : String(DetailLocation).trim();
+    // 确保卖家在 Providers 表中存在（发布事件的用户）
+    const [providerExists] = await conn.query(
+      "SELECT ProviderId FROM Providers WHERE ProviderId = ? LIMIT 1",
+      [event.CreatorId],
+    );
+    if (providerExists.length === 0) {
+      await conn.query(
+        "INSERT INTO Providers (ProviderId, ProviderRole, OrderCount, ServiceRanking) VALUES (?, 0, 0, 0)",
+        [event.CreatorId],
+      );
+    }
+
+    // 拼接地址：地址｜具体位置｜补充信息
+    const parts = [String(DetailLocation).trim()];
+    if (SpecificLocation && String(SpecificLocation).trim()) {
+      parts.push(String(SpecificLocation).trim());
+    }
+    if (AdditionalInfo && String(AdditionalInfo).trim()) {
+      parts.push(String(AdditionalInfo).trim());
+    }
+    const orderLocation = parts.join("｜");
 
     // 创建事件快照，保存下单时的事件状态
     const eventSnapshot = JSON.stringify({
@@ -115,41 +135,78 @@ router.post("/orders", authRequired, async (req, res) => {
       EventDetails: event.EventDetails,
       Photos: event.Photos || null,
       ProviderName: event.ProviderName,
+      // 交付地址结构化数据
+      DeliveryAddress: String(DetailLocation).trim(),
+      DeliverySpecific: SpecificLocation ? String(SpecificLocation).trim() : "",
+      DeliveryAdditionalInfo: AdditionalInfo
+        ? String(AdditionalInfo).trim()
+        : "",
     });
 
     const [result] = await conn.query(
       `INSERT INTO Orders
-       (EventId, ProviderId, ConsumerId, OrderStatus, TransactionPrice, DetailLocation, VerificationCode, VerificationResult, EventSnapshot)
-       VALUES (?, ?, ?, 0, ?, ?, ?, 0, ?)`,
+       (EventId, ProviderId, ConsumerId, OrderStatus, TransactionPrice, DetailLocation, EventSnapshot)
+       VALUES (?, ?, ?, 0, ?, ?, ?)`,
       [
         eventId,
         event.CreatorId,
         consumerId,
         event.Price || 0,
         orderLocation,
-        verificationCode,
         eventSnapshot,
       ],
     );
 
     await conn.commit();
 
+    // 找到或创建订单聊天房间，关联 orderId
+    const orderRoomId = `${eventId}_${consumerId}_${event.CreatorId}`;
+    let orderRoom = await Room.findById(orderRoomId);
+    if (!orderRoom) {
+      await Room.create({
+        _id: orderRoomId,
+        eventId: eventId,
+        creatorId: consumerId,
+        partnerId: event.CreatorId,
+        orderId: result.insertId,
+      });
+    } else {
+      await Room.updateOne({ _id: orderRoomId }, { $set: { orderId: result.insertId } });
+    }
+
+    // 发送系统消息到订单房间
+    await sendOrderSystemMessage({
+      roomId: orderRoomId,
+      text: `订单"${event.EventTitle}"已创建，等待卖家确认。`,
+      senderId: consumerId,
+    }).catch((err) => console.error("发送订单系统消息失败:", err));
+
+    // 同时发送系统消息到系统通知房间
     await sendSystemMessage({
       roomId: `system_${event.CreatorId}`,
-      text: `您有一个新的订单：”${event.EventTitle}”，请尽快确认。`,
+      text: `您有一个新的订单："${event.EventTitle}"，请尽快确认。`,
       senderId: consumerId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
 
     await sendSystemMessage({
       roomId: `system_${consumerId}`,
-      text: `订单”${event.EventTitle}”已创建成功，等待卖家确认。`,
+      text: `订单"${event.EventTitle}"已创建成功，等待卖家确认。`,
       senderId: consumerId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 通过Socket.IO实时推送新订单通知给卖家
+    const io = getIO();
+    if (io) {
+      io.to(String(event.CreatorId)).emit("orderStatusUpdate", {
+        orderId: result.insertId,
+        newStatus: 0,
+        eventId: eventId,
+      });
+    }
 
     return res.json({
       success: true,
       orderId: result.insertId,
-      verificationCode,
     });
   } catch (err) {
     if (conn) await conn.rollback().catch(() => {});
@@ -164,6 +221,12 @@ router.post("/orders", authRequired, async (req, res) => {
 router.get("/orders", authRequired, async (req, res) => {
   const userId = Number(req.user?.id);
   const role = String(req.query.role || "all");
+
+  // role 参数白名单验证
+  const allowedRoles = ["all", "buyer", "seller"];
+  if (!allowedRoles.includes(role)) {
+    return res.status(400).json({ success: false, error: "无效的角色参数" });
+  }
 
   try {
     const where = [];
@@ -183,7 +246,7 @@ router.get("/orders", authRequired, async (req, res) => {
       `SELECT
         o.OrderId, o.EventId, o.ProviderId, o.ConsumerId, o.OrderStatus,
         o.TransactionPrice, o.DetailLocation, o.OrderCreateTime, o.PaymentTime,
-        o.VerificationCode, o.VerificationResult, o.ServiceTime, o.CompletionTime,
+        o.ServiceTime, o.CompletionTime,
         o.RefundTime, o.EventSnapshot,
         IFNULL(o.EventSnapshot->>'$.EventTitle', e.EventTitle) AS EventTitle,
         IFNULL(o.EventSnapshot->>'$.EventDetails', e.EventDetails) AS EventDetails,
@@ -272,9 +335,27 @@ router.put("/orders/:id/confirm", authRequired, async (req, res) => {
 
     await sendSystemMessage({
       roomId: `system_${order.ConsumerId}`,
-      text: `您的订单”${order.EventTitle}”已被卖家确认。`,
+      text: `您的订单"${order.EventTitle}"已被卖家确认。`,
       senderId: userId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 发送系统消息到订单聊天房间
+    const confirmRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+    await sendOrderSystemMessage({
+      roomId: confirmRoomId,
+      text: `订单已被卖家确认，服务进行中。`,
+      senderId: userId,
+    }).catch((err) => console.error("发送订单系统消息失败:", err));
+
+    // 通过Socket.IO实时推送订单状态变更
+    const io = getIO();
+    if (io) {
+      io.to(String(order.ConsumerId)).emit("orderStatusUpdate", {
+        orderId,
+        newStatus: 1,
+        eventId: order.EventId,
+      });
+    }
 
     return res.json({ success: true });
   } catch (err) {
@@ -333,9 +414,27 @@ router.put("/orders/:id/complete", authRequired, async (req, res) => {
 
     await sendSystemMessage({
       roomId: `system_${order.ProviderId}`,
-      text: `订单”${order.EventTitle}”已完成，请及时评价。`,
+      text: `订单"${order.EventTitle}"已完成，请及时评价。`,
       senderId: userId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 发送系统消息到订单聊天房间
+    const completeRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+    await sendOrderSystemMessage({
+      roomId: completeRoomId,
+      text: `买家已确认完成，请及时评价。`,
+      senderId: userId,
+    }).catch((err) => console.error("发送订单系统消息失败:", err));
+
+    // 通过Socket.IO实时推送订单状态变更
+    const io = getIO();
+    if (io) {
+      io.to(String(order.ProviderId)).emit("orderStatusUpdate", {
+        orderId,
+        newStatus: 2,
+        eventId: order.EventId,
+      });
+    }
 
     return res.json({ success: true });
   } catch (err) {
@@ -381,9 +480,9 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
         .json({ success: false, error: "当前订单状态无法取消" });
     }
 
-    // 将订单状态设为已取消（3）
+    // 将订单状态设为已取消（4）
     await conn.query(
-      "UPDATE Orders SET OrderStatus = 3, RefundTime = NOW() WHERE OrderId = ?",
+      "UPDATE Orders SET OrderStatus = 4, RefundTime = NOW() WHERE OrderId = ?",
       [orderId],
     );
 
@@ -398,7 +497,30 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
       roomId: `system_${otherUserId}`,
       text: `订单"${order.EventTitle}"已被${operatorRole}取消。`,
       senderId: userId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 发送系统消息到订单聊天房间
+    const cancelRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+    await sendOrderSystemMessage({
+      roomId: cancelRoomId,
+      text: `订单已被${operatorRole}取消。`,
+      senderId: userId,
+    }).catch((err) => console.error("发送订单系统消息失败:", err));
+
+    // 通过Socket.IO实时推送订单状态变更
+    const io = getIO();
+    if (io) {
+      io.to(String(order.ConsumerId)).emit("orderStatusUpdate", {
+        orderId,
+        newStatus: 4,
+        eventId: order.EventId,
+      });
+      io.to(String(order.ProviderId)).emit("orderStatusUpdate", {
+        orderId,
+        newStatus: 4,
+        eventId: order.EventId,
+      });
+    }
 
     return res.json({ success: true });
   } catch (err) {
@@ -411,7 +533,7 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
 });
 
 // 管理端订单列表
-router.get("/admin/orders", async (req, res) => {
+router.get("/admin/orders", authRequired, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -435,7 +557,7 @@ router.get("/admin/orders", async (req, res) => {
 });
 
 // 管理端删除订单
-router.delete("/admin/orders/:id", async (req, res) => {
+router.delete("/admin/orders/:id", authRequired, async (req, res) => {
   const orderId = Number(req.params.id);
   if (!Number.isInteger(orderId) || orderId <= 0) {
     return res.status(400).json({ success: false, error: "订单ID无效" });
@@ -461,6 +583,7 @@ router.get("/orders-status-meta", (_req, res) => {
       { value: 1, label: "进行中" },
       { value: 2, label: "待评价" },
       { value: 3, label: "已完成" },
+      { value: 4, label: "已取消" },
     ],
   });
 });

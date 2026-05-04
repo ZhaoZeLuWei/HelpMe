@@ -75,15 +75,16 @@ CREATE TABLE Events (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE Verifications (
-  VerificationId     INT(10) AUTO_INCREMENT PRIMARY KEY,
-  ProviderId         INT(10)      NOT NULL,
-  ServiceCategory    TINYINT(1)   NOT NULL,
-  VerificationStatus TINYINT(1)   NOT NULL DEFAULT 0,
-  IdCardPhoto        VARCHAR(255) NOT NULL,
-  ProfessionPhoto    VARCHAR(255) NULL,
-  SubmissionTime     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PassingTime        TIMESTAMP    NULL,
-  Results            VARCHAR(255) NULL,
+  VerificationId       INT(10) AUTO_INCREMENT PRIMARY KEY,
+  ProviderId           INT(10)      NOT NULL,
+  ServiceCategory      TINYINT(1)   NOT NULL,
+  OriginalProviderRole TINYINT(1)   NOT NULL DEFAULT 0,
+  VerificationStatus   TINYINT(1)   NOT NULL DEFAULT 0,
+  IdCardPhoto          VARCHAR(255) NOT NULL,
+  ProfessionPhoto      VARCHAR(255) NULL,
+  SubmissionTime       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PassingTime          TIMESTAMP    NULL,
+  Results              VARCHAR(255) NULL,
 
   KEY idx_verifications_provider (ProviderId),
   CONSTRAINT fk_verifications_provider
@@ -101,8 +102,6 @@ CREATE TABLE Orders (
   DetailLocation     VARCHAR(255)   NOT NULL,
   OrderCreateTime    TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PaymentTime        TIMESTAMP      NULL,
-  VerificationCode   VARCHAR(255)   NOT NULL,
-  VerificationResult TINYINT(1)     NOT NULL,
   ServiceTime        TIMESTAMP      NULL,
   CompletionTime     TIMESTAMP      NULL,
   RefundTime         TIMESTAMP      NULL,
@@ -226,9 +225,9 @@ INSERT INTO Consumers (ConsumerId, BuyerRanking) VALUES
 -- 3) Providers（服务者）
 INSERT INTO Providers (ProviderId, ProviderRole, OrderCount, ServiceRanking) VALUES
 (100001, 1, 12, 4.7),
-(100002, 1, 35, 4.9),
+(100002, 2, 35, 4.9),
 (100004, 1, 18, 4.6),
-(100006, 1, 40, 4.8),
+(100006, 2, 40, 4.8),
 (100008, 1,  9, 4.5);
 
 -- 4) Events（服务/活动发布）
@@ -255,25 +254,25 @@ VALUES
 -- 注意：每条订单 ProviderId != ConsumerId（避免同单出现双身份）
 INSERT INTO Orders
 (OrderId, EventId, ProviderId, ConsumerId, OrderStatus, TransactionPrice, DetailLocation, OrderCreateTime, PaymentTime,
- VerificationCode, VerificationResult, ServiceTime, CompletionTime, RefundTime)
+ ServiceTime, CompletionTime, RefundTime)
 VALUES
 (200001, 300001, 100002, 100003, 2,  99.00, '深圳·南山科技园A座', DATE_SUB(NOW(), INTERVAL 9 DAY),  DATE_SUB(NOW(), INTERVAL 9 DAY),
- 'SZ20251222001', 1, DATE_SUB(NOW(), INTERVAL 8 DAY),  DATE_SUB(NOW(), INTERVAL 8 DAY),  NULL),
+ DATE_SUB(NOW(), INTERVAL 8 DAY),  DATE_SUB(NOW(), INTERVAL 8 DAY),  NULL),
 
 (200002, 300002, 100006, 100005, 2, 129.00, '成都·武侯红牌楼小区', DATE_SUB(NOW(), INTERVAL 7 DAY),  DATE_SUB(NOW(), INTERVAL 7 DAY),
- 'CD20251224002', 1, DATE_SUB(NOW(), INTERVAL 6 DAY),  DATE_SUB(NOW(), INTERVAL 6 DAY),  NULL),
+ DATE_SUB(NOW(), INTERVAL 6 DAY),  DATE_SUB(NOW(), INTERVAL 6 DAY),  NULL),
 
 (200003, 300003, 100004, 100007, 1, 199.00, '上海·世纪公园门口',   DATE_SUB(NOW(), INTERVAL 3 DAY),  DATE_SUB(NOW(), INTERVAL 3 DAY),
- 'SH20251228003', 0, DATE_ADD(NOW(), INTERVAL 1 DAY),  NULL, NULL),
+ DATE_ADD(NOW(), INTERVAL 1 DAY),  NULL, NULL),
 
 (200004, 300004, 100008, 100001, 0,  59.00, '线上交付（微信/邮箱）', DATE_SUB(NOW(), INTERVAL 2 DAY),  NULL,
- 'ON20251229004', 0, NULL, NULL, NULL),
+ NULL, NULL, NULL),
 
 (200005, 300005, 100001, 100005, 3,  20.00, '柳州·城中万达1号门',  DATE_SUB(NOW(), INTERVAL 5 DAY),  DATE_SUB(NOW(), INTERVAL 5 DAY),
- 'LZ20251226005', 0, NULL, NULL, DATE_SUB(NOW(), INTERVAL 4 DAY)),
+ NULL, NULL, DATE_SUB(NOW(), INTERVAL 4 DAY)),
 
 (200006, 300001, 100002, 100008, 2,  99.00, '深圳·南山后海地铁口', DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 14 DAY),
- 'SZ20251217006', 1, DATE_SUB(NOW(), INTERVAL 13 DAY), DATE_SUB(NOW(), INTERVAL 13 DAY), NULL);
+ DATE_SUB(NOW(), INTERVAL 13 DAY), DATE_SUB(NOW(), INTERVAL 13 DAY), NULL);
 
 -- 7) Comments（评价）- 统一 500XXX
 INSERT INTO Comments

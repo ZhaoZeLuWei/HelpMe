@@ -12,7 +12,8 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Subscription, interval } from 'rxjs';
+import { io } from 'socket.io-client';
+import { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 import {
   LocationPickerComponent,
@@ -136,8 +137,7 @@ export class Tab4Page implements OnDestroy {
 
   isLoggedIn = false;
   private readonly _sub: Subscription;
-  private _pollSub: Subscription | null = null;
-  private static readonly POLL_INTERVAL_MS = 15_000;
+  private socket: any = null;
 
   // 翻译对象
   t = this.langService.getTranslations('zh').tab4;
@@ -254,7 +254,8 @@ export class Tab4Page implements OnDestroy {
   ];
 
   activeSection: 'events' | 'orders' = 'events';
-  orderFilter: 'all' | 'pending' | 'active' | 'review' | 'done' = 'all';
+  orderFilter: 'all' | 'pending' | 'active' | 'review' | 'done' | 'cancelled' =
+    'all';
 
   // 收藏 & 关注弹窗
   isFavoritesModalOpen = false;
@@ -267,7 +268,14 @@ export class Tab4Page implements OnDestroy {
   userInfo: any = this.createDefaultUserInfo();
   tasks: any[] = [];
   orders: any[] = [];
-  orderStats = { all: 0, pending: 0, active: 0, review: 0, done: 0 };
+  orderStats = {
+    all: 0,
+    pending: 0,
+    active: 0,
+    review: 0,
+    done: 0,
+    cancelled: 0,
+  };
   isLoadingEvents = false;
   isLoadingOrders = false;
   currentUserId: number | null = null;
@@ -302,7 +310,7 @@ export class Tab4Page implements OnDestroy {
       this.isLoggedIn = v;
       if (v) {
         void this.loadUserFromStorage();
-        this.startPolling();
+        this.connectSocket();
       } else {
         this.resetUserInfo();
       }
@@ -341,27 +349,34 @@ export class Tab4Page implements OnDestroy {
     ];
   }
 
-  // ---- 轮询：页面可见时每 15s 自动刷新订单 ----
-  private startPolling() {
-    if (this._pollSub) return;
-    this._pollSub = interval(Tab4Page.POLL_INTERVAL_MS).subscribe(() => {
-      if (this.isLoggedIn && this.currentUserId) {
-        void this.loadOrders(this.currentUserId);
+  // ---- Socket.IO 实时监听订单状态变更 ----
+  private connectSocket() {
+    if (this.socket?.connected) return;
+    this.socket = io(environment.apiBase, {
+      auth: { token: this.auth.token },
+    });
+    this.socket.on('orderStatusUpdate', () => {
+      if (this.currentUserId) {
+        this.loadOrders(this.currentUserId);
       }
     });
   }
 
-  private stopPolling() {
-    this._pollSub?.unsubscribe();
-    this._pollSub = null;
+  private disconnectSocket() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
   }
 
   ionViewDidEnter() {
-    this.startPolling();
+    if (this.isLoggedIn) {
+      this.connectSocket();
+    }
   }
 
   ionViewWillLeave() {
-    this.stopPolling();
+    this.disconnectSocket();
   }
 
   // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
@@ -401,10 +416,28 @@ export class Tab4Page implements OnDestroy {
     return this.orders.filter((order) => order.statusKey === this.orderFilter);
   }
 
-  // 获取有进行中/待评价订单的事件ID集合（用于禁用编辑按钮）
+  // 获取有未完结订单的事件ID集合（用于禁用编辑和删除按钮）
   getBlockedEditIds(): Set<number> {
     const blocked = new Set<number>();
     for (const order of this.orders) {
+      // 所有未取消的订单都阻止删除
+      if (
+        order.statusKey === 'pending' ||
+        order.statusKey === 'active' ||
+        order.statusKey === 'review' ||
+        order.statusKey === 'done'
+      ) {
+        blocked.add(order.eventId);
+      }
+    }
+    return blocked;
+  }
+
+  // 获取有进行中订单的事件ID集合（仅用于禁用编辑按钮）
+  getBlockedEditOnlyIds(): Set<number> {
+    const blocked = new Set<number>();
+    for (const order of this.orders) {
+      // 只有进行中的订单才阻止编辑，已完成的不阻止
       if (
         order.statusKey === 'pending' ||
         order.statusKey === 'active' ||
@@ -526,7 +559,7 @@ export class Tab4Page implements OnDestroy {
 
   ngOnDestroy(): void {
     this._sub.unsubscribe();
-    this.stopPolling();
+    this.disconnectSocket();
   }
 
   // 提取的默认用户信息
@@ -560,7 +593,7 @@ export class Tab4Page implements OnDestroy {
     this.orders = [];
     this.currentUserId = null;
     this.deletingIds.clear();
-    this.stopPolling();
+    this.disconnectSocket();
   }
 
   // 统一更新用户信息的工具方法
@@ -717,7 +750,9 @@ export class Tab4Page implements OnDestroy {
                 ? { key: 'active', label: '进行中', color: 'primary' }
                 : status === 2
                   ? { key: 'review', label: '待评价', color: 'medium' }
-                  : { key: 'done', label: '已完成', color: 'success' };
+                  : status === 3
+                    ? { key: 'done', label: '已完成', color: 'success' }
+                    : { key: 'cancelled', label: '已取消', color: 'danger' };
 
           // 解析事件快照（下单时的事件信息）
           let snapshot = null;
@@ -773,6 +808,11 @@ export class Tab4Page implements OnDestroy {
             snapshotDetails: snapshot?.EventDetails || '',
             snapshotCategory: snapshot?.EventCategory || '',
             snapshotPhotos,
+            // 交付地址结构化数据
+            deliveryAddress:
+              snapshot?.DeliveryAddress || o.DetailLocation || '',
+            deliverySpecific: snapshot?.DeliverySpecific || '',
+            deliveryAdditionalInfo: snapshot?.DeliveryAdditionalInfo || '',
           };
         });
 
@@ -790,6 +830,9 @@ export class Tab4Page implements OnDestroy {
         ).length,
         done: mapped.filter(
           (o: { statusKey: string }) => o.statusKey === 'done',
+        ).length,
+        cancelled: mapped.filter(
+          (o: { statusKey: string }) => o.statusKey === 'cancelled',
         ).length,
       };
     } catch (e) {

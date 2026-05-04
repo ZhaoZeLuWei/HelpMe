@@ -287,7 +287,7 @@ export class Tab5Page implements OnInit, OnDestroy {
         msgs.push('身份证号必填且格式正确（18位，末位可为X）');
       if (f.get('Location')?.invalid) msgs.push('所在区域必填');
       if (f.get('ProviderRole')?.invalid)
-        msgs.push('身份类型必填（只能填 1/2/3）');
+        msgs.push('身份类型必填（请选择热心群众、专业人士或商家）');
 
       if (this.idCardFiles.length === 0)
         msgs.push('请上传身份证照片（正反面）');

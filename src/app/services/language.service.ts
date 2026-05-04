@@ -194,7 +194,7 @@ export class LanguageService {
         helpTitle: '帮助',
         helpDesc: '你要帮助他人时发布',
         authTitle: '认证资格',
-        authDesc: '全职 兼职 商家',
+        authDesc: '热心群众 专业人士 商家',
         closeHint: '关闭当前页面，返回上一级',
         // 表单通用
         form: {
@@ -425,7 +425,7 @@ export class LanguageService {
         helpTitle: 'Offer',
         helpDesc: 'Post to help others',
         authTitle: 'Verification',
-        authDesc: 'Full-time Part-time Merchant',
+        authDesc: 'Enthusiast Professional Merchant',
         closeHint: 'Close and return',
         // 表单通用
         form: {

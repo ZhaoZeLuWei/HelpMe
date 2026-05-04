@@ -55,6 +55,7 @@
     [isLoading]="isLoadingEvents"
     [deletingIds]="deletingIds"
     [blockedEditIds]="getBlockedEditIds()"
+    [blockedEditOnlyIds]="getBlockedEditOnlyIds()"
     [t]="t"
     (viewDetail)="goToEventDetail($event)"
     (edit)="editTask($event)"
@@ -529,6 +530,29 @@
             </p>
             <p><strong>订单状态：</strong>{{ currentOrderDetail.status }}</p>
             <p><strong>成交价格：</strong>¥{{ currentOrderDetail.price }}</p>
+          </div>
+
+          <!-- 交付地址信息 -->
+          <div class="detail-section">
+            <h3>
+              <ion-icon name="location-outline"></ion-icon>
+              交付地址
+            </h3>
+            <p>
+              <strong>地址：</strong>{{ currentOrderDetail.deliveryAddress ||
+              '未填写' }}
+            </p>
+            @if (currentOrderDetail.deliverySpecific) {
+            <p>
+              <strong>具体位置：</strong>{{ currentOrderDetail.deliverySpecific
+              }}
+            </p>
+            } @if (currentOrderDetail.deliveryAdditionalInfo) {
+            <p>
+              <strong>补充信息：</strong>{{
+              currentOrderDetail.deliveryAdditionalInfo }}
+            </p>
+            }
           </div>
 
           <!-- 下单时的事件快照 -->

@@ -1,149 +1,163 @@
-import { Component, inject, OnInit } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ServeAPIService } from '../../serve-api.service';
+import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
+import { DetailModalComponent } from '../shared/detail-modal.component';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-staff-management',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    ConfirmDialogComponent,
+    DetailModalComponent,
+    MatIconModule,
+  ],
   templateUrl: './staff-management.component.html',
   styleUrl: './staff-management.component.css',
 })
 export class StaffManagementComponent implements OnInit {
-  // 用户列表
+  @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('roleSelect') roleSelect!: ElementRef<HTMLSelectElement>;
+
   users: any[] = [];
-
-  // 当前查看的用户详情
+  filteredUsers: any[] = [];
   currentUser: any = null;
+  showDetailModal = false;
 
-  // 是否显示详情弹窗
-  showDetailModal: boolean = false;
+  // 删除确认
+  showDeleteDialog = false;
 
-  // 注入API服务
   private api = inject(ServeAPIService);
-
   public baseUrl: string = this.api.getBaseUrl();
 
   ngOnInit(): void {
     this.loadUsersList();
   }
 
-  // 加载用户列表
   loadUsersList() {
     this.api.getAdminUsersList().subscribe({
       next: (res) => {
         if (res.success) {
           this.users = res.users;
-          console.log('用户列表:', this.users);
+          this.applyFilter();
         }
       },
-      error: (err) => {
-        console.error('加载用户列表失败', err);
-        alert('加载用户列表失败');
-      },
+      error: () => alert('加载用户列表失败'),
     });
   }
 
-  // 查看用户详情
+  applyFilter() {
+    const searchText = this.searchInput?.nativeElement.value || '';
+    const roleFilter = this.roleSelect?.nativeElement.value || 'all';
+
+    let result = [...this.users];
+
+    if (searchText) {
+      const text = searchText.toLowerCase();
+      result = result.filter(
+        (u) =>
+          u.UserName?.toLowerCase().includes(text) ||
+          u.RealName?.toLowerCase().includes(text) ||
+          u.UserId?.toString().includes(text) ||
+          u.PhoneNumber?.includes(text),
+      );
+    }
+
+    if (roleFilter !== 'all') {
+      const role = Number(roleFilter);
+      if (role === -1) {
+        result = result.filter((u) => u.ProviderRole === null);
+      } else {
+        result = result.filter((u) => u.ProviderRole === role);
+      }
+    }
+
+    this.filteredUsers = result;
+  }
+
+  onSearchChange() {
+    this.applyFilter();
+  }
+
+  onFilterChange() {
+    this.applyFilter();
+  }
+
+  getProviderRoleText(role: number | null | undefined): string {
+    if (role === undefined || role === null) return '普通用户';
+    const map: Record<number, string> = { 1: '热心群众', 2: '专业人士', 3: '商家' };
+    return map[Number(role)] || '普通用户';
+  }
+
+  getProviderRoleClass(role: number | null | undefined): string {
+    if (role === undefined || role === null) return 'role-none';
+    return role === 2 ? 'role-pro' : 'role-normal';
+  }
+
+  getStatusText(status: number | null | undefined): string {
+    if (status === undefined || status === null) return '未认证';
+    const map: Record<number, string> = {
+      0: '待审核',
+      1: '已通过',
+      2: '已驳回',
+    };
+    return map[status] || '未认证';
+  }
+
+  getStatusClass(status: number | null | undefined): string {
+    if (status === undefined || status === null) return 'status-unverified';
+    const map: Record<number, string> = {
+      0: 'status-pending',
+      1: 'status-approved',
+      2: 'status-rejected',
+    };
+    return map[status] || 'status-unknown';
+  }
+
   viewUserDetail(userId: number) {
     this.api.getUserDetail(userId).subscribe({
       next: (res) => {
         if (res.success) {
           this.currentUser = res.user;
           this.showDetailModal = true;
-          console.log('用户详情:', this.currentUser);
         }
       },
-      error: (err) => {
-        console.error('获取用户详情失败', err);
-        alert('获取用户详情失败');
-      },
+      error: () => alert('获取用户详情失败'),
     });
   }
 
-  // 关闭详情弹窗
   closeDetail() {
     this.showDetailModal = false;
     this.currentUser = null;
   }
 
-  // 删除用户
-  deleteUser(userId: number) {
-    if (confirm('确定要删除该用户吗？警告！此操作不可恢复！')) {
-      this.api.deleteUser(userId).subscribe({
-        next: (res) => {
-          if (res.success) {
-            alert('用户删除成功！');
-            this.closeDetail();
-            this.loadUsersList();
-          }
-        },
-        error: (err) => {
-          console.error('删除用户失败', err);
-          alert('删除用户失败');
-        },
-      });
-    }
+  confirmDelete() {
+    this.showDeleteDialog = true;
   }
 
-  // 与 list-verify-post 统一的映射方法
-  getProviderRoleText(role: number | null | undefined): string {
-    if (role === undefined || role === null) return '未知';
-    switch (Number(role)) {
-      case 1:
-        return '热心群众';
-      case 2:
-        return '专业人士';
-      default:
-        return '未知';
-    }
+  onDeleteConfirmed() {
+    if (!this.currentUser) return;
+    this.api.deleteUser(this.currentUser.UserId).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.closeDetail();
+          this.loadUsersList();
+          this.showDeleteDialog = false;
+        }
+      },
+      error: () => alert('删除用户失败'),
+    });
   }
 
-  getServiceCategoryText(category: number | null | undefined): string {
-    if (category === undefined || category === null) return '未知';
-    switch (Number(category)) {
-      case 1:
-        return '全职';
-      case 2:
-        return '兼职';
-      case 3:
-        return '商家';
-      default:
-        return '未知';
-    }
-  }
-
-  getVerifyClass(p: any): string {
-    if (
-      !p ||
-      p.VerificationStatus === undefined ||
-      p.VerificationStatus === null
-    ) {
-      return 'status-unverified';
-    }
-    switch (p.VerificationStatus) {
-      case 0:
-        return 'status-pending';
-      case 1:
-        return 'status-approved';
-      case 2:
-        return 'status-rejected';
-      default:
-        return 'status-unknown';
-    }
-  }
-
-  getStatusText(status: number | null | undefined): string {
-    if (status === undefined || status === null) return '未认证';
-    switch (status) {
-      case 0:
-        return '待审核';
-      case 1:
-        return '已通过';
-      case 2:
-        return '已驳回';
-      default:
-        return '未认证';
-    }
+  onDeleteCancelled() {
+    this.showDeleteDialog = false;
   }
 }

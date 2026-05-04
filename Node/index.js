@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const corsMiddleware = require("./routes/cors.js");
@@ -97,11 +96,14 @@ io.use((socket, next) => {
 
 //this part for socketIO (chat system)
 io.on("connection", (socket) => {
+  // 自动加入个人房间，用于接收订单、事件等实时通知
+  if (socket.user && socket.user.id) {
+    const personalRoom = socket.user.id.toString();
+    socket.join(personalRoom);
+  }
+
   // 这里调用修正后的函数
   registerChatHandler(io, socket);
-  socket.on("disconnect", () => {
-    console.log("disconnect");
-  });
 });
 
 //server listen on port 3000

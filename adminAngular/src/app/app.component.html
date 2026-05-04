@@ -1,22 +1,53 @@
-<div class="dashboard">
-  <nav class="sidebar">
-    <h2 class="logo">家家帮管理面板</h2>
-    <ul>
-      <li>
-        <a
-          routerLink=""
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          >审核列表</a
-        >
-      </li>
-      <li><a routerLink="staff" routerLinkActive="active">人员管理</a></li>
-      <li><a routerLink="orders" routerLinkActive="active">订单管理</a></li>
-      <li><a routerLink="events" routerLinkActive="active">事件管理</a></li>
-    </ul>
-  </nav>
+<div class="app-layout" *ngIf="authService.isLoggedIn(); else loginView">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <mat-icon>home</mat-icon>
+        <span>家家帮</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a
+        routerLink=""
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="nav-item"
+      >
+        <mat-icon>dashboard</mat-icon>
+        <span>数据看板</span>
+      </a>
+      <a routerLink="verify" routerLinkActive="active" class="nav-item">
+        <mat-icon>check_circle</mat-icon>
+        <span>认证审核</span>
+      </a>
+      <a routerLink="staff" routerLinkActive="active" class="nav-item">
+        <mat-icon>people</mat-icon>
+        <span>人员管理</span>
+      </a>
+      <a routerLink="events" routerLinkActive="active" class="nav-item">
+        <mat-icon>event</mat-icon>
+        <span>事件管理</span>
+      </a>
+      <a routerLink="orders" routerLinkActive="active" class="nav-item">
+        <mat-icon>description</mat-icon>
+        <span>订单管理</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" (click)="authService.logout()">
+        <mat-icon>logout</mat-icon>
+        <span>退出登录</span>
+      </button>
+    </div>
+  </aside>
 
   <main class="main-content">
     <router-outlet></router-outlet>
   </main>
 </div>
+
+<ng-template #loginView>
+  <router-outlet></router-outlet>
+</ng-template>

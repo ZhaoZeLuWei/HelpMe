@@ -1,6 +1,16 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonTitle, IonBadge, ModalController } from '@ionic/angular/standalone';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonIcon,
+  IonButtons,
+  IonTitle,
+  IonBadge,
+  ModalController,
+} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { environment } from 'src/environments/environment';
@@ -16,7 +26,7 @@ import {
   homeOutline,
   createOutline,
   handLeftOutline,
-  heart
+  heart,
 } from 'ionicons/icons';
 
 @Component({
@@ -59,7 +69,7 @@ export class UserParticularPage implements OnInit {
     serviceRanking: 0,
     isVerified: '未认证',
     stats: { favorites: 0, views: 0, follows: 0 },
-    CreateTime: ''
+    CreateTime: '',
   };
 
   userId: number | null = null;
@@ -80,12 +90,12 @@ export class UserParticularPage implements OnInit {
       homeOutline,
       createOutline,
       handLeftOutline,
-      heart
+      heart,
     });
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.userInfo.name = params['name'] || '';
       this.userId = params['userId'] ? Number(params['userId']) : null;
 
@@ -102,7 +112,10 @@ export class UserParticularPage implements OnInit {
 
   checkIsCurrentUser() {
     const currentUserId = this.authService.currentUserId;
-    this.isCurrentUser = currentUserId !== null && this.userId !== null && currentUserId === this.userId;
+    this.isCurrentUser =
+      currentUserId !== null &&
+      this.userId !== null &&
+      currentUserId === this.userId;
   }
 
   async checkFollowStatus() {
@@ -168,13 +181,13 @@ export class UserParticularPage implements OnInit {
               const dateB = new Date(b.CreateTime || 0).getTime();
               return dateB - dateA;
             })
-            .map(event => ({
+            .map((event) => ({
               id: event.EventId,
               title: event.EventTitle,
               description: event.EventDetails || '暂无描述',
               activityType: this.getActivityType(event.status),
               date: event.CreateTime,
-              EventType: event.EventType
+              EventType: event.EventType,
             }));
         }
       }
@@ -188,7 +201,7 @@ export class UserParticularPage implements OnInit {
       published: '发布活动',
       inProgress: '活动进行中',
       completed: '活动完成',
-      review: '待评价'
+      review: '待评价',
     };
     return map[status] || '活动';
   }
@@ -200,7 +213,7 @@ export class UserParticularPage implements OnInit {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
@@ -232,6 +245,8 @@ export class UserParticularPage implements OnInit {
         return '热心用户';
       case 2:
         return '服务达人';
+      case 3:
+        return '商家';
       default:
         return '普通用户';
     }
@@ -242,6 +257,8 @@ export class UserParticularPage implements OnInit {
       case 1:
         return 'warning';
       case 2:
+        return 'success';
+      case 3:
         return 'success';
       default:
         return 'medium';
@@ -289,13 +306,13 @@ export class UserParticularPage implements OnInit {
     this.router.navigate(['/particular'], {
       queryParams: {
         eventId: eventId,
-        title: event.EventTitle || event.title
-      }
+        title: event.EventTitle || event.title,
+      },
     });
   }
   goToEditEvent(eventId: number) {
-    this.router.navigate(['/tabs/tab4'], { 
-      queryParams: { editEvent: eventId } 
+    this.router.navigate(['/tabs/tab4'], {
+      queryParams: { editEvent: eventId },
     });
   }
 
@@ -317,7 +334,7 @@ export class UserParticularPage implements OnInit {
       console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage
+        component: LoginPage,
       });
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;
@@ -339,12 +356,12 @@ export class UserParticularPage implements OnInit {
     }
     this.router.navigate(['/chat-detail'], {
       state: { targetUser: this.userInfo },
-      replaceUrl: true
+      replaceUrl: true,
     });
 
     const chatData = {
       TargetUserId: this.userId,
-      PartnerId: currentUserId
+      PartnerId: currentUserId,
     };
     console.log('聊天数据:', chatData);
   }
@@ -354,7 +371,7 @@ export class UserParticularPage implements OnInit {
     if (!currentUserId) {
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage
+        component: LoginPage,
       });
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;

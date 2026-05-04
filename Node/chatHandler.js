@@ -211,6 +211,7 @@ const getRoomList = async (queryParams) => {
           id: Number(room.eventId) || 0,
           name: eventMap[Number(room.eventId)] || "未知事件",
         },
+        orderId: room.orderId || null,
         lastMsg: room.lastMsg || "",
         unreadCount: room.unreadCount || {},
         updatedAt: room.updatedAt,
@@ -274,6 +275,43 @@ const sendSystemMessage = async ({ roomId, text, senderId }) => {
   }
 };
 
+// 订单房间系统消息发送：写入 MongoDB + 更新 Room + 通知买卖双方
+const sendOrderSystemMessage = async ({ roomId, text, senderId }) => {
+  try {
+    await Message.create({
+      roomId,
+      text,
+      senderId,
+      userName: "系统通知",
+      sendTime: new Date(),
+    });
+
+    // 更新房间的 lastMsg 和 updatedAt
+    await Room.updateOne(
+      { _id: roomId },
+      { $set: { lastMsg: text, updatedAt: new Date() } },
+    );
+
+    // 通知买卖双方刷新聊天列表
+    const io = getIO();
+    if (io) {
+      const room = await Room.findById(roomId);
+      if (room) {
+        const userIds = [room.creatorId, room.partnerId].filter(Boolean);
+        for (const uid of userIds) {
+          io.to(String(uid)).emit("listUpdate", {
+            roomId,
+            lastMsg: text,
+            updatedAt: new Date(),
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("sendOrderSystemMessage 失败:", err);
+  }
+};
+
 module.exports.registerChatHandler = (io, socket) => {
   //join the room 加入聊天房间代码
   const joinRoom = async (roomId) => {
@@ -283,7 +321,6 @@ module.exports.registerChatHandler = (io, socket) => {
     //user join into private chat list server room
     if (socket.user && socket.user.id) {
       socket.join(socket.user.id.toString());
-      console.log(`User ${socket.user.id} joined private room`);
     }
 
     if (!roomId) return;
@@ -407,3 +444,4 @@ module.exports.registerChatHandler = (io, socket) => {
 module.exports.getChatHistory = getChatHistory;
 module.exports.getRoomList = getRoomList;
 module.exports.sendSystemMessage = sendSystemMessage;
+module.exports.sendOrderSystemMessage = sendOrderSystemMessage;

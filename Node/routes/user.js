@@ -7,6 +7,68 @@ const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 
 const router = express.Router();
 
+// 管理员登录
+const ADMIN_USERNAME = "admin";
+const ADMIN_PASSWORD = "admin123";
+
+router.post("/admin/login", (req, res) => {
+  const { username, password } = req.body || {};
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    const token = signToken({ UserId: 0, UserName: username });
+    return res.json({ success: true, token });
+  }
+  return res.status(401).json({ error: "账号或密码错误" });
+});
+
+// 管理后台统计数据
+router.get("/admin/stats", async (_req, res) => {
+  try {
+    const [[{ userCount }]] = await pool.query(
+      "SELECT COUNT(*) AS userCount FROM Users",
+    );
+    const [[{ orderCount }]] = await pool.query(
+      "SELECT COUNT(*) AS orderCount FROM Orders",
+    );
+    const [[{ eventCount }]] = await pool.query(
+      "SELECT COUNT(*) AS eventCount FROM Events",
+    );
+    const [[{ pendingVerify }]] = await pool.query(
+      "SELECT COUNT(*) AS pendingVerify FROM Verifications WHERE VerificationStatus = 0",
+    );
+
+    const [orderRows] = await pool.query(
+      "SELECT OrderStatus, COUNT(*) AS cnt FROM Orders GROUP BY OrderStatus",
+    );
+    const orderStatus = {};
+    orderRows.forEach((r) => {
+      orderStatus[r.OrderStatus] = r.cnt;
+    });
+
+    const [eventRows] = await pool.query(
+      "SELECT EventType, COUNT(*) AS cnt FROM Events GROUP BY EventType",
+    );
+    const eventType = {};
+    eventRows.forEach((r) => {
+      eventType[r.EventType] = r.cnt;
+    });
+
+    return res.json({
+      success: true,
+      stats: {
+        userCount,
+        orderCount,
+        eventCount,
+        pendingVerify,
+        orderStatus,
+        eventType,
+      },
+    });
+  } catch (err) {
+    console.error("DB query error (admin stats):", err);
+    return res.status(500).json({ error: "获取统计数据失败" });
+  }
+});
+
 function normalizeLocationPlaceId(value) {
   if (value === undefined || value === null) return null;
   const text = String(value).trim();
@@ -400,6 +462,7 @@ router.get("/admin/users", async (req, res) => {
         u.PhoneNumber,
         u.Location,
         IFNULL(c.BuyerRanking, 0) AS BuyerRanking,
+        p.ProviderRole,
         IFNULL(p.ServiceRanking, 0) AS ServiceRanking,
         IFNULL(p.OrderCount, 0) AS OrderCount,
         CASE 

@@ -152,6 +152,8 @@ export class Tab3Page implements OnInit {
             count: unreadCount,
             avatar,
             type: room.type || 'user',
+            orderId: room.orderId || null,
+            eventId: room.event?.id || null,
             updatedAt: room.updatedAt,
           };
         });
@@ -221,7 +223,11 @@ export class Tab3Page implements OnInit {
     this.clearRoomUnread(user.roomId);
 
     this.navCtrl.navigateForward(['/chat-detail', user.roomId], {
-      state: { targetUser: user },
+      state: {
+        targetUser: user,
+        orderId: user.orderId,
+        eventId: user.eventId,
+      },
     });
   }
 

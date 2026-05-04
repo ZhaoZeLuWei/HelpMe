@@ -33,6 +33,7 @@ export class Tab4EventsPanelComponent {
   @Input() isLoading = false;
   @Input() deletingIds = new Set<number>();
   @Input() blockedEditIds = new Set<number>();
+  @Input() blockedEditOnlyIds = new Set<number>();
   @Input() t: any;
 
   @Output() viewDetail = new EventEmitter<number>();

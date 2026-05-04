@@ -252,7 +252,7 @@ router.post(
         roomId: `system_${creatorId}`,
         text: `您的事件：“${EventTitle}”发布成功！请耐心等待...`,
         senderId: creatorId,
-      });
+      }).catch((err) => console.error("发送系统消息失败:", err));
 
       return res.json({
         success: true,
@@ -294,7 +294,7 @@ router.get("/events/:id", async (req, res) => {
     const [activeOrders] = await pool.query(
       `SELECT OrderId, OrderStatus
        FROM Orders
-       WHERE EventId = ? AND OrderStatus <> 3
+       WHERE EventId = ? AND OrderStatus IN (0, 1, 2)
        ORDER BY OrderCreateTime DESC
        LIMIT 1`,
       [eventId],
@@ -454,7 +454,7 @@ router.put("/events/:id", authRequired, async (req, res) => {
       roomId: `system_${creatorId}`,
       text: `您的事件“${EventTitle}”信息修改成功。`,
       senderId: creatorId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
 
     return res.json({ success: true });
   } catch (err) {
@@ -494,9 +494,9 @@ router.delete("/events/:id", authRequired, async (req, res) => {
         .json({ success: false, error: "事件不存在或无权删除" });
     }
 
-    // 检查是否存在未完结的订单（待确认、进行中、待评价）
+    // 检查是否存在未取消的订单（待确认、进行中、待评价、已完成）
     const [activeOrders] = await conn.query(
-      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
+      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2, 3) LIMIT 1",
       [eventId],
     );
 
@@ -504,7 +504,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
       await conn.rollback();
       return res
         .status(400)
-        .json({ success: false, error: "存在未完结订单，无法删除事件" });
+        .json({ success: false, error: "存在未取消订单，无法删除事件" });
     }
 
     // 提取出标题
@@ -526,7 +526,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
       roomId: `system_${creatorId}`,
       text: `您的事件“${deletedTitle}”已成功删除。`,
       senderId: creatorId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
 
     return res.json({
       success: true,
@@ -545,7 +545,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
 });
 
 // 管理端：获取事件列表
-router.get("/admin/events", async (_req, res) => {
+router.get("/admin/events", authRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -573,8 +573,8 @@ router.get("/admin/events", async (_req, res) => {
   }
 });
 
-// 管理端：删除事件
-router.delete("/admin/events/:id", async (req, res) => {
+// 管理端：删除事件（需登录，且检查未完结订单）
+router.delete("/admin/events/:id", authRequired, async (req, res) => {
   const eventId = Number(req.params.id);
   if (!Number.isInteger(eventId) || eventId <= 0) {
     return res.status(400).json({ success: false, error: "无效的事件ID" });
@@ -584,6 +584,21 @@ router.delete("/admin/events/:id", async (req, res) => {
   try {
     conn = await pool.getConnection();
     await conn.beginTransaction();
+
+    // 检查是否存在未取消的订单（待确认、进行中、待评价、已完成）
+    const [activeOrders] = await conn.query(
+      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2, 3) LIMIT 1",
+      [eventId],
+    );
+
+    if (activeOrders && activeOrders.length > 0) {
+      await conn.rollback();
+      return res.status(400).json({
+        success: false,
+        error: "存在未取消订单，无法删除事件",
+      });
+    }
+
     await conn.query("DELETE FROM Orders WHERE EventId = ?", [eventId]);
     const [result] = await conn.query("DELETE FROM Events WHERE EventId = ?", [
       eventId,
@@ -600,7 +615,7 @@ router.delete("/admin/events/:id", async (req, res) => {
 });
 
 // 管理端：状态统计
-router.get("/admin/events/summary", async (_req, res) => {
+router.get("/admin/events/summary", authRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT

@@ -5,11 +5,75 @@
     </ion-buttons>
     <ion-title>聊天详情</ion-title>
   </ion-toolbar>
+  @if (isOrderRoom && orderInfo) {
+  <ion-toolbar color="light" class="order-info-bar" (click)="showOrderInfo = !showOrderInfo">
+    <ion-icon name="document-text" slot="start" color="primary"></ion-icon>
+    <ion-label>
+      <h3 class="order-event-title">{{ orderInfo.EventTitle }}</h3>
+      <p class="order-status-line">
+        <span class="order-status-badge" [attr.color]="orderStatusColor">{{ orderStatusText }}</span>
+        · ¥{{ orderInfo.TransactionPrice }}
+      </p>
+    </ion-label>
+    <ion-icon [name]="showOrderInfo ? 'chevron-up' : 'chevron-down'" slot="end" color="medium"></ion-icon>
+  </ion-toolbar>
+  @if (showOrderInfo) {
+  <ion-toolbar color="light" class="order-detail-bar">
+    <div class="order-detail-content">
+      <p><strong>地点：</strong>{{ orderInfo.Location }}</p>
+      <p><strong>描述：</strong>{{ orderInfo.EventDetails }}</p>
+      <p><strong>下单时间：</strong>{{ orderInfo.OrderCreateTime | date:'yyyy-MM-dd HH:mm' }}</p>
+      <div class="order-actions">
+        <ion-button size="small" fill="outline" (click)="goToEventDetail(); $event.stopPropagation()">
+          查看事件
+        </ion-button>
+        <ion-button size="small" fill="outline" color="success" (click)="openOrderPreview(); $event.stopPropagation()">
+          查看订单
+        </ion-button>
+      </div>
+    </div>
+  </ion-toolbar>
+  }
+  }
+  @if (isEventRoom && eventInfo) {
+  <ion-toolbar color="light" class="order-info-bar" (click)="showEventInfo = !showEventInfo">
+    <ion-icon name="location-outline" slot="start" color="tertiary"></ion-icon>
+    <ion-label>
+      <h3 class="order-event-title">{{ eventInfo.EventTitle }}</h3>
+      <p class="order-status-line">
+        <span class="event-category-badge">{{ getEventTypeLabel(eventInfo.EventType) }}</span>
+        · ¥{{ eventInfo.Price }}
+      </p>
+    </ion-label>
+    <ion-icon [name]="showEventInfo ? 'chevron-up' : 'chevron-down'" slot="end" color="medium"></ion-icon>
+  </ion-toolbar>
+  @if (showEventInfo) {
+  <ion-toolbar color="light" class="order-detail-bar">
+    <div class="order-detail-content">
+      <p><strong>地点：</strong>{{ eventInfo.Location }}</p>
+      <p><strong>描述：</strong>{{ eventInfo.EventDetails }}</p>
+      <p><strong>发布时间：</strong>{{ eventInfo.CreateTime | date:'yyyy-MM-dd HH:mm' }}</p>
+      <div class="order-actions">
+        <ion-button size="small" fill="outline" (click)="goToEventDetailFromChat(); $event.stopPropagation()">
+          查看事件详情
+        </ion-button>
+      </div>
+    </div>
+  </ion-toolbar>
+  }
+  }
 </ion-header>
 
 <ion-content #chatContent class="ion-padding">
   <div class="chat-container">
     @for (msg of messages(); track $index) {
+    <!-- 系统消息居中显示 -->
+    @if (msg.userName === '系统通知') {
+    <div class="system-message">
+      <span class="system-message-text">{{ msg.text }}</span>
+      <span class="system-message-time">{{ msg.sendTime | date:'HH:mm' }}</span>
+    </div>
+    } @else {
     <div class="message-group" [class.me]="isMyMessage(msg)">
       <div class="message-row">
         <ion-avatar class="message-avatar">
@@ -32,6 +96,7 @@
       </div>
     </div>
     }
+    }
   </div>
 </ion-content>
 
@@ -52,3 +117,57 @@
   </ion-toolbar>
 </ion-footer>
 }
+
+<!-- 订单预览弹窗 -->
+<ion-modal [isOpen]="isOrderPreviewOpen" (didDismiss)="closeOrderPreview()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>订单预览</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="closeOrderPreview()">关闭</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      @if (orderInfo) {
+      <ion-list lines="full">
+        <ion-item>
+          <ion-label position="stacked">事件标题</ion-label>
+          <ion-text>{{ orderInfo.EventTitle }}</ion-text>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">订单状态</ion-label>
+          <ion-badge [color]="orderColorMapForPreview[orderInfo.OrderStatus] || 'medium'">
+            {{ orderStatusMapForPreview[orderInfo.OrderStatus] || '未知' }}
+          </ion-badge>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">成交价格</ion-label>
+          <ion-text>¥{{ orderInfo.TransactionPrice }}</ion-text>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">地点</ion-label>
+          <ion-text>{{ orderInfo.Location }}</ion-text>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">事件描述</ion-label>
+          <ion-text>{{ orderInfo.EventDetails }}</ion-text>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">买家</ion-label>
+          <ion-text>{{ orderInfo.ConsumerName }}</ion-text>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">卖家</ion-label>
+          <ion-text>{{ orderInfo.ProviderName }}</ion-text>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">下单时间</ion-label>
+          <ion-text>{{ orderInfo.OrderCreateTime | date:'yyyy-MM-dd HH:mm' }}</ion-text>
+        </ion-item>
+      </ion-list>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>

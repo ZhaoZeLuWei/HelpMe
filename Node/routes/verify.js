@@ -62,23 +62,24 @@ router.get("/adminVerify", async (req, res) => {
         u.RealName,
         v.VerificationId,
         v.ServiceCategory,
+        v.OriginalProviderRole,
         v.VerificationStatus,
         v.SubmissionTime,
         v.PassingTime,
         v.Results,
 
-        CASE 
+        CASE
           WHEN EXISTS (
-            SELECT 1 
-            FROM Verifications v2 
-            WHERE v2.ProviderId = p.ProviderId 
+            SELECT 1
+            FROM Verifications v2
+            WHERE v2.ProviderId = p.ProviderId
               AND v2.VerificationStatus = 1
-          ) THEN 1 
-          ELSE 0 
+          ) THEN 1
+          ELSE 0
         END AS IsVerified
       FROM Providers p
       INNER JOIN Users u ON p.ProviderId = u.UserId
-      LEFT JOIN (
+      INNER JOIN (
         SELECT v1.*
         FROM Verifications v1
         INNER JOIN (
@@ -180,13 +181,20 @@ router.post(
       await conn.beginTransaction();
       const hasGeoColumns = await supportsUserGeoColumns(conn);
 
-      // 0) 确保 Providers 记录存在
+      // 0) 确保 Providers 记录存在（仅在首次时创建，不更新 ProviderRole）
       await conn.query(
         `INSERT INTO Providers (ProviderId, ProviderRole, OrderCount, ServiceRanking)
-         VALUES (?, ?, 0, 0)
-         ON DUPLICATE KEY UPDATE ProviderRole = ?`,
-        [providerId, serviceCategory, serviceCategory],
+         VALUES (?, 0, 0, 0)
+         ON DUPLICATE KEY UPDATE ProviderRole = ProviderRole`,
+        [providerId],
       );
+
+      // 获取当前角色（申请时的角色）
+      const [currentRole] = await conn.query(
+        `SELECT ProviderRole FROM Providers WHERE ProviderId = ?`,
+        [providerId],
+      );
+      const originalProviderRole = currentRole[0]?.ProviderRole ?? 0;
 
       // 1) 更新 Users 表（仅非空字段，且禁止修改手机号）
       const uSets = [];
@@ -263,12 +271,13 @@ router.post(
         const verificationId = rows[0].VerificationId;
         const vSets = [
           "ServiceCategory = ?",
+          "OriginalProviderRole = ?",
           "VerificationStatus = 0", // 重置为待审核
           "SubmissionTime = NOW()",
           "PassingTime = NULL",
           "Results = NULL",
         ];
-        const vParams = [serviceCategory];
+        const vParams = [serviceCategory, originalProviderRole];
 
         // 仅当有新图片时才覆盖
         if (idCardPaths.length > 0) {
@@ -299,11 +308,12 @@ router.post(
       // 首次提交：插入新记录
       const [result] = await conn.query(
         `INSERT INTO Verifications
-          (ProviderId, ServiceCategory, VerificationStatus, IdCardPhoto, ProfessionPhoto, SubmissionTime)
-         VALUES (?, ?, 0, ?, ?, NOW())`,
+          (ProviderId, ServiceCategory, OriginalProviderRole, VerificationStatus, IdCardPhoto, ProfessionPhoto, SubmissionTime)
+         VALUES (?, ?, ?, 0, ?, ?, NOW())`,
         [
           providerId,
           serviceCategory,
+          originalProviderRole,
           JSON.stringify(idCardPaths),
           JSON.stringify(certPaths),
         ],
@@ -463,6 +473,20 @@ router.post("/adminVerify/approve", async (req, res) => {
     `,
       [results || "审核通过", providerId],
     );
+
+    // 审核通过后，更新用户的 ProviderRole
+    if (result.affectedRows > 0) {
+      const [verifyRow] = await conn.query(
+        `SELECT ServiceCategory FROM Verifications WHERE ProviderId = ? ORDER BY SubmissionTime DESC LIMIT 1`,
+        [providerId],
+      );
+      if (verifyRow.length > 0) {
+        await conn.query(
+          `UPDATE Providers SET ProviderRole = ? WHERE ProviderId = ?`,
+          [verifyRow[0].ServiceCategory, providerId],
+        );
+      }
+    }
 
     if (result.affectedRows === 0) {
       await conn.rollback();

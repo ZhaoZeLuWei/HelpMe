@@ -1,7 +1,8 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
-const { sendSystemMessage } = require("../chatHandler.js");
+const { sendSystemMessage, sendOrderSystemMessage } = require("../chatHandler.js");
+const { getIO } = require("../socketInstance.js");
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.post("/reviews", authRequired, async (req, res) => {
     await conn.beginTransaction();
 
     const [orderRows] = await conn.query(
-      "SELECT OrderId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1",
+      "SELECT OrderId, EventId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1",
       [orderId],
     );
     if (!orderRows.length) {
@@ -146,6 +147,28 @@ router.post("/reviews", authRequired, async (req, res) => {
         "UPDATE Orders SET OrderStatus = 3, CompletionTime = COALESCE(CompletionTime, NOW()) WHERE OrderId = ?",
         [orderId],
       );
+
+      // 通过Socket.IO实时推送订单状态变更给买卖双方
+      const [orderRows] = await conn.query(
+        "SELECT ConsumerId, ProviderId, EventId FROM Orders WHERE OrderId = ? LIMIT 1",
+        [orderId],
+      );
+      if (orderRows && orderRows.length > 0) {
+        const orderInfo = orderRows[0];
+        const io = getIO();
+        if (io) {
+          io.to(String(orderInfo.ConsumerId)).emit("orderStatusUpdate", {
+            orderId,
+            newStatus: 3,
+            eventId: orderInfo.EventId,
+          });
+          io.to(String(orderInfo.ProviderId)).emit("orderStatusUpdate", {
+            orderId,
+            newStatus: 3,
+            eventId: orderInfo.EventId,
+          });
+        }
+      }
     }
     // 否则保持 OrderStatus = 2（待评价），等待另一方评价
 
@@ -155,7 +178,17 @@ router.post("/reviews", authRequired, async (req, res) => {
       roomId: `system_${targetUserId}`,
       text: `您收到了一条新的评价，评分 ${score} 分。`,
       senderId: authorId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 发送系统消息到订单聊天房间
+    if (order.EventId) {
+      const reviewRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+      await sendOrderSystemMessage({
+        roomId: reviewRoomId,
+        text: `一方已提交评价，评分 ${score} 分。`,
+        senderId: authorId,
+      }).catch((err) => console.error("发送订单系统消息失败:", err));
+    }
 
     return res.json({
       success: true,
@@ -206,7 +239,7 @@ router.get("/reviews", async (req, res) => {
 });
 
 // 管理端评论列表
-router.get("/admin/reviews", async (_req, res) => {
+router.get("/admin/reviews", authRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT

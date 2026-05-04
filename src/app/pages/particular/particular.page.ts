@@ -29,6 +29,11 @@ import { ToastController } from '@ionic/angular';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
 import { NavController } from '@ionic/angular';
+import { IonNote } from '@ionic/angular/standalone';
+import {
+  LocationPickerComponent,
+  type PickedLocation,
+} from '../../components/location-picker/location-picker.component';
 import {
   FormBuilder,
   FormGroup,
@@ -63,6 +68,7 @@ import {
     IonLabel,
     IonItem,
     IonTitle,
+    IonNote,
   ],
 })
 export class ParticularPage implements OnInit {
@@ -99,8 +105,11 @@ export class ParticularPage implements OnInit {
   });
   orderForm: FormGroup = this.fb.group({
     DetailLocation: ['', Validators.required],
+    SpecificLocation: ['', [Validators.maxLength(100)]],
     AdditionalInfo: ['', [Validators.maxLength(200)]],
   });
+
+  pickedLocationDisplay: string = '';
 
   // 新增 userInfo 对象，模拟队友的数据结构
   userInfo: any = {
@@ -218,9 +227,11 @@ export class ParticularPage implements OnInit {
   getServiceRoleText(providerRole: number): string {
     switch (providerRole) {
       case 1:
-        return '热心用户';
+        return '热心群众';
       case 2:
-        return '服务达人';
+        return '专业人士';
+      case 3:
+        return '商家';
       default:
         return '普通用户';
     }
@@ -232,6 +243,8 @@ export class ParticularPage implements OnInit {
       case 1:
         return 'warning'; // 黄色
       case 2:
+        return 'success'; // 绿色
+      case 3:
         return 'success'; // 绿色
       default:
         return 'medium'; // 灰色
@@ -271,9 +284,30 @@ export class ParticularPage implements OnInit {
     }
     this.orderForm.reset({
       DetailLocation: this.event.address || '',
+      SpecificLocation: '',
       AdditionalInfo: '',
     });
+    this.pickedLocationDisplay = this.event.address || '';
     this.isOrderModalOpen = true;
+  }
+
+  async openOrderLocationPicker() {
+    const modal = await this.modalCtrl.create({
+      component: LocationPickerComponent,
+      componentProps: {
+        selectedPlaceId: '',
+        selectedText: this.orderForm.get('DetailLocation')?.value || '',
+      },
+    });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+    if (role !== 'confirm' || !data?.selected) return;
+
+    const picked: PickedLocation = data.selected;
+    this.orderForm.patchValue({
+      DetailLocation: picked.text,
+    });
+    this.pickedLocationDisplay = picked.text;
   }
 
   closeOrderModal() {
@@ -302,6 +336,7 @@ export class ParticularPage implements OnInit {
         body: JSON.stringify({
           EventId: this.event.id,
           DetailLocation: this.orderForm.value.DetailLocation,
+          SpecificLocation: this.orderForm.value.SpecificLocation || '',
           AdditionalInfo: this.orderForm.value.AdditionalInfo || '',
         }),
       });
