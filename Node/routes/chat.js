@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const pool = require("../help_me_db.js");
+const Room = require("../models/Room.js");
 
 const { getChatHistory, getRoomList } = require("../chatHandler.js");
 
@@ -35,6 +37,48 @@ router.get("/api/rooms/list", async (req, res) => {
     res.status(200).json(result);
   } else {
     res.status(400).json(result);
+  }
+});
+
+// 获取订单房间的订单和事件信息
+router.get("/api/rooms/:roomId/order-info", async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const room = await Room.findById(roomId);
+    if (!room || !room.orderId) {
+      return res.json({ success: false, error: "非订单房间" });
+    }
+
+    const [orders] = await pool.query(
+      `SELECT o.OrderId, o.EventId, o.TransactionPrice, o.OrderStatus, o.OrderCreateTime,
+              o.EventSnapshot,
+              e.EventTitle, e.EventType, e.EventCategory, e.Location, e.Price AS EventPrice,
+              e.EventDetails, e.Photos,
+              buyer.UserName AS ConsumerName,
+              provider.UserName AS ProviderName
+       FROM Orders o
+       JOIN Events e ON o.EventId = e.EventId
+       JOIN Users buyer ON o.ConsumerId = buyer.UserId
+       JOIN Users provider ON o.ProviderId = provider.UserId
+       WHERE o.OrderId = ?
+       LIMIT 1`,
+      [room.orderId],
+    );
+
+    if (!orders.length) {
+      return res.json({ success: false, error: "订单不存在" });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        order: orders[0],
+        eventId: room.eventId,
+      },
+    });
+  } catch (err) {
+    console.error("获取订单信息失败:", err);
+    return res.status(500).json({ success: false, error: "服务器错误" });
   }
 });
 

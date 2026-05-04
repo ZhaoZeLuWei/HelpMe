@@ -20,11 +20,18 @@ import {
   IonInput,
   IonButton,
   IonAvatar,
+  IonIcon,
+  IonLabel,
+  IonModal,
+  IonList,
+  IonText,
+  IonBadge,
 } from '@ionic/angular/standalone';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ToastController } from '@ionic/angular';
+import { ModalController } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
 
 //Models( Data structure) imports here
@@ -54,6 +61,12 @@ import { AuthService } from '../../services/auth.service';
     IonButtons,
     IonButton,
     IonAvatar,
+    IonIcon,
+    IonLabel,
+    IonModal,
+    IonList,
+    IonText,
+    IonBadge,
   ],
 })
 export class ChatDetailPage implements OnInit, OnDestroy {
@@ -64,9 +77,11 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
   //injects (import)
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
+  private modalCtrl = inject(ModalController);
 
   //get user info from chat list page(Tab3)
   roomInfoTab3: any;
@@ -84,6 +99,32 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     nonNullable: true,
     validators: [Validators.required],
   });
+
+  // 订单房间相关
+  isOrderRoom = false;
+  showOrderInfo = false;
+  orderInfo: any = null;
+  isOrderPreviewOpen = false;
+
+  // 事件房间相关（非订单的普通聊天）
+  isEventRoom = false;
+  eventInfo: any = null;
+  showEventInfo = false;
+  readonly orderStatusMap: Record<number, string> = {
+    0: '待确认',
+    1: '进行中',
+    2: '待评价',
+    3: '已完成',
+    4: '已取消',
+  };
+
+  readonly orderColorMap: Record<number, string> = {
+    0: 'warning',
+    1: 'primary',
+    2: 'tertiary',
+    3: 'success',
+    4: 'danger',
+  };
 
   ngOnInit() {
     //get user from Node server first
@@ -105,6 +146,17 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     //如果获取到是system类的房间，不显示底部的聊天栏
     if (state?.targetUser?.type === 'system') {
       this.showChat = false;
+    }
+
+    // 检测是否为订单房间
+    if (state?.targetUser?.orderId || state?.orderId) {
+      this.isOrderRoom = true;
+      this.loadOrderInfo(this.roomId);
+    }
+    // 检测是否为事件聊天房间（有 eventId 但没有 orderId）
+    else if (state?.targetUser?.eventId || state?.eventId) {
+      this.isEventRoom = true;
+      this.loadEventInfo(state?.targetUser?.eventId || state?.eventId);
     }
 
     this.loadMyAvatar();
@@ -265,6 +317,83 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     if (path.startsWith('assets/')) return path;
     if (path.startsWith('/assets/')) return path;
     return `${environment.apiBase}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+
+  get orderStatusText(): string {
+    if (!this.orderInfo) return '';
+    return this.orderStatusMap[this.orderInfo.OrderStatus] || '未知状态';
+  }
+
+  get orderStatusColor(): string {
+    if (!this.orderInfo) return 'medium';
+    return this.orderColorMap[this.orderInfo.OrderStatus] || 'medium';
+  }
+
+  loadOrderInfo(roomId: string) {
+    this.http
+      .get<any>(`${environment.apiBase}/api/rooms/${roomId}/order-info`)
+      .subscribe({
+        next: (res) => {
+          if (res.success && res.data?.order) {
+            this.orderInfo = res.data.order;
+          }
+        },
+        error: (err) => {
+          console.error('加载订单信息失败', err);
+        },
+      });
+  }
+
+  loadEventInfo(eventId: number) {
+    this.http
+      .get<any>(`${environment.apiBase}/events/${eventId}`)
+      .subscribe({
+        next: (res) => {
+          if (res?.event) {
+            this.eventInfo = res.event;
+          }
+        },
+        error: (err) => {
+          console.error('加载事件信息失败', err);
+        },
+      });
+  }
+
+  goToEventDetail() {
+    if (this.orderInfo?.EventId) {
+      this.router.navigate(['/particular'], {
+        queryParams: { eventId: this.orderInfo.EventId },
+      });
+    }
+  }
+
+  openOrderPreview() {
+    this.isOrderPreviewOpen = true;
+  }
+
+  closeOrderPreview() {
+    this.isOrderPreviewOpen = false;
+  }
+
+  goToEventDetailFromChat() {
+    const eventId = this.orderInfo?.EventId || this.eventInfo?.EventId;
+    if (eventId) {
+      this.router.navigate(['/particular'], {
+        queryParams: { eventId },
+      });
+    }
+  }
+
+  getEventTypeLabel(type: number): string {
+    return type === 1 ? '帮助' : '求助';
+  }
+
+  get orderStatusMapForPreview(): Record<number, string> {
+    return this.orderStatusMap;
+  }
+
+  get orderColorMapForPreview(): Record<number, string> {
+    return this.orderColorMap;
   }
 
   ngOnDestroy() {

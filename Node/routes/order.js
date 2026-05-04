@@ -1,8 +1,9 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
-const { sendSystemMessage } = require("../chatHandler.js");
+const { sendSystemMessage, sendOrderSystemMessage } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
+const Room = require("../models/Room.js");
 
 const router = express.Router();
 
@@ -114,7 +115,6 @@ router.post("/orders", authRequired, async (req, res) => {
       );
     }
 
-    const verificationCode = `ORD${Date.now().toString().slice(-8)}`;
     // 拼接地址：地址｜具体位置｜补充信息
     const parts = [String(DetailLocation).trim()];
     if (SpecificLocation && String(SpecificLocation).trim()) {
@@ -145,21 +145,43 @@ router.post("/orders", authRequired, async (req, res) => {
 
     const [result] = await conn.query(
       `INSERT INTO Orders
-       (EventId, ProviderId, ConsumerId, OrderStatus, TransactionPrice, DetailLocation, VerificationCode, VerificationResult, EventSnapshot)
-       VALUES (?, ?, ?, 0, ?, ?, ?, 0, ?)`,
+       (EventId, ProviderId, ConsumerId, OrderStatus, TransactionPrice, DetailLocation, EventSnapshot)
+       VALUES (?, ?, ?, 0, ?, ?, ?)`,
       [
         eventId,
         event.CreatorId,
         consumerId,
         event.Price || 0,
         orderLocation,
-        verificationCode,
         eventSnapshot,
       ],
     );
 
     await conn.commit();
 
+    // 找到或创建订单聊天房间，关联 orderId
+    const orderRoomId = `${eventId}_${consumerId}_${event.CreatorId}`;
+    let orderRoom = await Room.findById(orderRoomId);
+    if (!orderRoom) {
+      await Room.create({
+        _id: orderRoomId,
+        eventId: eventId,
+        creatorId: consumerId,
+        partnerId: event.CreatorId,
+        orderId: result.insertId,
+      });
+    } else {
+      await Room.updateOne({ _id: orderRoomId }, { $set: { orderId: result.insertId } });
+    }
+
+    // 发送系统消息到订单房间
+    await sendOrderSystemMessage({
+      roomId: orderRoomId,
+      text: `订单"${event.EventTitle}"已创建，等待卖家确认。`,
+      senderId: consumerId,
+    }).catch((err) => console.error("发送订单系统消息失败:", err));
+
+    // 同时发送系统消息到系统通知房间
     await sendSystemMessage({
       roomId: `system_${event.CreatorId}`,
       text: `您有一个新的订单："${event.EventTitle}"，请尽快确认。`,
@@ -185,7 +207,6 @@ router.post("/orders", authRequired, async (req, res) => {
     return res.json({
       success: true,
       orderId: result.insertId,
-      verificationCode,
     });
   } catch (err) {
     if (conn) await conn.rollback().catch(() => {});
@@ -225,7 +246,7 @@ router.get("/orders", authRequired, async (req, res) => {
       `SELECT
         o.OrderId, o.EventId, o.ProviderId, o.ConsumerId, o.OrderStatus,
         o.TransactionPrice, o.DetailLocation, o.OrderCreateTime, o.PaymentTime,
-        o.VerificationCode, o.VerificationResult, o.ServiceTime, o.CompletionTime,
+        o.ServiceTime, o.CompletionTime,
         o.RefundTime, o.EventSnapshot,
         IFNULL(o.EventSnapshot->>'$.EventTitle', e.EventTitle) AS EventTitle,
         IFNULL(o.EventSnapshot->>'$.EventDetails', e.EventDetails) AS EventDetails,
@@ -318,6 +339,14 @@ router.put("/orders/:id/confirm", authRequired, async (req, res) => {
       senderId: userId,
     }).catch((err) => console.error("发送系统消息失败:", err));
 
+    // 发送系统消息到订单聊天房间
+    const confirmRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+    await sendOrderSystemMessage({
+      roomId: confirmRoomId,
+      text: `订单已被卖家确认，服务进行中。`,
+      senderId: userId,
+    }).catch((err) => console.error("发送订单系统消息失败:", err));
+
     // 通过Socket.IO实时推送订单状态变更
     const io = getIO();
     if (io) {
@@ -388,6 +417,14 @@ router.put("/orders/:id/complete", authRequired, async (req, res) => {
       text: `订单"${order.EventTitle}"已完成，请及时评价。`,
       senderId: userId,
     }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 发送系统消息到订单聊天房间
+    const completeRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+    await sendOrderSystemMessage({
+      roomId: completeRoomId,
+      text: `买家已确认完成，请及时评价。`,
+      senderId: userId,
+    }).catch((err) => console.error("发送订单系统消息失败:", err));
 
     // 通过Socket.IO实时推送订单状态变更
     const io = getIO();
@@ -461,6 +498,14 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
       text: `订单"${order.EventTitle}"已被${operatorRole}取消。`,
       senderId: userId,
     }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 发送系统消息到订单聊天房间
+    const cancelRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+    await sendOrderSystemMessage({
+      roomId: cancelRoomId,
+      text: `订单已被${operatorRole}取消。`,
+      senderId: userId,
+    }).catch((err) => console.error("发送订单系统消息失败:", err));
 
     // 通过Socket.IO实时推送订单状态变更
     const io = getIO();

@@ -402,15 +402,32 @@ export class Tab4Page implements OnDestroy {
     return this.orders.filter((order) => order.statusKey === this.orderFilter);
   }
 
-  // 获取有未取消订单的事件ID集合（用于禁用编辑和删除按钮）
+  // 获取有未完结订单的事件ID集合（用于禁用编辑和删除按钮）
   getBlockedEditIds(): Set<number> {
     const blocked = new Set<number>();
     for (const order of this.orders) {
+      // 所有未取消的订单都阻止删除
       if (
         order.statusKey === 'pending' ||
         order.statusKey === 'active' ||
         order.statusKey === 'review' ||
         order.statusKey === 'done'
+      ) {
+        blocked.add(order.eventId);
+      }
+    }
+    return blocked;
+  }
+
+  // 获取有进行中订单的事件ID集合（仅用于禁用编辑按钮）
+  getBlockedEditOnlyIds(): Set<number> {
+    const blocked = new Set<number>();
+    for (const order of this.orders) {
+      // 只有进行中的订单才阻止编辑，已完成的不阻止
+      if (
+        order.statusKey === 'pending' ||
+        order.statusKey === 'active' ||
+        order.statusKey === 'review'
       ) {
         blocked.add(order.eventId);
       }

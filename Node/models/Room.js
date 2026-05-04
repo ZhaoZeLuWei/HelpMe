@@ -18,6 +18,11 @@ const RoomSchema = new mongoose.Schema({
   partnerId: {
     type: Number,
   },
+  // 关联的订单ID（订单房间才有）
+  orderId: {
+    type: Number,
+    default: null,
+  },
   // 最后一条消息内容
   lastMsg: {
     type: String,

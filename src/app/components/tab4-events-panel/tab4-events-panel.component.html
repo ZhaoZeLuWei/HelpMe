@@ -26,15 +26,18 @@
       <ion-item lines="none" class="task-actions">
         <ion-buttons slot="end">
           <ion-button (click)="viewDetail.emit(event.id)">详情</ion-button>
-          @if (blockedEditIds.has(event.id)) {
+          @if (blockedEditOnlyIds.has(event.id)) {
             <ion-button disabled color="medium"
               >订单进行中，禁止编辑</ion-button
             >
+          } @else {
+            <ion-button (click)="edit.emit(event.id)">编辑</ion-button>
+          }
+          @if (blockedEditIds.has(event.id)) {
             <ion-button disabled color="medium"
               >有关联订单，禁止删除</ion-button
             >
           } @else {
-            <ion-button (click)="edit.emit(event.id)">编辑</ion-button>
             <ion-button
               color="danger"
               [disabled]="deletingIds.has(event.id)"

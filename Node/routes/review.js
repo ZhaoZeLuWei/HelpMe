@@ -1,7 +1,7 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
-const { sendSystemMessage } = require("../chatHandler.js");
+const { sendSystemMessage, sendOrderSystemMessage } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
 
 const router = express.Router();
@@ -32,7 +32,7 @@ router.post("/reviews", authRequired, async (req, res) => {
     await conn.beginTransaction();
 
     const [orderRows] = await conn.query(
-      "SELECT OrderId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1",
+      "SELECT OrderId, EventId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1",
       [orderId],
     );
     if (!orderRows.length) {
@@ -179,6 +179,16 @@ router.post("/reviews", authRequired, async (req, res) => {
       text: `您收到了一条新的评价，评分 ${score} 分。`,
       senderId: authorId,
     }).catch((err) => console.error("发送系统消息失败:", err));
+
+    // 发送系统消息到订单聊天房间
+    if (order.EventId) {
+      const reviewRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+      await sendOrderSystemMessage({
+        roomId: reviewRoomId,
+        text: `一方已提交评价，评分 ${score} 分。`,
+        senderId: authorId,
+      }).catch((err) => console.error("发送订单系统消息失败:", err));
+    }
 
     return res.json({
       success: true,
