@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
+import { ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   chevronBackOutline,
@@ -41,9 +42,11 @@ export class UserParticularPage implements OnInit {
   private location = inject(Location);
   private authService = inject(AuthService);
   private modalCtrl = inject(ModalController);
+  private toastController = inject(ToastController);
   readonly apiBase = environment.apiBase;
 
   isCurrentUser: boolean = false;
+  isFollowing: boolean = false;
 
   userInfo: any = {
     name: '',
@@ -92,6 +95,7 @@ export class UserParticularPage implements OnInit {
         this.loadUserComments(this.userId);
         this.loadActivityFeed(this.userId);
         this.checkIsCurrentUser();
+        this.checkFollowStatus();
       }
     });
   }
@@ -99,6 +103,11 @@ export class UserParticularPage implements OnInit {
   checkIsCurrentUser() {
     const currentUserId = this.authService.currentUserId;
     this.isCurrentUser = currentUserId !== null && this.userId !== null && currentUserId === this.userId;
+  }
+
+  async checkFollowStatus() {
+    if (this.isCurrentUser || !this.userId) return;
+    this.isFollowing = await this.authService.checkFollow(this.userId);
   }
 
   switchTab(tab: string) {
@@ -343,7 +352,6 @@ export class UserParticularPage implements OnInit {
   async onFollow() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
         component: LoginPage
@@ -357,6 +365,16 @@ export class UserParticularPage implements OnInit {
       await modal.present();
       return;
     }
-    console.log('关注按钮点击');
+    if (!this.userId) return;
+    const result = await this.authService.toggleFollow(this.userId);
+    if (result !== null) {
+      this.isFollowing = result;
+      const toast = await this.toastController.create({
+        message: result ? '已关注' : '已取消关注',
+        duration: 2000,
+        position: 'bottom',
+      });
+      await toast.present();
+    }
   }
 }

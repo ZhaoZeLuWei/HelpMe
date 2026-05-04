@@ -77,6 +77,11 @@ export class ParticularPage implements OnInit {
   readonly apiBase = environment.apiBase;
 
   isCurrentUserCreator: boolean = false;
+  isFavorited: boolean = false;
+  isFollowingCreator: boolean = false;
+  get currentUserId(): number | null {
+    return this.authService.currentUserId;
+  }
 
   isEditModalOpen = false;
   isSavingEdit = false;
@@ -164,6 +169,8 @@ export class ParticularPage implements OnInit {
           }
           // 检查当前用户是否是事件创建者
           this.checkUserIsCreator();
+          // 查询收藏与关注状态
+          this.checkFavoriteAndFollowStatus();
         }
       }
     } catch (error) {
@@ -333,7 +340,12 @@ export class ParticularPage implements OnInit {
       await modal.present();
       return;
     }
-    // TODO: 关注功能
+    if (!this.event?.creatorId) return;
+    const result = await this.authService.toggleFollow(this.event.creatorId);
+    if (result !== null) {
+      this.isFollowingCreator = result;
+      this.showToast(result ? '已关注' : '已取消关注');
+    }
   }
 
   async onCollect() {
@@ -353,7 +365,12 @@ export class ParticularPage implements OnInit {
       await modal.present();
       return;
     }
-    // TODO: 收藏功能
+    if (!this.event?.id) return;
+    const result = await this.authService.toggleFavorite(Number(this.event.id));
+    if (result !== null) {
+      this.isFavorited = result;
+      this.showToast(result ? '已收藏' : '已取消收藏');
+    }
   }
 
   checkUserIsCreator() {
@@ -362,6 +379,19 @@ export class ParticularPage implements OnInit {
     // 使用 == 进行宽松比较，避免字符串和数字类型不匹配的问题
     this.isCurrentUserCreator =
       currentUserId != null && creatorId != null && currentUserId == creatorId;
+  }
+
+  async checkFavoriteAndFollowStatus() {
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId || !this.event?.id) return;
+    // 查询收藏状态
+    this.isFavorited = await this.authService.checkFavorite(Number(this.event.id));
+    // 非创建者时查询关注状态
+    if (!this.isCurrentUserCreator && this.event?.creatorId) {
+      this.isFollowingCreator = await this.authService.checkFollow(
+        this.event.creatorId,
+      );
+    }
   }
 
   async onChat() {

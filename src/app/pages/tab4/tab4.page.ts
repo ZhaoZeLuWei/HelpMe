@@ -38,6 +38,8 @@ import {
   locationOutline,
   ribbon,
   briefcase,
+  starOutline,
+  peopleOutline,
 } from 'ionicons/icons';
 
 import {
@@ -75,6 +77,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Tab4ProfileCardComponent } from '../../components/tab4-profile-card/tab4-profile-card.component';
 import { Tab4EventsPanelComponent } from '../../components/tab4-events-panel/tab4-events-panel.component';
 import { Tab4OrdersPanelComponent } from '../../components/tab4-orders-panel/tab4-orders-panel.component';
+import { ShowEventComponent, EventCardData } from '../../components/show-event/show-event.component';
 
 @Component({
   selector: 'app-tab4',
@@ -110,6 +113,7 @@ import { Tab4OrdersPanelComponent } from '../../components/tab4-orders-panel/tab
     Tab4ProfileCardComponent,
     Tab4EventsPanelComponent,
     Tab4OrdersPanelComponent,
+    ShowEventComponent,
   ],
 })
 export class Tab4Page implements OnDestroy {
@@ -252,6 +256,14 @@ export class Tab4Page implements OnDestroy {
   activeSection: 'events' | 'orders' = 'events';
   orderFilter: 'all' | 'pending' | 'active' | 'review' | 'done' = 'all';
 
+  // 收藏 & 关注弹窗
+  isFavoritesModalOpen = false;
+  isFollowsModalOpen = false;
+  favoritesList: any[] = [];
+  followsList: any[] = [];
+  isLoadingFavorites = false;
+  isLoadingFollows = false;
+
   userInfo: any = this.createDefaultUserInfo();
   tasks: any[] = [];
   orders: any[] = [];
@@ -281,6 +293,8 @@ export class Tab4Page implements OnDestroy {
       locationOutline,
       ribbon,
       briefcase,
+      starOutline,
+      peopleOutline,
     });
 
     // 订阅登录状态
@@ -1466,5 +1480,99 @@ export class Tab4Page implements OnDestroy {
     } catch (e) {
       console.error('deleteUploadedFile error', e);
     }
+  }
+
+  // ---- 收藏弹窗 ----
+  async openFavoritesModal() {
+    this.isFavoritesModalOpen = true;
+    await this.loadFavorites();
+  }
+
+  closeFavoritesModal() {
+    this.isFavoritesModalOpen = false;
+  }
+
+  async loadFavorites() {
+    this.isLoadingFavorites = true;
+    try {
+      const resp = await fetch(`${this.API_BASE}/favorites`, {
+        headers: this.auth.getAuthHeader(),
+      });
+      const data = await resp.json().catch(() => null);
+      if (data?.success && Array.isArray(data.favorites)) {
+        this.favoritesList = data.favorites.map((f: any) => ({
+          id: String(f.EventId),
+          title: f.EventTitle,
+          address: f.Location,
+          price: f.Price,
+          demand: f.EventDetails,
+          createTime: f.CreateTime,
+          cardImage: (() => {
+            try {
+              const photos = JSON.parse(f.Photos || '[]');
+              return Array.isArray(photos) ? photos[0] : photos;
+            } catch {
+              return f.Photos || '';
+            }
+          })(),
+          creatorId: f.CreatorId,
+          name: f.UserName || '',
+          avatar: f.UserAvatar || '',
+          icon: 'navigate-outline',
+          distance: '',
+        }));
+      }
+    } catch (e) {
+      console.error('loadFavorites error', e);
+    } finally {
+      this.isLoadingFavorites = false;
+    }
+  }
+
+  onFavoriteCardClick(event: EventCardData) {
+    this.closeFavoritesModal();
+    this.goToEventDetail(Number(event.id));
+  }
+
+  // ---- 关注弹窗 ----
+  async openFollowsModal() {
+    this.isFollowsModalOpen = true;
+    await this.loadFollows();
+  }
+
+  closeFollowsModal() {
+    this.isFollowsModalOpen = false;
+  }
+
+  async loadFollows() {
+    this.isLoadingFollows = true;
+    try {
+      const resp = await fetch(`${this.API_BASE}/follows`, {
+        headers: this.auth.getAuthHeader(),
+      });
+      const data = await resp.json().catch(() => null);
+      if (data?.success && Array.isArray(data.follows)) {
+        this.followsList = data.follows;
+      }
+    } catch (e) {
+      console.error('loadFollows error', e);
+    } finally {
+      this.isLoadingFollows = false;
+    }
+  }
+
+  async removeFollow(userId: number) {
+    const result = await this.auth.toggleFollow(userId);
+    if (result === false) {
+      this.followsList = this.followsList.filter((f) => f.UserId !== userId);
+      await this.presentDeleteToast('已取消关注');
+    }
+  }
+
+  goToUserFromFollow(user: any) {
+    this.closeFollowsModal();
+    this.router.navigate(['/user-particular'], {
+      queryParams: { name: user.UserName, userId: user.UserId },
+    });
   }
 }
