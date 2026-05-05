@@ -243,12 +243,12 @@ VALUES
 -- 5) Verifications（服务者认证）- 统一 400XXX
 -- VerificationStatus：0待审 / 1通过 / 2驳回（仅测试用）
 INSERT INTO Verifications
-(VerificationId, ProviderId, ServiceCategory, VerificationStatus, IdCardPhoto, ProfessionPhoto, SubmissionTime, PassingTime, Results)
+(VerificationId, ProviderId, ServiceCategory, OriginalProviderRole, VerificationStatus, IdCardPhoto, ProfessionPhoto, SubmissionTime, PassingTime, Results)
 VALUES
-(400001, 100002, 1, 1, '/img/id_1.png', '/img/pro_1.png', DATE_SUB(NOW(), INTERVAL 30 DAY), DATE_SUB(NOW(), INTERVAL 29 DAY), '资料齐全，审核通过'),
-(400002, 100006, 2, 1, '/img/id_1.png', '/img/pro_1.png', DATE_SUB(NOW(), INTERVAL 25 DAY), DATE_SUB(NOW(), INTERVAL 24 DAY), '认证通过'),
-(400003, 100004, 3, 0, '/img/id_1.png', NULL,            DATE_SUB(NOW(), INTERVAL 12 DAY), NULL,                             '等待审核'),
-(400004, 100008, 3, 2, '/img/id_1.png', '/img/pro_1.png', DATE_SUB(NOW(), INTERVAL 18 DAY), DATE_SUB(NOW(), INTERVAL 17 DAY), '职业证明不清晰，请补充');
+(400001, 100002, 1, 0, 1, '/img/id_1.png', '/img/pro_1.png', DATE_SUB(NOW(), INTERVAL 30 DAY), DATE_SUB(NOW(), INTERVAL 29 DAY), '资料齐全，审核通过'),
+(400002, 100006, 2, 0, 1, '/img/id_1.png', '/img/pro_1.png', DATE_SUB(NOW(), INTERVAL 25 DAY), DATE_SUB(NOW(), INTERVAL 24 DAY), '认证通过'),
+(400003, 100004, 3, 0, 0, '/img/id_1.png', NULL,            DATE_SUB(NOW(), INTERVAL 12 DAY), NULL,                             '等待审核'),
+(400004, 100008, 3, 0, 2, '/img/id_1.png', '/img/pro_1.png', DATE_SUB(NOW(), INTERVAL 18 DAY), DATE_SUB(NOW(), INTERVAL 17 DAY), '职业证明不清晰，请补充');
 
 -- 6) Orders（订单）- 统一 200XXX
 -- 注意：每条订单 ProviderId != ConsumerId（避免同单出现双身份）
