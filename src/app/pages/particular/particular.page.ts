@@ -257,7 +257,7 @@ export class ParticularPage implements OnInit {
       this.router.navigate(['/tabs/tab4']);
     } else if (this.userInfo.name) {
       // 如果是其他用户的活动，跳转到用户详情页
-      this.router.navigate(['/user-particular'], {
+      this.navCtrl.navigateForward('/user-particular', {
         queryParams: {
           name: this.userInfo.name,
           userId: this.event?.creatorId,
