@@ -46,7 +46,7 @@
       <ion-col>
         <ion-button expand="block" fill="clear" size="small" color="dark" (click)="setModal('price', true)">
           <ion-icon slot="start" name="pricetag"></ion-icon>
-          {{ t.priceRange }}
+          {{ selectedPriceTier() >= 0 ? priceTiers[selectedPriceTier()].label : t.priceRange }}
         </ion-button>
       </ion-col>
       <ion-col>
@@ -105,16 +105,21 @@
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
-          <div formGroupName="priceRange">
-            <ion-item>
-              <ion-label>{{ t.minPrice }}: {{ filterForm.get('priceRange')?.get('min')?.value }}</ion-label>
-              <ion-range formControlName="min" [min]="0" [max]="500" [snaps]="true" color="secondary"></ion-range>
-            </ion-item>
-            <ion-item>
-              <ion-label>{{ t.maxPrice }}: {{ filterForm.get('priceRange')?.get('max')?.value }}</ion-label>
-              <ion-range formControlName="max" [min]="0" [max]="1000" [snaps]="true" color="secondary"></ion-range>
-            </ion-item>
-          </div>
+          <ion-list lines="none" class="price-tier-list">
+            @for (tier of priceTiers; track $index) {
+              <ion-item
+                button
+                detail="false"
+                (click)="selectPriceTier($index)"
+                [class.tier-selected]="selectedPriceTier() === $index"
+              >
+                <ion-label>{{ tier.label }}</ion-label>
+                @if (selectedPriceTier() === $index) {
+                  <ion-icon name="checkmark" slot="end" color="primary"></ion-icon>
+                }
+              </ion-item>
+            }
+          </ion-list>
         </ion-content>
       </ng-template>
     </ion-modal>

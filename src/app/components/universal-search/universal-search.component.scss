@@ -96,3 +96,20 @@ ion-modal {
   --border-radius: 20px;
   --box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
 }
+
+/* ===== 价格档次列表 ===== */
+.price-tier-list {
+  padding: 8px 0;
+}
+
+.price-tier-list ion-item {
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --min-height: 48px;
+  font-size: 15px;
+}
+
+.price-tier-list ion-item.tier-selected {
+  --background: rgba(var(--ion-color-primary-rgb), 0.06);
+  font-weight: 600;
+}
