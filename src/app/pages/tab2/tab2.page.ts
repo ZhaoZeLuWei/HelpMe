@@ -84,6 +84,18 @@ export class Tab2Page implements OnInit, AfterViewInit {
         setTimeout(() => this.searchBar?.setFocus(), 300);
       }
     });
+
+    // 🔽 页⾯初始化后清除 URL 中的 search 参数，使刷新后从头开始
+    // ngOnInit 只会在组件创建时执⾏⼀次（即刷新⻚⾯），
+    // 从搜索⻚导航回来时组件已存在，不会执⾏这⾥
+    if (this.route.snapshot.queryParams['search']) {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { search: null, focusSearch: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
   }
 
   // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
