@@ -294,6 +294,7 @@ export class ParticularPage implements OnInit {
   async openOrderLocationPicker() {
     const modal = await this.modalCtrl.create({
       component: LocationPickerComponent,
+      cssClass: 'location-picker-modal',
       componentProps: {
         selectedPlaceId: '',
         selectedText: this.orderForm.get('DetailLocation')?.value || '',

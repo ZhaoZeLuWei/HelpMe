@@ -36,3 +36,20 @@
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
 
+/* ===== Location Picker Modal 桌面端尺寸 ===== */
+ion-modal.location-picker-modal {
+  --border-radius: 0;
+
+  @media (min-width: 768px) {
+    --width: 600px;
+    --height: 85vh;
+    --border-radius: 16px;
+    --box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  }
+
+  @media (min-width: 1200px) {
+    --width: 680px;
+    --height: 80vh;
+  }
+}
+

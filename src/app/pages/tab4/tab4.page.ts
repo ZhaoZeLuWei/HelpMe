@@ -211,6 +211,7 @@ export class Tab4Page implements OnDestroy {
 
     const modal = await this.modalController.create({
       component: LocationPickerComponent,
+      cssClass: 'location-picker-modal',
       componentProps: {
         selectedPlaceId: form.get('LocationPlaceId')?.value || '',
         selectedText: form.get('Location')?.value || '',
