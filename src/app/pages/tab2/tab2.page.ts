@@ -69,7 +69,7 @@ export class Tab2Page implements OnInit, AfterViewInit {
 
     // 统一订阅：关键词变化 or 聚焦标志变化都走这里
     // 接收路由参数
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.currentType = params['type'] || null;
       const keyword = params['search'] || '';
 
@@ -91,24 +91,24 @@ export class Tab2Page implements OnInit, AfterViewInit {
     this.loadEvents();
   }
   filterByType(type: 'request' | 'help' | null) {
-  if (this.currentType === type) {
-    // 再次点击相同按钮，取消筛选
-    this.currentType = null;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { type: null },
-      queryParamsHandling: 'merge'
-    });
-  } else {
-    this.currentType = type;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { type: type },
-      queryParamsHandling: 'merge'
-    });
+    if (this.currentType === type) {
+      // 再次点击相同按钮，取消筛选
+      this.currentType = null;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { type: null },
+        queryParamsHandling: 'merge',
+      });
+    } else {
+      this.currentType = type;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { type: type },
+        queryParamsHandling: 'merge',
+      });
+    }
+    this.loadEvents();
   }
-  this.loadEvents();
-}
 
   ngAfterViewInit() {
     // 如果 URL 带 focusSearch=true，则自动聚焦搜索框
@@ -137,14 +137,13 @@ export class Tab2Page implements OnInit, AfterViewInit {
     const url = `${this.API_BASE}/api/cards${params.toString() ? '?' + params.toString() : ''}`;
 
     fetch(url)
-      .then(res => res.json())
-      .then(list => {
+      .then((res) => res.json())
+      .then((list) => {
         const transformed = list.map((item: any) => ({
           id: String(item.id),
           creatorId: Number(item.creatorId),
           cardImage: item.cardImage,
           title: item.title,
-          icon: item.icon || 'navigate-outline',
           distance: item.distance || this.t.unknownDistance,
           name: item.name,
           address: item.address,
@@ -156,21 +155,21 @@ export class Tab2Page implements OnInit, AfterViewInit {
 
         this.eventsData.set(transformed);
       })
-      .catch(err => console.error(this.t.loadFailed, err));
+      .catch((err) => console.error(this.t.loadFailed, err));
   }
   onTypeChange(type: 'request' | 'help' | null) {
     this.currentType = type;
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { type: type },
-      queryParamsHandling: 'merge'
+      queryParamsHandling: 'merge',
     });
     this.loadEvents();
   }
   /* 跳转到搜索页面 */
   navigateToSearch() {
     this.router.navigate(['/search'], {
-      queryParams: { returnTo: 'tabs/tab2' }
+      queryParams: { returnTo: 'tabs/tab2' },
     });
   }
 }

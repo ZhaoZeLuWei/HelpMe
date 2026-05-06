@@ -78,7 +78,15 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Tab4ProfileCardComponent } from '../../components/tab4-profile-card/tab4-profile-card.component';
 import { Tab4EventsPanelComponent } from '../../components/tab4-events-panel/tab4-events-panel.component';
 import { Tab4OrdersPanelComponent } from '../../components/tab4-orders-panel/tab4-orders-panel.component';
-import { ShowEventComponent, EventCardData } from '../../components/show-event/show-event.component';
+import {
+  ShowEventComponent,
+  EventCardData,
+} from '../../components/show-event/show-event.component';
+import {
+  EditEventModalComponent,
+  EventEditData,
+  EditEventPayload,
+} from '../../components/edit-event-modal/edit-event-modal.component';
 
 @Component({
   selector: 'app-tab4',
@@ -115,6 +123,7 @@ import { ShowEventComponent, EventCardData } from '../../components/show-event/s
     Tab4EventsPanelComponent,
     Tab4OrdersPanelComponent,
     ShowEventComponent,
+    EditEventModalComponent,
   ],
 })
 export class Tab4Page implements OnDestroy {
@@ -129,8 +138,8 @@ export class Tab4Page implements OnDestroy {
   private readonly router = inject(Router);
   private readonly langService = inject(LanguageService);
 
-  @ViewChild('editFileInput')
-  editFileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('editEventModal')
+  editEventModal!: EditEventModalComponent;
 
   @ViewChild('profileAvatarInput')
   profileAvatarInput!: ElementRef<HTMLInputElement>;
@@ -189,31 +198,27 @@ export class Tab4Page implements OnDestroy {
   // 编辑弹窗状态
   isEditModalOpen = false;
   editingTaskId: number | null = null;
+  editingEventData: EventEditData | null = null;
   isSavingEdit = false;
-  readonly EDIT_MAX = 5;
-  editExistingPhotos: string[] = [];
-  editNewPhotos: Array<{ file: File; preview: string }> = [];
-  editForm: FormGroup = this.fb.group({
-    EventTitle: ['', Validators.required],
-    EventType: [0, Validators.required],
-    EventCategory: ['', Validators.required],
-    Location: ['', Validators.required],
-    LocationPlaceId: [''],
-    LocationLng: [null],
-    LocationLat: [null],
-    Price: [0, [Validators.min(0), Validators.max(1_000_000)]],
-    EventDetails: ['', Validators.required],
-  });
 
   async openLocationPicker(formType: 'eventEdit' | 'profileEdit') {
-    const form =
-      formType === 'eventEdit' ? this.editForm : this.editProfileForm;
+    const form = formType === 'eventEdit' ? null : this.editProfileForm;
+    const sharedModal = this.editEventModal;
+
+    const selectedPlaceId =
+      formType === 'eventEdit'
+        ? sharedModal?.getFormValue('LocationPlaceId') || ''
+        : form?.get('LocationPlaceId')?.value || '';
+    const selectedText =
+      formType === 'eventEdit'
+        ? sharedModal?.getFormValue('Location') || ''
+        : form?.get('Location')?.value || '';
 
     const modal = await this.modalController.create({
       component: LocationPickerComponent,
       componentProps: {
-        selectedPlaceId: form.get('LocationPlaceId')?.value || '',
-        selectedText: form.get('Location')?.value || '',
+        selectedPlaceId,
+        selectedText,
       },
     });
 
@@ -222,12 +227,18 @@ export class Tab4Page implements OnDestroy {
     if (role !== 'confirm' || !data?.selected) return;
 
     const picked: PickedLocation = data.selected;
-    form.patchValue({
+    const patchValue = {
       Location: picked.text,
       LocationPlaceId: picked.placeId,
       LocationLng: picked.lng,
       LocationLat: picked.lat,
-    });
+    };
+
+    if (formType === 'eventEdit') {
+      sharedModal?.patchForm(patchValue);
+    } else {
+      form?.patchValue(patchValue);
+    }
   }
 
   // 删除按钮配置
@@ -1024,7 +1035,6 @@ export class Tab4Page implements OnDestroy {
         if (resp.ok && data?.success && data?.event) {
           source = { ...task, ...data.event };
 
-          // 检查是否有进行中或待评价的订单
           if (!data.event.canCreateOrder) {
             await this.presentDeleteToast(
               '订单进行中或待评价时，不允许编辑事件',
@@ -1038,11 +1048,8 @@ export class Tab4Page implements OnDestroy {
     }
 
     this.editingTaskId = taskId;
-    this.resetEditPhotos();
-    this.editExistingPhotos = this.normalizePhotos(
-      source.Photos || source.photos,
-    );
-    this.editForm.reset({
+    this.editingEventData = {
+      id: taskId,
       EventTitle: source.EventTitle || source.title || '',
       EventType: source.EventType ?? 0,
       EventCategory: source.EventCategory || '',
@@ -1054,108 +1061,23 @@ export class Tab4Page implements OnDestroy {
         source.LocationLat != null ? Number(source.LocationLat) : null,
       Price: source.Price ?? 0,
       EventDetails: source.EventDetails || '',
-    });
+      Photos: source.Photos || source.photos || null,
+    };
     this.isEditModalOpen = true;
   }
 
   closeEditModal() {
     this.isEditModalOpen = false;
     this.editingTaskId = null;
-    this.resetEditPhotos();
+    this.editingEventData = null;
   }
 
-  getEditPhotoItems(): Array<{
-    preview: string;
-    isExisting: boolean;
-    index: number;
-  }> {
-    const existing = this.editExistingPhotos.map((p, i) => ({
-      preview: this.getAssetUrl(p),
-      isExisting: true,
-      index: i,
-    }));
-    const next = this.editNewPhotos.map((p, i) => ({
-      preview: p.preview,
-      isExisting: false,
-      index: i,
-    }));
-    return [...existing, ...next];
-  }
-
-  getEditPhotoCount(): number {
-    return this.editExistingPhotos.length + this.editNewPhotos.length;
-  }
-
-  triggerEditFileInput(): void {
-    if (this.getEditPhotoCount() >= this.EDIT_MAX) {
-      void this.presentDeleteToast(`${this.t.uploadHint}`);
-      return;
-    }
-    this.editFileInput?.nativeElement.click();
-  }
-
-  onEditFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const files = input.files;
-    if (!files || files.length === 0) return;
-
-    const remaining = this.EDIT_MAX - this.getEditPhotoCount();
-    const pick = Array.from(files)
-      .filter((f) => f.type.startsWith('image/'))
-      .slice(0, remaining);
-
-    for (const f of pick) {
-      this.editNewPhotos.push({ file: f, preview: URL.createObjectURL(f) });
-    }
-
-    input.value = '';
-  }
-
-  removeEditPhoto(type: 'existing' | 'new', index: number): void {
-    if (type === 'existing') {
-      this.editExistingPhotos.splice(index, 1);
-      return;
-    }
-
-    const removed = this.editNewPhotos[index];
-    if (removed?.preview) URL.revokeObjectURL(removed.preview);
-    this.editNewPhotos.splice(index, 1);
-  }
-
-  private collectEditFormErrors(): string[] {
-    const msgs: string[] = [];
-    if (this.editForm.get('EventTitle')?.invalid)
-      msgs.push(this.t.titleRequired);
-    if (this.editForm.get('EventCategory')?.invalid)
-      msgs.push(this.t.categoryRequired);
-    if (this.editForm.get('Location')?.invalid)
-      msgs.push(this.t.locationRequired);
-    if (this.editForm.get('EventDetails')?.invalid)
-      msgs.push(this.t.detailsRequired);
-    if (this.editForm.get('Price')?.invalid) msgs.push(this.t.priceInvalid);
-    return msgs;
-  }
-
-  async submitEdit(): Promise<void> {
-    if (this.editForm.invalid) {
-      await this.presentDeleteToast(this.collectEditFormErrors().join('，'));
-      return;
-    }
-
+  async submitEdit(payload: EditEventPayload): Promise<void> {
     if (!this.editingTaskId) return;
     if (this.isSavingEdit) return;
 
     this.isSavingEdit = true;
-    const payload = this.editForm.getRawValue();
-
-    const uploaded = await this.uploadEditPhotos();
-    if (uploaded == null) {
-      this.isSavingEdit = false;
-      return;
-    }
-    const allPhotos = [...this.editExistingPhotos, ...uploaded];
-    const photosPayload =
-      allPhotos.length > 0 ? JSON.stringify(allPhotos) : null;
+    const { formData, photosJson } = payload;
 
     try {
       const resp = await fetch(
@@ -1166,7 +1088,7 @@ export class Tab4Page implements OnDestroy {
             'Content-Type': 'application/json',
             ...this.auth.getAuthHeader(),
           },
-          body: JSON.stringify({ ...payload, Photos: photosPayload }),
+          body: JSON.stringify({ ...formData, Photos: photosJson }),
         },
       );
 
@@ -1188,9 +1110,9 @@ export class Tab4Page implements OnDestroy {
       if (idx >= 0) {
         const updated = {
           ...this.tasks[idx],
-          ...payload,
-          title: payload.EventTitle,
-          Photos: photosPayload,
+          ...formData,
+          title: formData['EventTitle'],
+          Photos: photosJson,
         };
         this.tasks = [
           ...this.tasks.slice(0, idx),
@@ -1207,57 +1129,6 @@ export class Tab4Page implements OnDestroy {
     } finally {
       this.isSavingEdit = false;
     }
-  }
-
-  private async uploadEditPhotos(): Promise<string[] | null> {
-    if (this.editNewPhotos.length === 0) return [];
-
-    const fd = new FormData();
-    for (const p of this.editNewPhotos) {
-      fd.append('images', p.file);
-    }
-
-    try {
-      const resp = await fetch(`${this.API_BASE}/upload/images`, {
-        method: 'POST',
-        body: fd,
-      });
-      const data = await resp.json().catch(() => null);
-      if (!resp.ok || !data?.success || !Array.isArray(data.paths)) {
-        await this.presentDeleteToast(data?.error || this.t.networkError);
-        return null;
-      }
-      return data.paths;
-    } catch (e) {
-      console.error('uploadEditPhotos error', e);
-      await this.presentDeleteToast(this.t.networkError);
-      return null;
-    }
-  }
-
-  private resetEditPhotos(): void {
-    for (const p of this.editNewPhotos) {
-      if (p.preview) URL.revokeObjectURL(p.preview);
-    }
-    this.editNewPhotos = [];
-    this.editExistingPhotos = [];
-  }
-
-  private normalizePhotos(photos: any): string[] {
-    if (!photos) return [];
-    if (Array.isArray(photos)) return photos.filter(Boolean);
-    if (typeof photos === 'string') {
-      const raw = photos.trim();
-      if (!raw) return [];
-      try {
-        const arr = JSON.parse(raw);
-        if (Array.isArray(arr)) return arr.filter(Boolean);
-      } catch {
-        return [raw];
-      }
-      return [raw];
-    }
-    return [];
   }
 
   getAssetUrl(path: string): string {
@@ -1561,7 +1432,6 @@ export class Tab4Page implements OnDestroy {
           creatorId: f.CreatorId,
           name: f.UserName || '',
           avatar: f.UserAvatar || '',
-          icon: 'navigate-outline',
           distance: '',
         }));
       }

@@ -1,5 +1,23 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { addIcons } from 'ionicons';
+import {
+  chevronBackOutline,
+  chevronBack,
+  chevronForward,
+  close,
+  homeOutline,
+  locationOutline,
+  timeOutline,
+  cashOutline,
+  documentText,
+  heart,
+  heartOutline,
+  star,
+  starOutline,
+  createOutline,
+  chatbubbleOutline,
+} from 'ionicons/icons';
 import {
   IonButton,
   IonContent,
@@ -12,14 +30,13 @@ import {
   IonCol,
   IonBadge,
   IonModal,
+  IonNote,
+  IonTitle,
   IonList,
+  IonItem,
+  IonLabel,
   IonInput,
   IonTextarea,
-  IonSelect,
-  IonSelectOption,
-  IonLabel,
-  IonItem,
-  IonTitle,
 } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
@@ -29,7 +46,6 @@ import { ToastController } from '@ionic/angular';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
 import { NavController } from '@ionic/angular';
-import { IonNote } from '@ionic/angular/standalone';
 import {
   LocationPickerComponent,
   type PickedLocation,
@@ -40,6 +56,11 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import {
+  EditEventModalComponent,
+  EventEditData,
+  EditEventPayload,
+} from '../../components/edit-event-modal/edit-event-modal.component';
 
 @Component({
   selector: 'app-particular',
@@ -48,7 +69,6 @@ import {
   standalone: true,
   imports: [
     CommonModule,
-    ReactiveFormsModule,
     IonHeader,
     IonToolbar,
     IonContent,
@@ -60,18 +80,38 @@ import {
     IonCol,
     IonBadge,
     IonModal,
+    IonNote,
     IonList,
+    IonItem,
+    IonLabel,
     IonInput,
     IonTextarea,
-    IonSelect,
-    IonSelectOption,
-    IonLabel,
-    IonItem,
     IonTitle,
-    IonNote,
+    EditEventModalComponent,
+    ReactiveFormsModule,
   ],
 })
 export class ParticularPage implements OnInit {
+  constructor() {
+    addIcons({
+      chevronBackOutline,
+      chevronBack,
+      chevronForward,
+      close,
+      homeOutline,
+      locationOutline,
+      timeOutline,
+      cashOutline,
+      documentText,
+      heart,
+      heartOutline,
+      star,
+      starOutline,
+      createOutline,
+      chatbubbleOutline,
+    });
+  }
+
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
@@ -82,6 +122,9 @@ export class ParticularPage implements OnInit {
   private fb = inject(FormBuilder);
   readonly apiBase = environment.apiBase;
 
+  @ViewChild('editEventModal')
+  editEventModal!: EditEventModalComponent;
+
   isCurrentUserCreator: boolean = false;
   isFavorited: boolean = false;
   isFollowingCreator: boolean = false;
@@ -90,19 +133,12 @@ export class ParticularPage implements OnInit {
   }
 
   isEditModalOpen = false;
+  editingEventData: EventEditData | null = null;
   isSavingEdit = false;
   isOrderModalOpen = false;
   isSubmittingOrder = false;
   canCreateOrder = true;
   activeOrder: any = null;
-  editForm: FormGroup = this.fb.group({
-    EventTitle: ['', Validators.required],
-    EventType: [0, Validators.required],
-    EventCategory: ['', Validators.required],
-    Location: ['', Validators.required],
-    Price: [0, [Validators.min(0)]],
-    EventDetails: ['', Validators.required],
-  });
   orderForm: FormGroup = this.fb.group({
     DetailLocation: ['', Validators.required],
     SpecificLocation: ['', [Validators.maxLength(100)]],
@@ -111,7 +147,6 @@ export class ParticularPage implements OnInit {
 
   pickedLocationDisplay: string = '';
 
-  // 新增 userInfo 对象，模拟队友的数据结构
   userInfo: any = {
     name: '',
     location: '',
@@ -123,10 +158,13 @@ export class ParticularPage implements OnInit {
     serviceRanking: 0,
     isVerified: '未认证',
     stats: { favorites: 0, views: 0, follows: 0 },
-    CreateTime: '', // 注册时间
+    CreateTime: '',
   };
 
   event: EventCardData | null = null;
+  eventPhotos: string[] = [];
+  previewImageUrl: string | null = null;
+  previewPhotoIndex = 0;
 
   ngOnInit() {
     this.route.queryParams.subscribe((params) => {
@@ -137,7 +175,6 @@ export class ParticularPage implements OnInit {
     });
   }
 
-  // 新增方法：根据ID获取事件详情
   async loadEventDetail(eventId: string) {
     try {
       const resp = await fetch(`${this.apiBase}/events/${eventId}`);
@@ -145,17 +182,23 @@ export class ParticularPage implements OnInit {
         const data = await resp.json();
         if (data?.success && data?.event) {
           const rawEvent = data.event;
-          // 解析图片
           let cardImage = null;
+          this.eventPhotos = [];
           if (rawEvent.Photos) {
             try {
               const photos = JSON.parse(rawEvent.Photos);
-              cardImage = Array.isArray(photos) ? photos[0] : photos;
+              if (Array.isArray(photos)) {
+                this.eventPhotos = photos.filter(Boolean);
+                cardImage = this.eventPhotos[0] || null;
+              } else if (photos) {
+                this.eventPhotos = [photos];
+                cardImage = photos;
+              }
             } catch {
+              this.eventPhotos = [rawEvent.Photos];
               cardImage = rawEvent.Photos;
             }
           }
-          // 转换字段名以匹配 EventCardData
           this.event = {
             id: rawEvent.EventId,
             title: rawEvent.EventTitle,
@@ -164,21 +207,17 @@ export class ParticularPage implements OnInit {
             demand: rawEvent.EventDetails,
             createTime: rawEvent.CreateTime,
             cardImage: cardImage,
-            creatorId: rawEvent.CreatorId,
+            creatorId: Number(rawEvent.CreatorId),
             name: '',
             avatar: '',
-            icon: 'navigate-outline',
             distance: '距500m',
           };
           this.canCreateOrder = rawEvent.canCreateOrder ?? true;
           this.activeOrder = rawEvent.activeOrder || null;
-          // 加载发布者信息
           if (this.event?.creatorId) {
             this.loadUserFromStorage(this.event.creatorId);
           }
-          // 检查当前用户是否是事件创建者
           this.checkUserIsCreator();
-          // 查询收藏与关注状态
           this.checkFavoriteAndFollowStatus();
         }
       }
@@ -187,14 +226,12 @@ export class ParticularPage implements OnInit {
     }
   }
 
-  /* 新增：直接使用 tab4 的 loadUserFromStorage 方法 ===================== */
   async loadUserFromStorage(userId: number): Promise<void> {
     try {
       const resp = await fetch(`${this.apiBase}/users/${userId}/profile`);
       if (resp.ok) {
         const data = await resp.json().catch(() => null);
         if (data?.success && data.user) {
-          // 更新 userInfo
           this.userInfo.name = data.user.UserName || '';
           this.userInfo.location = data.user.Location || '';
           this.userInfo.introduction = data.user.Introduction || '';
@@ -211,19 +248,16 @@ export class ParticularPage implements OnInit {
     }
   }
 
-  // 获取头像URL，处理默认值
   getAvatarUrl(avatarPath?: string): string {
     if (!avatarPath || avatarPath.trim() === '') {
-      return '/assets/icon/user.svg'; // 默认头像路径
+      return '/assets/icon/user.svg';
     }
-    // 检查是否已经是完整URL
     if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
       return avatarPath;
     }
-    // 拼接API基础URL
     return environment.apiBase + avatarPath;
   }
-  // 新增：根据 providerRole 返回服务等级文本
+
   getServiceRoleText(providerRole: number): string {
     switch (providerRole) {
       case 1:
@@ -237,26 +271,23 @@ export class ParticularPage implements OnInit {
     }
   }
 
-  // 新增：根据 providerRole 返回对应颜色
   getServiceRoleColor(providerRole: number): string {
     switch (providerRole) {
       case 1:
-        return 'warning'; // 黄色
+        return 'warning';
       case 2:
-        return 'success'; // 绿色
+        return 'success';
       case 3:
-        return 'success'; // 绿色
+        return 'success';
       default:
-        return 'medium'; // 灰色
+        return 'medium';
     }
   }
-  // 新增：跳转到用户详情页面
+
   goToUserParticular() {
     if (this.isCurrentUserCreator) {
-      // 如果是自己的活动，直接跳转到个人中心
       this.router.navigate(['/tabs/tab4']);
     } else if (this.userInfo.name) {
-      // 如果是其他用户的活动，跳转到用户详情页
       this.router.navigate(['/user-particular'], {
         queryParams: {
           name: this.userInfo.name,
@@ -265,6 +296,7 @@ export class ParticularPage implements OnInit {
       });
     }
   }
+
   goBack() {
     if (window.history.length > 1) {
       this.location.back();
@@ -272,6 +304,7 @@ export class ParticularPage implements OnInit {
       this.router.navigate(['/tabs/tab1']);
     }
   }
+
   goHome() {
     this.router.navigate(['/tabs/tab1']);
   }
@@ -282,12 +315,6 @@ export class ParticularPage implements OnInit {
       this.showToast('该事件当前存在未完结订单，暂不可下单');
       return;
     }
-    this.orderForm.reset({
-      DetailLocation: this.event.address || '',
-      SpecificLocation: '',
-      AdditionalInfo: '',
-    });
-    this.pickedLocationDisplay = this.event.address || '';
     this.isOrderModalOpen = true;
   }
 
@@ -296,7 +323,7 @@ export class ParticularPage implements OnInit {
       component: LocationPickerComponent,
       componentProps: {
         selectedPlaceId: '',
-        selectedText: this.orderForm.get('DetailLocation')?.value || '',
+        selectedText: '',
       },
     });
     await modal.present();
@@ -304,19 +331,15 @@ export class ParticularPage implements OnInit {
     if (role !== 'confirm' || !data?.selected) return;
 
     const picked: PickedLocation = data.selected;
-    this.orderForm.patchValue({
-      DetailLocation: picked.text,
-    });
     this.pickedLocationDisplay = picked.text;
   }
 
   closeOrderModal() {
     this.isOrderModalOpen = false;
-    this.orderForm.reset();
   }
 
   async submitOrder() {
-    if (!this.event || this.orderForm.invalid || this.isSubmittingOrder) return;
+    if (!this.event || this.isSubmittingOrder) return;
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       const { LoginPage } = await import('../login/login.page');
@@ -335,9 +358,10 @@ export class ParticularPage implements OnInit {
         },
         body: JSON.stringify({
           EventId: this.event.id,
-          DetailLocation: this.orderForm.value.DetailLocation,
-          SpecificLocation: this.orderForm.value.SpecificLocation || '',
-          AdditionalInfo: this.orderForm.value.AdditionalInfo || '',
+          DetailLocation:
+            this.pickedLocationDisplay || this.event.address || '',
+          SpecificLocation: '',
+          AdditionalInfo: '',
         }),
       });
       const data = await resp.json().catch(() => null);
@@ -357,7 +381,6 @@ export class ParticularPage implements OnInit {
     }
   }
 
-  // 关注按钮点击事件
   async onFollow() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
@@ -411,7 +434,6 @@ export class ParticularPage implements OnInit {
   checkUserIsCreator() {
     const currentUserId = this.authService.currentUserId;
     const creatorId = this.event?.creatorId;
-    // 使用 == 进行宽松比较，避免字符串和数字类型不匹配的问题
     this.isCurrentUserCreator =
       currentUserId != null && creatorId != null && currentUserId == creatorId;
   }
@@ -419,9 +441,9 @@ export class ParticularPage implements OnInit {
   async checkFavoriteAndFollowStatus() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId || !this.event?.id) return;
-    // 查询收藏状态
-    this.isFavorited = await this.authService.checkFavorite(Number(this.event.id));
-    // 非创建者时查询关注状态
+    this.isFavorited = await this.authService.checkFavorite(
+      Number(this.event.id),
+    );
     if (!this.isCurrentUserCreator && this.event?.creatorId) {
       this.isFollowingCreator = await this.authService.checkFollow(
         this.event.creatorId,
@@ -472,14 +494,19 @@ export class ParticularPage implements OnInit {
 
       if (data?.success && data?.event) {
         const evt = data.event;
-        this.editForm.reset({
+        this.editingEventData = {
+          id: this.event.id,
           EventTitle: evt.EventTitle || '',
           EventType: evt.EventType ?? 0,
           EventCategory: evt.EventCategory || '',
           Location: evt.Location || '',
+          LocationPlaceId: evt.LocationPlaceId || '',
+          LocationLng: evt.LocationLng != null ? Number(evt.LocationLng) : null,
+          LocationLat: evt.LocationLat != null ? Number(evt.LocationLat) : null,
           Price: evt.Price ?? 0,
           EventDetails: evt.EventDetails || '',
-        });
+          Photos: evt.Photos || null,
+        };
       }
     } catch (e) {
       console.error('加载事件数据失败', e);
@@ -490,13 +517,39 @@ export class ParticularPage implements OnInit {
 
   closeEditModal() {
     this.isEditModalOpen = false;
+    this.editingEventData = null;
   }
 
-  async submitEdit() {
-    if (this.editForm.invalid || !this.event?.id) return;
+  async onLocationPicker(): Promise<void> {
+    const sharedModal = this.editEventModal;
+    if (!sharedModal) return;
+
+    const modal = await this.modalCtrl.create({
+      component: LocationPickerComponent,
+      componentProps: {
+        selectedPlaceId: sharedModal.getFormValue('LocationPlaceId') || '',
+        selectedText: sharedModal.getFormValue('Location') || '',
+      },
+    });
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+    if (role !== 'confirm' || !data?.selected) return;
+
+    const picked: PickedLocation = data.selected;
+    sharedModal.patchForm({
+      Location: picked.text,
+      LocationPlaceId: picked.placeId,
+      LocationLng: picked.lng,
+      LocationLat: picked.lat,
+    });
+  }
+
+  async submitEdit(payload: EditEventPayload): Promise<void> {
+    if (!this.event?.id) return;
+    if (this.isSavingEdit) return;
 
     this.isSavingEdit = true;
-    const formValue = this.editForm.value;
+    const { formData, photosJson } = payload;
 
     try {
       const resp = await fetch(`${this.apiBase}/events/${this.event.id}`, {
@@ -505,14 +558,7 @@ export class ParticularPage implements OnInit {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.authService.token}`,
         },
-        body: JSON.stringify({
-          EventTitle: formValue.EventTitle,
-          EventType: formValue.EventType,
-          EventCategory: formValue.EventCategory,
-          Location: formValue.Location,
-          Price: formValue.Price,
-          EventDetails: formValue.EventDetails,
-        }),
+        body: JSON.stringify({ ...formData, Photos: photosJson }),
       });
 
       const data = await resp.json();
@@ -529,6 +575,37 @@ export class ParticularPage implements OnInit {
       this.showToast('网络错误，请稍后重试');
     } finally {
       this.isSavingEdit = false;
+    }
+  }
+
+  previewPhoto(photo: string): void {
+    this.previewPhotoIndex = this.eventPhotos.indexOf(photo);
+    this.previewImageUrl = photo.startsWith('http')
+      ? photo
+      : this.apiBase + photo;
+  }
+
+  closePreview(): void {
+    this.previewImageUrl = null;
+  }
+
+  prevPhoto(): void {
+    if (this.previewPhotoIndex > 0) {
+      this.previewPhotoIndex--;
+      const photo = this.eventPhotos[this.previewPhotoIndex];
+      this.previewImageUrl = photo.startsWith('http')
+        ? photo
+        : this.apiBase + photo;
+    }
+  }
+
+  nextPhoto(): void {
+    if (this.previewPhotoIndex < this.eventPhotos.length - 1) {
+      this.previewPhotoIndex++;
+      const photo = this.eventPhotos[this.previewPhotoIndex];
+      this.previewImageUrl = photo.startsWith('http')
+        ? photo
+        : this.apiBase + photo;
     }
   }
 

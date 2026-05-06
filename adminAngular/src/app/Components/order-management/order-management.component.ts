@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { ServeAPIService } from '../../serve-api.service';
 import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
 import { DetailModalComponent } from '../shared/detail-modal.component';

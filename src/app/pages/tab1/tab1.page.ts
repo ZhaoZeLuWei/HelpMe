@@ -20,7 +20,6 @@ interface CardItem {
   id: string;
   creatorId: number;
   cardImage: string;
-  icon: string;
   distance: string;
   name: string;
   address: string;
@@ -36,12 +35,7 @@ interface CardItem {
   templateUrl: './tab1.page.html',
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
-  imports: [
-    IonicModule,
-    CommonModule,
-    ShowEventComponent,
-    HttpClientModule,
-  ],
+  imports: [IonicModule, CommonModule, ShowEventComponent, HttpClientModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class Tab1Page implements OnInit {
@@ -114,7 +108,6 @@ export class Tab1Page implements OnInit {
       map((rawData) => {
         const processedData = rawData.map((item) => ({
           ...item,
-          icon: 'navigate-outline',
           distance: '距500m',
           price: item.price ? item.price.toString() : '0.00元',
         }));
@@ -168,7 +161,6 @@ export class Tab1Page implements OnInit {
   }
 
   cardClickFeedback(item: CardItem) {
-    console.log('点击了小卡片：', item.name, 'ID：', item.id);
     this.router.navigate(['/particular'], {
       queryParams: {
         eventId: item.id,
@@ -186,7 +178,6 @@ export class Tab1Page implements OnInit {
   trackById(index: number, item: CardItem): string {
     return item.id;
   }
-
 
   // 绑定你原有的翻译按钮
   public onTranslateBtnClick(): void {
@@ -207,25 +198,26 @@ export class Tab1Page implements OnInit {
       return;
     }
 
-    this.translateService.translateText({
-      sourceText: this.dynamicSourceText,
-      sourceLang: this.sourceLang,
-      targetLang: this.targetLang
-    }).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.translatedText = res.targetText;
-          console.log('✅ 翻译成功，结果：', this.translatedText);
-          alert('翻译成功：' + this.translatedText); // 弹窗提示，方便测试
-        }
-      },
-      error: (err) => {
-        console.error('❌ 翻译失败', err);
-        alert('翻译失败，请检查后端服务是否启动');
-      }
-    });
+    this.translateService
+      .translateText({
+        sourceText: this.dynamicSourceText,
+        sourceLang: this.sourceLang,
+        targetLang: this.targetLang,
+      })
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.translatedText = res.targetText;
+            console.log('✅ 翻译成功，结果：', this.translatedText);
+            alert('翻译成功：' + this.translatedText); // 弹窗提示，方便测试
+          }
+        },
+        error: (err) => {
+          console.error('❌ 翻译失败', err);
+          alert('翻译失败，请检查后端服务是否启动');
+        },
+      });
   }
-
 
   public toggleTranslateLanguage(): void {
     [this.sourceLang, this.targetLang] = [this.targetLang, this.sourceLang];
