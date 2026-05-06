@@ -25,7 +25,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { addIcons } from 'ionicons';
-import { pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search } from 'ionicons/icons';
+import { pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search, pricetagOutline, checkmarkCircle, searchOutline, closeCircle, informationCircleOutline, locationOutline } from 'ionicons/icons';
 
 // 只保留这一个 import，删除了重复的引入
 import { EventCardData } from '../show-event/show-event.component';
@@ -151,7 +151,7 @@ export class UniversalSearchComponent implements OnInit {
 
   // --- 构造函数 ---
   constructor() {
-    addIcons({ pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search });
+    addIcons({ pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search, pricetagOutline, checkmarkCircle, searchOutline, closeCircle, informationCircleOutline, locationOutline });
   }
   // 新增方法：初始化时同步路由参数
   ngOnInit() {

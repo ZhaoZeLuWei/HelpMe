@@ -104,22 +104,34 @@
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
-        <ion-content class="ion-padding">
-          <ion-list lines="none" class="price-tier-list">
+        <ion-content>
+          @if (selectedPriceTier() >= 0) {
+            <div class="filter-current-tag">
+              <ion-icon name="pricetag"></ion-icon>
+              <span>当前：{{ priceTiers[selectedPriceTier()].label }}</span>
+            </div>
+          }
+          <div class="filter-card-list">
             @for (tier of priceTiers; track $index) {
-              <ion-item
-                button
-                detail="false"
+              <div
+                class="filter-option"
+                [class.active]="selectedPriceTier() === $index"
                 (click)="selectPriceTier($index)"
-                [class.tier-selected]="selectedPriceTier() === $index"
               >
-                <ion-label>{{ tier.label }}</ion-label>
+                <div class="filter-option-left">
+                  @if (selectedPriceTier() === $index) {
+                    <ion-icon name="checkmark-circle" color="primary"></ion-icon>
+                  } @else {
+                    <ion-icon name="pricetag-outline" color="medium"></ion-icon>
+                  }
+                  <span>{{ tier.label }}</span>
+                </div>
                 @if (selectedPriceTier() === $index) {
-                  <ion-icon name="checkmark" slot="end" color="primary"></ion-icon>
+                  <div class="filter-option-checked"></div>
                 }
-              </ion-item>
+              </div>
             }
-          </ion-list>
+          </div>
         </ion-content>
       </ng-template>
     </ion-modal>
@@ -136,12 +148,28 @@
           </ion-toolbar>
         </ion-header>
         <ion-content>
-          <ion-list>
-            <ion-item>
-              <ion-label position="stacked">{{ t.locationLabel }}</ion-label>
-              <ion-input type="text" [formControlName]="'location'" [placeholder]="t.locationPlaceholder"></ion-input>
-            </ion-item>
-          </ion-list>
+          <div class="filter-current-tag">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ t.locationLabel }}</span>
+          </div>
+          <div class="filter-search-area">
+            <ion-icon name="search-outline" class="filter-search-icon"></ion-icon>
+            <input
+              class="filter-search-input"
+              type="text"
+              [formControlName]="'location'"
+              [placeholder]="t.locationPlaceholder"
+            />
+            @if (filterForm.get('location')?.value) {
+              <ion-button fill="clear" size="small" class="filter-clear-btn" (click)="filterForm.get('location')?.setValue('')">
+                <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+              </ion-button>
+            }
+          </div>
+          <div class="filter-hint">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <span>输入城市或区域名称进行筛选</span>
+          </div>
         </ion-content>
       </ng-template>
     </ion-modal>
