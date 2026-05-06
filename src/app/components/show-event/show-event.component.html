@@ -8,10 +8,12 @@
       class="card-image-img"
       [alt]="t.eventImage"
     />
-    <div class="distance-in-image">
-      <span class="material-icons">location_on</span>
-      <span>{{ event.distance }}</span>
-    </div>
+    @if (!isOnline && event.distance) {
+      <div class="distance-in-image">
+        <span class="material-icons">location_on</span>
+        <span>{{ event.distance }}</span>
+      </div>
+    }
   </div>
 
   <div class="user-info-row">

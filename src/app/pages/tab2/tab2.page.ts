@@ -26,6 +26,7 @@ import {
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { SearchStateService } from '../../services/search-state.service';
 import { LanguageService } from '../../services/language.service';
+import { getUserPosition, calculateDistance, formatDistance, resolveAddress, isOnlineService } from '../../components/show-event/show-event.component';
 
 @Component({
   selector: 'app-tab2',
@@ -132,7 +133,7 @@ export class Tab2Page implements OnInit, AfterViewInit {
   }
 
   /* 统一加载：根据关键词和分类决定接口 */
-  private loadEvents(keyword?: string, skipUpdate?: boolean) {
+  private async loadEvents(keyword?: string) {
     const currentParams = this.route.snapshot.queryParams;
     const realType = this.currentType || currentParams['type'] || null;
 
@@ -148,27 +149,55 @@ export class Tab2Page implements OnInit, AfterViewInit {
     // 构建URL
     const url = `${this.API_BASE}/api/cards${params.toString() ? '?' + params.toString() : ''}`;
 
-    fetch(url)
-      .then(res => res.json())
-      .then(list => {
-        const transformed = list.map((item: any) => ({
-          id: String(item.id),
-          creatorId: Number(item.creatorId),
-          cardImage: item.cardImage,
-          title: item.title,
-          icon: item.icon || 'navigate-outline',
-          distance: item.distance || this.t.unknownDistance,
-          name: item.name,
-          address: item.address,
-          demand: item.demand,
-          price: item.price ? String(item.price) : '0.00',
-          createTime: item.createTime,
-          avatar: item.avatar,
-        }));
+    try {
+      const res = await fetch(url);
+      const list = await res.json();
 
-        this.eventsData.set(transformed);
-      })
-      .catch(err => console.error(this.t.loadFailed, err));
+      const transformed = list.map((item: any) => ({
+        id: String(item.id),
+        creatorId: Number(item.creatorId),
+        cardImage: item.cardImage,
+        title: item.title,
+        icon: item.icon || 'navigate-outline',
+        distance: '未知距离',
+        name: item.name,
+        address: item.address,
+        demand: item.demand,
+        price: item.price ? String(item.price) : '0.00',
+        createTime: item.createTime,
+        avatar: item.avatar,
+        lng: item.lng != null ? Number(item.lng) : null,
+        lat: item.lat != null ? Number(item.lat) : null,
+      }));
+
+      this.eventsData.set(transformed);
+
+      // 计算真实距离
+      const userPos = await getUserPosition();
+      if (userPos) {
+        const cards = this.eventsData();
+        for (const card of cards) {
+          if (isOnlineService(card.address)) {
+            card.distance = '';
+            continue;
+          }
+          if (card.lng != null && card.lat != null) {
+            const meters = calculateDistance(userPos.lng, userPos.lat, card.lng, card.lat);
+            card.distance = formatDistance(meters);
+          } else if (card.address) {
+            const coords = await resolveAddress(card.address);
+            if (coords) {
+              card.lng = coords.lng;
+              card.lat = coords.lat;
+              const meters = calculateDistance(userPos.lng, userPos.lat, coords.lng, coords.lat);
+              card.distance = formatDistance(meters);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error(this.t.loadFailed, err);
+    }
   }
   onTypeChange(type: 'request' | 'help' | null) {
     this.currentType = type;
