@@ -5,6 +5,7 @@ import {
   OnDestroy,
   ViewChild,
   inject,
+  ChangeDetectorRef,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -127,6 +128,7 @@ export class Tab4Page implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly langService = inject(LanguageService);
 
   @ViewChild('editFileInput')
@@ -1574,7 +1576,8 @@ export class Tab4Page implements OnDestroy {
   }
 
   onFavoriteCardClick(event: EventCardData) {
-    this.closeFavoritesModal();
+    this.isFavoritesModalOpen = false;
+    this.cdr.detectChanges();
     this.goToEventDetail(Number(event.id));
   }
 
@@ -1614,7 +1617,8 @@ export class Tab4Page implements OnDestroy {
   }
 
   goToUserFromFollow(user: any) {
-    this.closeFollowsModal();
+    this.isFollowsModalOpen = false;
+    this.cdr.detectChanges();
     this.router.navigate(['/user-particular'], {
       queryParams: { name: user.UserName, userId: user.UserId },
     });
