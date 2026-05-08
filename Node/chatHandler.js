@@ -71,6 +71,7 @@ const getChatHistory = async (queryParams) => {
       text: msg.text,
       sendTime: new Date(msg.sendTime).toLocaleString(),
       userName: msg.userName,
+      targetUserId: msg.targetUserId ?? null,
     }));
 
     // 返回结果
@@ -276,15 +277,23 @@ const sendSystemMessage = async ({ roomId, text, senderId }) => {
 };
 
 // 订单房间系统消息发送：写入 MongoDB + 更新 Room + 通知买卖双方
-const sendOrderSystemMessage = async ({ roomId, text, senderId }) => {
+const sendOrderSystemMessage = async ({
+  roomId,
+  text,
+  senderId,
+  targetUserId,
+}) => {
   try {
-    await Message.create({
+    const messageData = {
       roomId,
       text,
       senderId,
       userName: "系统通知",
       sendTime: new Date(),
-    });
+      targetUserId: targetUserId || null,
+    };
+
+    await Message.create(messageData);
 
     // 更新房间的 lastMsg 和 updatedAt
     await Room.updateOne(
@@ -292,9 +301,16 @@ const sendOrderSystemMessage = async ({ roomId, text, senderId }) => {
       { $set: { lastMsg: text, updatedAt: new Date() } },
     );
 
-    // 通知买卖双方刷新聊天列表
     const io = getIO();
     if (io) {
+      // 实时推送到订单房间（有 targetUserId 时只推给指定用户）
+      if (targetUserId) {
+        io.to(String(targetUserId)).emit("chat message", messageData);
+      } else {
+        io.to(roomId).emit("chat message", messageData);
+      }
+
+      // 通知买卖双方刷新聊天列表
       const room = await Room.findById(roomId);
       if (room) {
         const userIds = [room.creatorId, room.partnerId].filter(Boolean);
@@ -346,12 +362,17 @@ module.exports.registerChatHandler = (io, socket) => {
 
       //share the room id to all socket functions!
       socket.currentRoom = roomId;
-      const joined = `connect to room ${roomId} SUCCESS ✅`;
-      console.log(joined);
+      console.log(`connect to room ${roomId} SUCCESS`);
+
+      // 根据房间类型发送不同的连接提示
+      const isSystemRoom = roomId.startsWith("system_");
+      const connectText = isSystemRoom
+        ? "已连接至通知中心"
+        : `${socket.user?.name || "对方"}已加入，可以开始聊天了`;
 
       //send connectSuccess Msg
       io.to(roomId).emit("connectSuccess", {
-        text: joined,
+        text: connectText,
         senderId: "system_bot",
         userName: "系统通知",
         sendTime: new Date(),

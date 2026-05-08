@@ -60,13 +60,8 @@ import {
   IonAlert,
   IonList,
   IonInput,
-  IonSelect,
-  IonSelectOption,
   IonTextarea,
   IonText,
-  IonCard,
-  IonAvatar,
-  IonBadge,
   ModalController,
 } from '@ionic/angular/standalone';
 
@@ -87,6 +82,11 @@ import {
   EventEditData,
   EditEventPayload,
 } from '../../components/edit-event-modal/edit-event-modal.component';
+import {
+  ReviewModalComponent,
+  ReviewSubmitPayload,
+} from '../../components/review-modal/review-modal.component';
+import { ReviewDetailModalComponent } from '../../components/review-detail-modal/review-detail-modal.component';
 
 @Component({
   selector: 'app-tab4',
@@ -111,19 +111,16 @@ import {
     IonAlert,
     IonList,
     IonInput,
-    IonSelect,
-    IonSelectOption,
     IonTextarea,
     IonText,
-    IonCard,
-    IonAvatar,
-    IonBadge,
     ReactiveFormsModule,
     Tab4ProfileCardComponent,
     Tab4EventsPanelComponent,
     Tab4OrdersPanelComponent,
     ShowEventComponent,
     EditEventModalComponent,
+    ReviewModalComponent,
+    ReviewDetailModalComponent,
   ],
 })
 export class Tab4Page implements OnDestroy {
@@ -754,16 +751,36 @@ export class Tab4Page implements OnDestroy {
         )
         .map((o: any) => {
           const status = Number(o.OrderStatus);
-          const meta =
-            status === 0
-              ? { key: 'pending', label: '待确认', color: 'warning' }
-              : status === 1
-                ? { key: 'active', label: '进行中', color: 'primary' }
-                : status === 2
-                  ? { key: 'review', label: '待评价', color: 'medium' }
-                  : status === 3
-                    ? { key: 'done', label: '已完成', color: 'success' }
-                    : { key: 'cancelled', label: '已取消', color: 'danger' };
+          const hasReviewed = Number(o.HasReviewed || 0) > 0;
+          const otherHasReviewed = Number(o.OtherHasReviewed || 0) > 0;
+          let meta;
+          if (status === 0) {
+            meta = { key: 'pending', label: '待确认', color: 'warning' };
+          } else if (status === 1) {
+            meta = { key: 'active', label: '进行中', color: 'primary' };
+          } else if (status === 2) {
+            if (hasReviewed && otherHasReviewed) {
+              meta = { key: 'review', label: '双方已评价', color: 'medium' };
+            } else if (hasReviewed) {
+              meta = {
+                key: 'review',
+                label: '我方已评价，等待对方',
+                color: 'medium',
+              };
+            } else if (otherHasReviewed) {
+              meta = {
+                key: 'review',
+                label: '对方已评价，待我方评价',
+                color: 'medium',
+              };
+            } else {
+              meta = { key: 'review', label: '待评价', color: 'medium' };
+            }
+          } else if (status === 3) {
+            meta = { key: 'done', label: '已完成', color: 'success' };
+          } else {
+            meta = { key: 'cancelled', label: '已取消', color: 'danger' };
+          }
 
           // 解析事件快照（下单时的事件信息）
           let snapshot = null;
@@ -811,6 +828,7 @@ export class Tab4Page implements OnDestroy {
             role: Number(o.ConsumerId) === userId ? 'buyer' : 'seller',
             reviewCount: Number(o.ReviewCount || 0),
             hasReviewed: Number(o.HasReviewed || 0) > 0,
+            otherHasReviewed: Number(o.OtherHasReviewed || 0) > 0,
             // 快照字段：下单时的事件信息
             snapshot,
             snapshotTitle: snapshot?.EventTitle || o.EventTitle || '',
@@ -929,15 +947,7 @@ export class Tab4Page implements OnDestroy {
 
   reviewOrderId: number | null = null;
   isReviewModalOpen = false;
-  reviewForm: FormGroup = this.fb.group({
-    Score: [5, [Validators.required]],
-    Text: ['', [Validators.maxLength(200)]],
-  });
-
-  // 查看评价详情相关
-  isReviewDetailOpen = false;
-  isLoadingReviews = false;
-  reviewDetailList: any[] = [];
+  isSubmittingReview = false;
 
   openReviewModal(orderId: number) {
     const order = this.orders.find((o) => o.id === orderId);
@@ -952,17 +962,16 @@ export class Tab4Page implements OnDestroy {
   closeReviewModal() {
     this.isReviewModalOpen = false;
     this.reviewOrderId = null;
-    this.reviewForm.reset({ Score: 5, Text: '' });
   }
 
-  async submitReview() {
-    if (!this.reviewOrderId || this.reviewForm.invalid || !this.currentUserId)
-      return;
+  async handleReviewSubmit(payload: ReviewSubmitPayload) {
+    if (!this.reviewOrderId || !this.currentUserId) return;
     const order = this.orders.find((o) => o.id === this.reviewOrderId);
     if (!order) return;
     const targetUserId =
       order.role === 'buyer' ? order.providerId : order.consumerId;
 
+    this.isSubmittingReview = true;
     try {
       const resp = await fetch(`${this.API_BASE}/reviews`, {
         method: 'POST',
@@ -973,8 +982,8 @@ export class Tab4Page implements OnDestroy {
         body: JSON.stringify({
           OrderId: this.reviewOrderId,
           TargetUserId: targetUserId,
-          Score: this.reviewForm.value.Score,
-          Text: this.reviewForm.value.Text || '',
+          Score: payload.Score,
+          Text: payload.Text,
         }),
       });
       const data = await resp.json().catch(() => null);
@@ -986,39 +995,25 @@ export class Tab4Page implements OnDestroy {
       if (this.currentUserId) await this.loadOrders(this.currentUserId);
       await this.presentDeleteToast('评价已提交');
     } catch (e) {
-      console.error('submitReview error', e);
+      console.error('handleReviewSubmit error', e);
       await this.presentDeleteToast(this.t.networkError);
+    } finally {
+      this.isSubmittingReview = false;
     }
   }
 
   // ---- 查看评价详情 ----
-  async openReviewDetail(orderId: number) {
+  reviewDetailOrderId: number | null = null;
+  isReviewDetailOpen = false;
+
+  openReviewDetail(orderId: number) {
+    this.reviewDetailOrderId = orderId;
     this.isReviewDetailOpen = true;
-    this.isLoadingReviews = true;
-    this.reviewDetailList = [];
-    try {
-      const resp = await fetch(`${this.API_BASE}/reviews?orderId=${orderId}`);
-      const data = await resp.json().catch(() => null);
-      if (resp.ok && data?.success && Array.isArray(data.reviews)) {
-        this.reviewDetailList = data.reviews;
-      }
-    } catch (e) {
-      console.error('load reviews error', e);
-    } finally {
-      this.isLoadingReviews = false;
-    }
   }
 
   closeReviewDetail() {
     this.isReviewDetailOpen = false;
-    this.reviewDetailList = [];
-  }
-
-  getReviewAvatar(avatarPath?: string): string {
-    if (!avatarPath) return 'assets/icon/user.svg';
-    return avatarPath.startsWith('http')
-      ? avatarPath
-      : `${this.API_BASE}${avatarPath}`;
+    this.reviewDetailOrderId = null;
   }
 
   private async openEditModal(taskId: number): Promise<void> {

@@ -5,4 +5,5 @@ export interface ChatModel {
   userName: string;
   sendTime: string | Date;
   avatar?: string;
+  targetUserId?: number | null;
 }

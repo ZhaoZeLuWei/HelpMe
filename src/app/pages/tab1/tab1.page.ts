@@ -1,10 +1,5 @@
 /* src/app/tab1/tab1.page.ts（修复版） */
-import {
-  Component,
-  CUSTOM_ELEMENTS_SCHEMA,
-  OnInit,
-  inject,
-} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
@@ -36,7 +31,6 @@ interface CardItem {
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
   imports: [IonicModule, CommonModule, ShowEventComponent, HttpClientModule],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class Tab1Page implements OnInit {
   private readonly API_BASE = environment.apiBase;
@@ -49,7 +43,6 @@ export class Tab1Page implements OnInit {
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
   eventData: CardItem[] = [];
-  private searchKeyword = '';
   currentLang = '中文';
   showLangConfirmModal = false;
   t = this.langService.getTranslations('zh').tab1;
@@ -161,6 +154,7 @@ export class Tab1Page implements OnInit {
   }
 
   cardClickFeedback(item: CardItem) {
+    (document.activeElement as HTMLElement)?.blur();
     this.router.navigate(['/particular'], {
       queryParams: {
         eventId: item.id,
@@ -175,7 +169,7 @@ export class Tab1Page implements OnInit {
     );
   }
 
-  trackById(index: number, item: CardItem): string {
+  trackById(_index: number, item: CardItem): string {
     return item.id;
   }
 

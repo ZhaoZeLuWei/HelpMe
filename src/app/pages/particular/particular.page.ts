@@ -315,6 +315,13 @@ export class ParticularPage implements OnInit {
       this.showToast('该事件当前存在未完结订单，暂不可下单');
       return;
     }
+    // 预选事件地址为下单地址
+    this.orderForm.reset({
+      DetailLocation: this.event.address || '',
+      SpecificLocation: '',
+      AdditionalInfo: '',
+    });
+    this.pickedLocationDisplay = this.event.address || '';
     this.isOrderModalOpen = true;
   }
 
@@ -323,7 +330,7 @@ export class ParticularPage implements OnInit {
       component: LocationPickerComponent,
       componentProps: {
         selectedPlaceId: '',
-        selectedText: '',
+        selectedText: this.orderForm.value.DetailLocation || '',
       },
     });
     await modal.present();
@@ -331,6 +338,7 @@ export class ParticularPage implements OnInit {
     if (role !== 'confirm' || !data?.selected) return;
 
     const picked: PickedLocation = data.selected;
+    this.orderForm.patchValue({ DetailLocation: picked.text });
     this.pickedLocationDisplay = picked.text;
   }
 
@@ -340,6 +348,10 @@ export class ParticularPage implements OnInit {
 
   async submitOrder() {
     if (!this.event || this.isSubmittingOrder) return;
+    if (this.orderForm.invalid) {
+      this.showToast('请填写完整信息');
+      return;
+    }
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       const { LoginPage } = await import('../login/login.page');
@@ -349,6 +361,7 @@ export class ParticularPage implements OnInit {
     }
 
     this.isSubmittingOrder = true;
+    const formValue = this.orderForm.value;
     try {
       const resp = await fetch(`${this.apiBase}/orders`, {
         method: 'POST',
@@ -358,10 +371,9 @@ export class ParticularPage implements OnInit {
         },
         body: JSON.stringify({
           EventId: this.event.id,
-          DetailLocation:
-            this.pickedLocationDisplay || this.event.address || '',
-          SpecificLocation: '',
-          AdditionalInfo: '',
+          DetailLocation: formValue.DetailLocation || this.event.address || '',
+          SpecificLocation: formValue.SpecificLocation || '',
+          AdditionalInfo: formValue.AdditionalInfo || '',
         }),
       });
       const data = await resp.json().catch(() => null);
@@ -481,7 +493,10 @@ export class ParticularPage implements OnInit {
     };
     const roomId = `${chatData.eventId}_${chatData.creatorId}_${chatData.partnerId}`;
     this.navCtrl.navigateForward(`/chat-detail/${roomId}`, {
-      state: { roomId: roomId },
+      state: {
+        roomId: roomId,
+        eventId: this.event?.id,
+      },
     });
   }
 

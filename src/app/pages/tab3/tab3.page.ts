@@ -100,7 +100,6 @@ export class Tab3Page implements OnInit {
     //start listen list update from socket
     //重要突破 使用socket 在这里监听每一次消息变化情况！！（重要）
     this.socket.on('listUpdate', (data: any) => {
-      console.log('new chat list update!', data);
       if (userId) {
         this.loadUserRooms(userId);
       }
@@ -212,7 +211,6 @@ export class Tab3Page implements OnInit {
   private async checkAuth() {
     const token = this.auth.token;
     if (!token || !this.getUser) {
-      console.log('Please log in or Register');
       //简单粗暴的跳转到了登陆页 需要优化login page 1-23
       //wait to show toast at top and let user read the html contents then do navigation
       await this.loginToast();
@@ -236,6 +234,7 @@ export class Tab3Page implements OnInit {
   //go to the chat with router
   goChat(user: any) {
     this.clearRoomUnread(user.roomId);
+    (document.activeElement as HTMLElement)?.blur();
 
     this.navCtrl.navigateForward(['/chat-detail', user.roomId], {
       state: {
