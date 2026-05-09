@@ -70,7 +70,7 @@ export class Tab2Page implements OnInit, AfterViewInit {
 
     // 统一订阅：关键词变化 or 聚焦标志变化都走这里
     // 接收路由参数
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.currentType = params['type'] || null;
       const keyword = params['search'] || '';
 
@@ -104,24 +104,24 @@ export class Tab2Page implements OnInit, AfterViewInit {
     this.loadEvents();
   }
   filterByType(type: 'request' | 'help' | null) {
-  if (this.currentType === type) {
-    // 再次点击相同按钮，取消筛选
-    this.currentType = null;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { type: null },
-      queryParamsHandling: 'merge'
-    });
-  } else {
-    this.currentType = type;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { type: type },
-      queryParamsHandling: 'merge'
-    });
+    if (this.currentType === type) {
+      // 再次点击相同按钮，取消筛选
+      this.currentType = null;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { type: null },
+        queryParamsHandling: 'merge',
+      });
+    } else {
+      this.currentType = type;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { type: type },
+        queryParamsHandling: 'merge',
+      });
+    }
+    this.loadEvents();
   }
-  this.loadEvents();
-}
 
   ngAfterViewInit() {
     // 如果 URL 带 focusSearch=true，则自动聚焦搜索框
@@ -159,7 +159,7 @@ export class Tab2Page implements OnInit, AfterViewInit {
         cardImage: item.cardImage,
         title: item.title,
         icon: item.icon || 'navigate-outline',
-        distance: '未知距离',
+        distance: item.distance || this.t.unknownDistance,
         name: item.name,
         address: item.address,
         demand: item.demand,
@@ -204,14 +204,14 @@ export class Tab2Page implements OnInit, AfterViewInit {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { type: type },
-      queryParamsHandling: 'merge'
+      queryParamsHandling: 'merge',
     });
     this.loadEvents();
   }
   /* 跳转到搜索页面 */
   navigateToSearch() {
     this.router.navigate(['/search'], {
-      queryParams: { returnTo: 'tabs/tab2' }
+      queryParams: { returnTo: 'tabs/tab2' },
     });
   }
 }

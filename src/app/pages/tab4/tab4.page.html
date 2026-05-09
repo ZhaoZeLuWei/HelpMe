@@ -79,105 +79,18 @@
   ></app-tab4-orders-panel>
   }
 
-  <ion-modal [isOpen]="isReviewModalOpen" (didDismiss)="closeReviewModal()">
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>订单评价</ion-title>
-          <ion-buttons slot="end"
-            ><ion-button fill="clear" (click)="closeReviewModal()"
-              >关闭</ion-button
-            ></ion-buttons
-          >
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        <form [formGroup]="reviewForm" class="review-form">
-          <ion-item>
-            <ion-label position="stacked">评分</ion-label>
-            <ion-select formControlName="Score" interface="popover">
-              <ion-select-option [value]="5">5 分</ion-select-option>
-              <ion-select-option [value]="4">4 分</ion-select-option>
-              <ion-select-option [value]="3">3 分</ion-select-option>
-              <ion-select-option [value]="2">2 分</ion-select-option>
-              <ion-select-option [value]="1">1 分</ion-select-option>
-            </ion-select>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">评价内容</ion-label>
-            <ion-textarea
-              formControlName="Text"
-              [autoGrow]="true"
-              placeholder="写下你的评价"
-            ></ion-textarea>
-          </ion-item>
-          <div class="modal-actions">
-            <ion-button
-              fill="outline"
-              color="medium"
-              (click)="closeReviewModal()"
-              >取消</ion-button
-            >
-            <ion-button (click)="submitReview()">提交评价</ion-button>
-          </div>
-        </form>
-      </ion-content>
-    </ng-template>
-  </ion-modal>
+  <app-review-modal
+    [isOpen]="isReviewModalOpen"
+    [isSaving]="isSubmittingReview"
+    (didDismiss)="closeReviewModal()"
+    (submit)="handleReviewSubmit($event)"
+  ></app-review-modal>
 
-  <ion-modal [isOpen]="isReviewDetailOpen" (didDismiss)="closeReviewDetail()">
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>订单评价详情</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeReviewDetail()"
-              >关闭</ion-button
-            >
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        @if (isLoadingReviews) {
-        <div class="empty-state">
-          <ion-text color="medium"><p>加载中...</p></ion-text>
-        </div>
-        } @else if (reviewDetailList.length === 0) {
-        <div class="empty-state">
-          <ion-icon
-            name="chatbubble-ellipses-outline"
-            class="empty-icon"
-          ></ion-icon>
-          <ion-text color="medium"><p>暂无评价</p></ion-text>
-        </div>
-        } @else {
-        <div class="review-detail-list">
-          @for (r of reviewDetailList; track r.id) {
-          <ion-card class="review-item">
-            <ion-item lines="none">
-              <ion-avatar slot="start">
-                <img [src]="getReviewAvatar(r.authorAvatar)" alt="头像" />
-              </ion-avatar>
-              <ion-label>
-                <h2>{{ r.authorName }}</h2>
-                <p>{{ r.createTime }}</p>
-              </ion-label>
-              <ion-badge slot="end" color="warning" class="review-score-badge"
-                >{{ r.rating }} 分</ion-badge
-              >
-            </ion-item>
-            @if (r.content) {
-            <ion-item lines="none">
-              <ion-text>{{ r.content }}</ion-text>
-            </ion-item>
-            }
-          </ion-card>
-          }
-        </div>
-        }
-      </ion-content>
-    </ng-template>
-  </ion-modal>
+  <app-review-detail-modal
+    [isOpen]="isReviewDetailOpen"
+    [orderId]="reviewDetailOrderId"
+    (didDismiss)="closeReviewDetail()"
+  ></app-review-detail-modal>
 
   <ion-modal
     [isOpen]="isEditProfileModalOpen"
@@ -334,93 +247,29 @@
   ></ion-alert>
 
   <!-- 编辑事件弹窗 -->
-  <ion-modal [isOpen]="isEditModalOpen" (didDismiss)="closeEditModal()">
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>编辑事件</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeEditModal()"
-              >关闭</ion-button
-            >
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        <form [formGroup]="editForm">
-          <ion-list lines="full">
-            <ion-item>
-              <ion-label position="stacked">标题 *</ion-label>
-              <ion-input
-                formControlName="EventTitle"
-                placeholder="简明描述"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">类型 *</ion-label>
-              <ion-select formControlName="EventType" interface="popover">
-                <ion-select-option [value]="0">求助</ion-select-option>
-                <ion-select-option [value]="1">帮助</ion-select-option>
-              </ion-select>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">类别 *</ion-label>
-              <ion-input
-                formControlName="EventCategory"
-                placeholder="如：电脑维修"
-              ></ion-input>
-            </ion-item>
-            <ion-item
-              button
-              detail="true"
-              (click)="openLocationPicker('eventEdit')"
-            >
-              <ion-label>位置 *</ion-label>
-              <ion-note
-                slot="end"
-                [color]="editForm.value.Location ? 'primary' : 'medium'"
-              >
-                {{ editForm.value.Location || '请选择地点' }}
-              </ion-note>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">价格 (¥)</ion-label>
-              <ion-input
-                type="number"
-                formControlName="Price"
-                placeholder="0 表示无偿帮助"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">详细描述 *</ion-label>
-              <ion-textarea
-                formControlName="EventDetails"
-                placeholder="补充说明"
-              ></ion-textarea>
-            </ion-item>
-          </ion-list>
-          <div style="padding: 16px">
-            <ion-button
-              expand="block"
-              (click)="submitEdit()"
-              [disabled]="isSavingEdit"
-            >
-              {{ isSavingEdit ? '保存中...' : '保存修改' }}
-            </ion-button>
-          </div>
-        </form>
-      </ion-content>
-    </ng-template>
-  </ion-modal>
+  <app-edit-event-modal
+    #editEventModal
+    [isOpen]="isEditModalOpen"
+    [eventData]="editingEventData"
+    [isSaving]="isSavingEdit"
+    (didDismiss)="closeEditModal()"
+    (save)="submitEdit($event)"
+    (openLocationPicker)="openLocationPicker('eventEdit')"
+  ></app-edit-event-modal>
 
   <!-- 我的收藏弹窗 -->
-  <ion-modal [isOpen]="isFavoritesModalOpen" (didDismiss)="closeFavoritesModal()">
+  <ion-modal
+    [isOpen]="isFavoritesModalOpen"
+    (didDismiss)="closeFavoritesModal()"
+  >
     <ng-template>
       <ion-header>
         <ion-toolbar>
           <ion-title>我的收藏</ion-title>
           <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeFavoritesModal()">关闭</ion-button>
+            <ion-button fill="clear" (click)="closeFavoritesModal()"
+              >关闭</ion-button
+            >
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
@@ -437,7 +286,10 @@
         } @else {
         <div class="favorites-list">
           @for (fav of favoritesList; track fav.id) {
-          <app-show-event [event]="fav" (cardClick)="onFavoriteCardClick($event)"></app-show-event>
+          <app-show-event
+            [event]="fav"
+            (cardClick)="onFavoriteCardClick($event)"
+          ></app-show-event>
           }
         </div>
         }
@@ -452,7 +304,9 @@
         <ion-toolbar>
           <ion-title>关注的人</ion-title>
           <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeFollowsModal()">关闭</ion-button>
+            <ion-button fill="clear" (click)="closeFollowsModal()"
+              >关闭</ion-button
+            >
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
@@ -481,7 +335,8 @@
               <h4>{{ user.UserName }}</h4>
               <p>{{ user.Location || '未设置地点' }}</p>
               <p class="follow-meta">
-                服务评分：{{ user.ServiceRanking || 0 }} · 粉丝：{{ user.OrderCount || 0 }}
+                服务评分：{{ user.ServiceRanking || 0 }} · 粉丝：{{
+                user.OrderCount || 0 }}
               </p>
             </div>
             <ion-button

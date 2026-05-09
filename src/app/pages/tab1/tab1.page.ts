@@ -1,10 +1,5 @@
 /* src/app/tab1/tab1.page.ts（修复版） */
-import {
-  Component,
-  CUSTOM_ELEMENTS_SCHEMA,
-  OnInit,
-  inject,
-} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
@@ -21,7 +16,6 @@ interface CardItem {
   id: string;
   creatorId: number;
   cardImage: string;
-  icon: string;
   distance: string;
   name: string;
   address: string;
@@ -39,13 +33,7 @@ interface CardItem {
   templateUrl: './tab1.page.html',
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
-  imports: [
-    IonicModule,
-    CommonModule,
-    ShowEventComponent,
-    HttpClientModule,
-  ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  imports: [IonicModule, CommonModule, ShowEventComponent, HttpClientModule],
 })
 export class Tab1Page implements OnInit {
   private readonly API_BASE = environment.apiBase;
@@ -58,7 +46,6 @@ export class Tab1Page implements OnInit {
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
   eventData: CardItem[] = [];
-  private searchKeyword = '';
   currentLang = '中文';
   showLangConfirmModal = false;
   t = this.langService.getTranslations('zh').tab1;
@@ -112,7 +99,7 @@ export class Tab1Page implements OnInit {
           creatorId: Number(item.creatorId),
           cardImage: item.cardImage,
           icon: 'navigate-outline',
-          distance: '未知距离',
+          distance: this.t.unknownDistance,
           name: item.name,
           address: item.address,
           demand: item.demand,
@@ -200,7 +187,7 @@ export class Tab1Page implements OnInit {
   }
 
   cardClickFeedback(item: CardItem) {
-    console.log('点击了小卡片：', item.name, 'ID：', item.id);
+    (document.activeElement as HTMLElement)?.blur();
     this.router.navigate(['/particular'], {
       queryParams: {
         eventId: item.id,
@@ -215,10 +202,9 @@ export class Tab1Page implements OnInit {
     );
   }
 
-  trackById(index: number, item: CardItem): string {
+  trackById(_index: number, item: CardItem): string {
     return item.id;
   }
-
 
   // 绑定你原有的翻译按钮
   public onTranslateBtnClick(): void {
@@ -239,25 +225,26 @@ export class Tab1Page implements OnInit {
       return;
     }
 
-    this.translateService.translateText({
-      sourceText: this.dynamicSourceText,
-      sourceLang: this.sourceLang,
-      targetLang: this.targetLang
-    }).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.translatedText = res.targetText;
-          console.log('✅ 翻译成功，结果：', this.translatedText);
-          alert('翻译成功：' + this.translatedText); // 弹窗提示，方便测试
-        }
-      },
-      error: (err) => {
-        console.error('❌ 翻译失败', err);
-        alert('翻译失败，请检查后端服务是否启动');
-      }
-    });
+    this.translateService
+      .translateText({
+        sourceText: this.dynamicSourceText,
+        sourceLang: this.sourceLang,
+        targetLang: this.targetLang,
+      })
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.translatedText = res.targetText;
+            console.log('✅ 翻译成功，结果：', this.translatedText);
+            alert('翻译成功：' + this.translatedText); // 弹窗提示，方便测试
+          }
+        },
+        error: (err) => {
+          console.error('❌ 翻译失败', err);
+          alert('翻译失败，请检查后端服务是否启动');
+        },
+      });
   }
-
 
   public toggleTranslateLanguage(): void {
     [this.sourceLang, this.targetLang] = [this.targetLang, this.sourceLang];

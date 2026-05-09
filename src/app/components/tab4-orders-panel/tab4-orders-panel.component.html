@@ -81,8 +81,18 @@
           @if (order.statusKey === "review" && !order.hasReviewed) {
             <ion-button (click)="review.emit(order.id)">去评价</ion-button>
           }
-          @if (order.statusKey === "review" && order.hasReviewed) {
+          @if (
+            order.statusKey === "review" &&
+            order.hasReviewed &&
+            !order.otherHasReviewed
+          ) {
             <ion-button disabled color="medium">已评价，等待对方</ion-button>
+          }
+          @if (
+            order.statusKey === "review" &&
+            order.hasReviewed &&
+            order.otherHasReviewed
+          ) {
             <ion-button (click)="viewReview.emit(order.id)"
               >查看评价</ion-button
             >

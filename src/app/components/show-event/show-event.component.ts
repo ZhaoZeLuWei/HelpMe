@@ -135,7 +135,6 @@ export function formatDistance(meters: number): string {
 export interface EventCardData {
   id: string;
   cardImage: string;
-  icon: string;
   distance: string;
   name: string;
   address: string;
@@ -162,7 +161,8 @@ export class ShowEventComponent {
   @Output() cardClick = new EventEmitter<EventCardData>();
 
   private readonly API_BASE = environment.apiBase;
-  private readonly PLACEHOLDER_IMG = 'https://picsum.photos/seed/default/600/400';
+  private readonly PLACEHOLDER_IMG =
+    'https://picsum.photos/seed/default/600/400';
   private readonly PLACEHOLDER_ICON = 'assets/icon/user.svg';
 
   // 翻译对象 - 声明但不初始化
@@ -171,7 +171,7 @@ export class ShowEventComponent {
   constructor(private langService: LanguageService) {
     // 在构造函数中初始化翻译对象
     this.t = this.langService.getTranslations('zh').shared.eventCard;
-    
+
     // 监听语言变化
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
       this.t = this.langService.getTranslations(lang).shared.eventCard;

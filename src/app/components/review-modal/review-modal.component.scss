@@ -1,0 +1,123 @@
+.review-content {
+  --background: var(--ion-color-light, #f4f5f8);
+}
+
+.review-card {
+  margin: 16px;
+  padding: 24px 20px;
+  background: var(--ion-background-color, #fff);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-text-color, #1a1a1a);
+  margin: 0 0 12px;
+}
+
+// 星级选择
+.star-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.star-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+
+  ion-icon {
+    font-size: 36px;
+    color: var(--ion-color-medium, #92949c);
+    transition:
+      color 0.2s ease,
+      transform 0.15s ease;
+  }
+
+  &.active ion-icon {
+    color: var(--ion-color-warning, #ffc409);
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+.star-hint {
+  font-size: 13px;
+  color: var(--ion-color-medium-shade, #92949c);
+  margin: 8px 0 0;
+}
+
+// 评价文本
+.text-section {
+  margin-bottom: 24px;
+}
+
+.textarea-wrapper {
+  position: relative;
+}
+
+.review-textarea {
+  --background: var(--ion-color-light, #f4f5f8);
+  --border-radius: 12px;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.char-count {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 11px;
+  color: var(--ion-color-medium, #92949c);
+  pointer-events: none;
+}
+
+// 操作按钮
+.action-buttons {
+  display: flex;
+  gap: 12px;
+
+  .cancel-btn {
+    flex: 1;
+    --border-radius: 10px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .submit-btn {
+    flex: 2;
+    --border-radius: 10px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 420px) {
+  .review-card {
+    margin: 12px;
+    padding: 20px 16px;
+  }
+
+  .star-btn ion-icon {
+    font-size: 32px;
+  }
+}

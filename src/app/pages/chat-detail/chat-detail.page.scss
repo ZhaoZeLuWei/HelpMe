@@ -83,20 +83,34 @@
   border-top-right-radius: 2px;
 }
 
-/* 订单信息栏 */
+/* 订单/事件信息栏 */
 .order-info-bar {
   --min-height: auto;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
   cursor: pointer;
+  transition: background-color 0.15s;
 
-  ion-icon[slot='start'] {
-    margin-inline-start: 16px;
-    margin-inline-end: 8px;
-    font-size: 20px;
+  &:active {
+    background-color: var(--ion-color-step-100, rgba(0, 0, 0, 0.04));
   }
 
-  ion-icon[slot='end'] {
+  ion-icon[slot="start"] {
+    margin-inline-start: 16px;
+    margin-inline-end: 10px;
+    font-size: 22px;
+  }
+
+  ion-icon[slot="end"] {
     margin-inline-end: 16px;
     font-size: 16px;
+    opacity: 0.5;
+  }
+
+  ion-label {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 0;
   }
 }
 
@@ -104,78 +118,112 @@
   font-size: 14px;
   font-weight: 600;
   margin: 0;
-  color: var(--ion-color-dark);
+  color: var(--ion-text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .order-status-line {
   font-size: 12px;
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   color: var(--ion-color-medium);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .order-status-badge {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 10px;
   background-color: var(--badge-background, var(--ion-color-primary));
   color: var(--badge-color, white);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.4;
 
-  &[color='warning'] {
+  &[color="warning"] {
     --badge-background: var(--ion-color-warning);
   }
-  &[color='primary'] {
+  &[color="primary"] {
     --badge-background: var(--ion-color-primary);
   }
-  &[color='tertiary'] {
+  &[color="tertiary"] {
     --badge-background: var(--ion-color-tertiary);
   }
-  &[color='success'] {
+  &[color="success"] {
     --badge-background: var(--ion-color-success);
   }
-  &[color='danger'] {
+  &[color="danger"] {
     --badge-background: var(--ion-color-danger);
   }
-  &[color='medium'] {
+  &[color="medium"] {
     --badge-background: var(--ion-color-medium);
   }
 }
 
 .event-category-badge {
-  display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background-color: var(--ion-color-tertiary);
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 10px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.4;
+
+  &.help-badge {
+    background-color: var(--ion-color-primary, #3880ff);
+    color: white;
+  }
+
+  &.request-badge {
+    background-color: var(--ion-color-warning, #ffc409);
+    color: #000;
+  }
+}
+
+.event-type-icon {
+  font-size: 24px;
 }
 
 .order-detail-bar {
   --min-height: auto;
-  padding: 8px 16px 12px;
+  --padding-top: 4px;
+  --padding-bottom: 12px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  border-top: 1px solid var(--ion-color-step-100, rgba(0, 0, 0, 0.06));
 }
 
 .order-detail-content {
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--ion-color-dark);
+  line-height: 1.7;
+  color: var(--ion-color-medium-shade, #555);
 
   p {
-    margin: 2px 0;
+    margin: 4px 0;
+  }
+
+  strong {
+    color: var(--ion-text-color);
+    font-weight: 500;
+    margin-right: 4px;
   }
 }
 
 .order-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 10px;
 
   ion-button {
-    --padding-start: 12px;
-    --padding-end: 12px;
+    --padding-start: 14px;
+    --padding-end: 14px;
+    --border-radius: 8px;
     font-size: 12px;
+    font-weight: 500;
   }
 }
 
@@ -203,6 +251,104 @@
 .system-message-time {
   font-size: 10px;
   color: var(--ion-color-medium-shade);
+}
+
+/* 订单预览弹窗样式 */
+.order-preview-content {
+  --background: var(--ion-background-color);
+}
+
+.order-status-card {
+  margin: 16px;
+  padding: 20px;
+  background: linear-gradient(
+    135deg,
+    var(--ion-color-primary, #3880ff),
+    var(--ion-color-primary-shade, #1c6dff)
+  );
+  border-radius: 12px;
+  color: white;
+
+  .status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    .status-label {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .status-badge {
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+
+  .order-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .order-price {
+    font-size: 28px;
+    font-weight: 700;
+  }
+}
+
+.order-info-section {
+  margin: 0 16px;
+  padding: 16px;
+  background: var(--ion-item-background, var(--ion-background-color-step-50));
+  border-radius: 12px;
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ion-color-step-100, rgba(0, 0, 0, 0.06));
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      font-size: 14px;
+      color: var(--ion-color-medium);
+      flex-shrink: 0;
+      margin-right: 12px;
+    }
+
+    .info-value {
+      font-size: 14px;
+      color: var(--ion-text-color);
+      text-align: right;
+      word-break: break-word;
+
+      &.description {
+        max-height: 80px;
+        overflow-y: auto;
+        line-height: 1.5;
+      }
+    }
+  }
+}
+
+.order-actions-section {
+  margin: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  ion-button {
+    --border-radius: 10px;
+    --padding-top: 14px;
+    --padding-bottom: 14px;
+    font-weight: 600;
+  }
 }
 
 /* ===== 图片消息样式 ===== */

@@ -1,13 +1,27 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
-const { sendSystemMessage, sendOrderSystemMessage } = require("../chatHandler.js");
+const {
+  sendSystemMessage,
+  sendOrderSystemMessage,
+} = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
 const Room = require("../models/Room.js");
 
 const router = express.Router();
 
-async function fetchOrderWithNames(conn, orderId) {
+async function fetchOrderWithNames(conn, orderId, userId) {
+  const params = [orderId];
+  let hasReviewedExpr = "0 AS HasReviewed";
+  let otherHasReviewedExpr = "0 AS OtherHasReviewed";
+
+  if (userId) {
+    const uid = Number(userId);
+    params.push(uid, uid);
+    hasReviewedExpr = `(SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId = ?) AS HasReviewed`;
+    otherHasReviewedExpr = `(SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId != ?) AS OtherHasReviewed`;
+  }
+
   const [rows] = await conn.query(
     `SELECT
       o.*,
@@ -16,15 +30,21 @@ async function fetchOrderWithNames(conn, orderId) {
       IFNULL(o.EventSnapshot->>'$.Location', e.Location) AS EventLocation,
       IFNULL(o.EventSnapshot->>'$.Price', e.Price) AS EventPrice,
       o.EventSnapshot AS EventSnapshot,
+      o.EventSnapshot->>'$.DeliveryAddress' AS DeliveryAddress,
+      o.EventSnapshot->>'$.DeliverySpecific' AS DeliverySpecific,
+      o.EventSnapshot->>'$.DeliveryAdditionalInfo' AS DeliveryAdditionalInfo,
       buyer.UserName AS ConsumerName,
-      provider.UserName AS ProviderName
+      provider.UserName AS ProviderName,
+      (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId) AS ReviewCount,
+      ${hasReviewedExpr},
+      ${otherHasReviewedExpr}
      FROM Orders o
      JOIN Events e ON o.EventId = e.EventId
      JOIN Users buyer ON o.ConsumerId = buyer.UserId
      JOIN Users provider ON o.ProviderId = provider.UserId
      WHERE o.OrderId = ?
      LIMIT 1`,
-    [orderId],
+    params,
   );
   return rows?.[0] || null;
 }
@@ -171,7 +191,10 @@ router.post("/orders", authRequired, async (req, res) => {
         orderId: result.insertId,
       });
     } else {
-      await Room.updateOne({ _id: orderRoomId }, { $set: { orderId: result.insertId } });
+      await Room.updateOne(
+        { _id: orderRoomId },
+        { $set: { orderId: result.insertId } },
+      );
     }
 
     // 发送系统消息到订单房间
@@ -201,6 +224,11 @@ router.post("/orders", authRequired, async (req, res) => {
         orderId: result.insertId,
         newStatus: 0,
         eventId: eventId,
+      });
+      // 通知聊天房间刷新订单信息
+      io.to(orderRoomId).emit("orderCreated", {
+        orderId: result.insertId,
+        roomId: orderRoomId,
       });
     }
 
@@ -253,14 +281,15 @@ router.get("/orders", authRequired, async (req, res) => {
         buyer.UserName AS ConsumerName,
         provider.UserName AS ProviderName,
         (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId) AS ReviewCount,
-        (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId = ?) AS HasReviewed
+        (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId = ?) AS HasReviewed,
+        (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId != ?) AS OtherHasReviewed
        FROM Orders o
        JOIN Events e ON o.EventId = e.EventId
        JOIN Users buyer ON o.ConsumerId = buyer.UserId
        JOIN Users provider ON o.ProviderId = provider.UserId
        WHERE ${where.join(" AND ")}
        ORDER BY o.OrderCreateTime DESC`,
-      [...params, userId],
+      [...params, userId, userId],
     );
 
     return res.json({ success: true, orders: rows });
@@ -278,12 +307,12 @@ router.get("/orders/:id", authRequired, async (req, res) => {
   }
 
   try {
-    const order = await fetchOrderWithNames(pool, orderId);
+    const userId = Number(req.user?.id);
+    const order = await fetchOrderWithNames(pool, orderId, userId);
     if (!order) {
       return res.status(404).json({ success: false, error: "订单不存在" });
     }
 
-    const userId = Number(req.user?.id);
     if (order.ConsumerId !== userId && order.ProviderId !== userId) {
       return res.status(403).json({ success: false, error: "无权查看该订单" });
     }
