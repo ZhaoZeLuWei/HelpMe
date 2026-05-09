@@ -8,10 +8,11 @@ import {
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { map } from 'rxjs';
+import { map, firstValueFrom } from 'rxjs';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
+import { getUserPosition, calculateDistance, formatDistance, resolveAddress, isOnlineService } from '../../components/show-event/show-event.component';
 import { LanguageService } from '../../services/language.service';
 import { TranslateService } from '../../services/translate.service';
 
@@ -29,6 +30,8 @@ interface CardItem {
   avatar: string;
   createTime: string;
   title: string;
+  lng?: number | null;
+  lat?: number | null;
 }
 
 @Component({
@@ -71,38 +74,30 @@ export class Tab1Page implements OnInit {
   }
 
   ngOnInit() {
-    // 原有卡片加载逻辑
-    this.getCardData('request').subscribe((data) => {
-      this.requestList = data;
-      this.updateEventData();
-    });
-    this.getCardData('help').subscribe((data) => {
-      this.helpList = data;
-      this.updateEventData();
-    });
-
     // 语言监听
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
       this.t = this.langService.getTranslations(lang).tab1;
     });
 
-    // 【关键】注释掉报错的动态文本加载
-    // this.loadDynamicText();
+    this.loadCardLists();
   }
 
   ionViewWillEnter() {
     this.loadCardLists();
   }
 
-  private loadCardLists() {
-    this.getCardData('request').subscribe((data) => {
-      this.requestList = data;
-      this.updateEventData();
-    });
-    this.getCardData('help').subscribe((data) => {
-      this.helpList = data;
-      this.updateEventData();
-    });
+  private async loadCardLists() {
+    // 并发加载两种类型
+    const [reqList, helpList] = await Promise.all([
+      firstValueFrom(this.getCardData('request')),
+      firstValueFrom(this.getCardData('help')),
+    ]);
+    this.requestList = reqList || [];
+    this.helpList = helpList || [];
+    this.eventData = [...this.requestList, ...this.helpList];
+
+    // 计算真实距离
+    await this.updateCardDistances();
   }
 
   private updateEventData() {
@@ -112,11 +107,21 @@ export class Tab1Page implements OnInit {
   private getCardData(type: 'request' | 'help') {
     return this.http.get<any[]>(`${this.API_BASE}/api/cards?type=${type}`).pipe(
       map((rawData) => {
-        const processedData = rawData.map((item) => ({
-          ...item,
+        const processedData = rawData.map((item: any) => ({
+          id: String(item.id),
+          creatorId: Number(item.creatorId),
+          cardImage: item.cardImage,
           icon: 'navigate-outline',
-          distance: '距500m',
+          distance: '未知距离',
+          name: item.name,
+          address: item.address,
+          demand: item.demand,
           price: item.price ? item.price.toString() : '0.00元',
+          avatar: item.avatar,
+          createTime: item.createTime,
+          title: item.title,
+          lng: item.lng != null ? Number(item.lng) : null,
+          lat: item.lat != null ? Number(item.lat) : null,
         }));
         let finalData = processedData;
         if (processedData.length > 4) {
@@ -125,6 +130,33 @@ export class Tab1Page implements OnInit {
         return finalData;
       }),
     );
+  }
+
+  // 所有卡片加载完后统一计算真实距离
+  private async updateCardDistances() {
+    const userPos = await getUserPosition();
+    if (!userPos) return;
+
+    for (const card of this.eventData) {
+      // 线上服务不显示距离
+      if (isOnlineService(card.address)) {
+        card.distance = '';
+        continue;
+      }
+
+      if (card.lng != null && card.lat != null) {
+        const meters = calculateDistance(userPos.lng, userPos.lat, card.lng, card.lat);
+        card.distance = formatDistance(meters);
+      } else if (card.address) {
+        const coords = await resolveAddress(card.address);
+        if (coords) {
+          card.lng = coords.lng;
+          card.lat = coords.lat;
+          const meters = calculateDistance(userPos.lng, userPos.lat, coords.lng, coords.lat);
+          card.distance = formatDistance(meters);
+        }
+      }
+    }
   }
 
   shuffleArray(array: any[]): any[] {

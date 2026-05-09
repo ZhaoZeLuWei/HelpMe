@@ -9,7 +9,32 @@ const router = express.Router();
 let eventsGeoColumnsState = {
   checked: false,
   supported: false,
+  lngLatSupported: false,
 };
+
+// 启动时自动添加 LocationLng/LocationLat 列（如果不存在）
+async function ensureLocationColumns() {
+  try {
+    const [rows] = await pool.query(
+      `SELECT COUNT(*) AS cnt
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'Events'
+         AND COLUMN_NAME = 'LocationLng'`
+    );
+    if (Number(rows?.[0]?.cnt || 0) === 0) {
+      await pool.query(
+        `ALTER TABLE Events
+         ADD COLUMN LocationLng DECIMAL(10,7) NULL AFTER LocationPlaceId,
+         ADD COLUMN LocationLat DECIMAL(10,7) NULL AFTER LocationLng`
+      );
+      console.log("✅ Events 表已添加 LocationLng/LocationLat 列");
+    }
+  } catch (err) {
+    console.error("检查/添加 Events 坐标列失败:", err);
+  }
+}
+ensureLocationColumns();
 
 async function supportsEventGeoColumns(conn) {
   if (eventsGeoColumnsState.checked) {
@@ -24,9 +49,18 @@ async function supportsEventGeoColumns(conn) {
        AND COLUMN_NAME = 'LocationPlaceId'`,
   );
 
+  const [lngRows] = await conn.query(
+    `SELECT COUNT(*) AS cnt
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'Events'
+       AND COLUMN_NAME = 'LocationLng'`,
+  );
+
   eventsGeoColumnsState = {
     checked: true,
     supported: Number(rows?.[0]?.cnt || 0) === 1,
+    lngLatSupported: Number(lngRows?.[0]?.cnt || 0) === 1,
   };
 
   return eventsGeoColumnsState.supported;
@@ -87,6 +121,8 @@ router.get("/api/cards", async (req, res) => {
         e.Photos AS photos,
         e.Location AS address,
         e.LocationPlaceId AS locationPlaceId,
+        e.LocationLng AS lng,
+        e.LocationLat AS lat,
         e.EventTitle AS title,
         e.EventDetails AS demand,
         e.Price AS price,
@@ -118,15 +154,17 @@ router.get("/api/cards", async (req, res) => {
         cardImage: first,
         address: item.address,
         locationPlaceId: item.locationPlaceId || null,
+        lng: item.lng != null ? Number(item.lng) : null,
+        lat: item.lat != null ? Number(item.lat) : null,
         demand: item.demand,
         price: item.price,
         createTime: item.createTime,
         name: item.name,
         avatar: item.avatar,
         creatorId: item.creatorId,
-        title: item.title, // 新增
+        title: item.title,
         icon: "navigate-outline",
-        distance: "距500m", // 实际项目中应计算真实距离
+        distance: "距500m",
       };
     });
 
@@ -161,6 +199,8 @@ router.post(
       EventCategory,
       Location,
       LocationPlaceId,
+      LocationLng,
+      LocationLat,
       Price,
       EventDetails,
     } = req.body || {};
@@ -237,6 +277,15 @@ router.post(
       if (hasGeoColumns) {
         insertColumns.push("LocationPlaceId");
         insertValues.push(normalizeLocationPlaceId(LocationPlaceId));
+      }
+
+      if (eventsGeoColumnsState.lngLatSupported) {
+        const lng = LocationLng != null && LocationLng !== '' ? Number(LocationLng) : null;
+        const lat = LocationLat != null && LocationLat !== '' ? Number(LocationLat) : null;
+        if (lng != null && !isNaN(lng) && lat != null && !isNaN(lat)) {
+          insertColumns.push("LocationLng", "LocationLat");
+          insertValues.push(lng, lat);
+        }
       }
 
       const [result] = await conn.query(
