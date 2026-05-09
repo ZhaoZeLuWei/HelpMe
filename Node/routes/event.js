@@ -6,66 +6,6 @@ const { authRequired } = require("./auth.js");
 const { sendSystemMessage } = require("../chatHandler.js");
 const router = express.Router();
 
-let eventsGeoColumnsState = {
-  checked: false,
-  supported: false,
-  lngLatSupported: false,
-};
-
-// 启动时自动添加 LocationLng/LocationLat 列（如果不存在）
-async function ensureLocationColumns() {
-  try {
-    const [rows] = await pool.query(
-      `SELECT COUNT(*) AS cnt
-       FROM information_schema.COLUMNS
-       WHERE TABLE_SCHEMA = DATABASE()
-         AND TABLE_NAME = 'Events'
-         AND COLUMN_NAME = 'LocationLng'`
-    );
-    if (Number(rows?.[0]?.cnt || 0) === 0) {
-      await pool.query(
-        `ALTER TABLE Events
-         ADD COLUMN LocationLng DECIMAL(10,7) NULL AFTER LocationPlaceId,
-         ADD COLUMN LocationLat DECIMAL(10,7) NULL AFTER LocationLng`
-      );
-      console.log("✅ Events 表已添加 LocationLng/LocationLat 列");
-    }
-  } catch (err) {
-    console.error("检查/添加 Events 坐标列失败:", err);
-  }
-}
-ensureLocationColumns();
-
-async function supportsEventGeoColumns(conn) {
-  if (eventsGeoColumnsState.checked) {
-    return eventsGeoColumnsState.supported;
-  }
-
-  const [rows] = await conn.query(
-    `SELECT COUNT(*) AS cnt
-     FROM information_schema.COLUMNS
-     WHERE TABLE_SCHEMA = DATABASE()
-       AND TABLE_NAME = 'Events'
-       AND COLUMN_NAME = 'LocationPlaceId'`,
-  );
-
-  const [lngRows] = await conn.query(
-    `SELECT COUNT(*) AS cnt
-     FROM information_schema.COLUMNS
-     WHERE TABLE_SCHEMA = DATABASE()
-       AND TABLE_NAME = 'Events'
-       AND COLUMN_NAME = 'LocationLng'`,
-  );
-
-  eventsGeoColumnsState = {
-    checked: true,
-    supported: Number(rows?.[0]?.cnt || 0) === 1,
-    lngLatSupported: Number(lngRows?.[0]?.cnt || 0) === 1,
-  };
-
-  return eventsGeoColumnsState.supported;
-}
-
 function normalizeLocationPlaceId(value) {
   if (value === undefined || value === null) return null;
   const text = String(value).trim();
@@ -89,7 +29,6 @@ router.post(
 // 获取卡片列表（用于首页展示）
 router.get("/api/cards", async (req, res) => {
   try {
-    const hasGeoColumns = await supportsEventGeoColumns(pool);
     const { type } = req.query;
     let sqlWhere = "";
     let sqlParams = [];
@@ -251,8 +190,6 @@ router.post(
       conn = await pool.getConnection();
       await conn.beginTransaction();
 
-      const hasGeoColumns = await supportsEventGeoColumns(conn);
-
       const insertColumns = [
         "CreatorId",
         "EventTitle",
@@ -260,9 +197,18 @@ router.post(
         "EventCategory",
         "Photos",
         "Location",
+        "LocationPlaceId",
+        "LocationLng",
+        "LocationLat",
         "Price",
         "EventDetails",
       ];
+
+      const lng =
+        LocationLng != null && LocationLng !== "" ? Number(LocationLng) : null;
+      const lat =
+        LocationLat != null && LocationLat !== "" ? Number(LocationLat) : null;
+
       const insertValues = [
         creatorId,
         String(EventTitle),
@@ -270,23 +216,12 @@ router.post(
         String(EventCategory),
         photosJson,
         String(Location),
+        normalizeLocationPlaceId(LocationPlaceId),
+        lng != null && !isNaN(lng) ? lng : null,
+        lat != null && !isNaN(lat) ? lat : null,
         price,
         String(EventDetails),
       ];
-
-      if (hasGeoColumns) {
-        insertColumns.push("LocationPlaceId");
-        insertValues.push(normalizeLocationPlaceId(LocationPlaceId));
-      }
-
-      if (eventsGeoColumnsState.lngLatSupported) {
-        const lng = LocationLng != null && LocationLng !== '' ? Number(LocationLng) : null;
-        const lat = LocationLat != null && LocationLat !== '' ? Number(LocationLat) : null;
-        if (lng != null && !isNaN(lng) && lat != null && !isNaN(lat)) {
-          insertColumns.push("LocationLng", "LocationLat");
-          insertValues.push(lng, lat);
-        }
-      }
 
       const [result] = await conn.query(
         `INSERT INTO Events (${insertColumns.join(", ")}) VALUES (${insertColumns
@@ -330,7 +265,6 @@ router.get("/events/:id", async (req, res) => {
   }
 
   try {
-    const hasGeoColumns = await supportsEventGeoColumns(pool);
     const selectSql =
       "SELECT EventId, CreatorId, EventTitle, EventType, EventCategory, Photos, Location, LocationPlaceId, Price, EventDetails, CreateTime FROM Events WHERE EventId = ? LIMIT 1";
 
@@ -436,8 +370,6 @@ router.put("/events/:id", authRequired, async (req, res) => {
   try {
     conn = await pool.getConnection();
     await conn.beginTransaction();
-
-    const hasGeoColumns = await supportsEventGeoColumns(conn);
 
     const [checkRows] = await conn.query(
       "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",

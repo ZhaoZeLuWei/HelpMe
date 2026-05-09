@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LanguageService {
   private currentLangSubject = new BehaviorSubject<'zh' | 'en'>('zh');
@@ -15,13 +15,14 @@ export class LanguageService {
         search: '搜索',
         publish: '发布',
         msg: '消息',
-        me: '我的'
+        me: '我的',
       },
       // Tab1 页面
       tab1: {
         btnText: '中文',
         modalTitle: '提示 / Alert',
-        modalBody: '您确定要切换语言吗？<br><span class="sub-text">Are you sure you want to switch language?</span>',
+        modalBody:
+          '您确定要切换语言吗？<br><span class="sub-text">Are you sure you want to switch language?</span>',
         cancel: '取消 / Cancel',
         confirm: '确定 / OK',
         searchPlaceholder: '点击搜索',
@@ -29,7 +30,8 @@ export class LanguageService {
         helpTitle: '帮助',
         noEvent: '还没有求助事件',
         noHelp: '还没有帮助事件',
-        more: '更多'
+        more: '更多',
+        unknownDistance: '未知距离',
       },
       // Tab2 页面
       tab2: {
@@ -40,7 +42,7 @@ export class LanguageService {
         filterRequest: '求助',
         filterHelp: '帮助',
         unknownDistance: '未知距离',
-        loadFailed: 'Tab2 加载失败'
+        loadFailed: 'Tab2 加载失败',
       },
       // Tab3 页面 (消息/聊天)
       tab3: {
@@ -56,7 +58,7 @@ export class LanguageService {
         noMessage: '暂无消息',
         loginToast: '请您登录或注册',
         loadRoomsFailed: '加载聊天列表失败',
-        unknownUser: '用户'
+        unknownUser: '用户',
       },
       // Tab4 页面 (个人中心)
       tab4: {
@@ -158,7 +160,7 @@ export class LanguageService {
         categoryRequired: '类别必填',
         locationRequired: '位置必填',
         detailsRequired: '详细描述必填',
-        priceInvalid: '价格需在 0 ~ 1000000 之间'
+        priceInvalid: '价格需在 0 ~ 1000000 之间',
       },
       // 共享组件
       shared: {
@@ -177,13 +179,13 @@ export class LanguageService {
           // 地点筛选模态框
           locationFilterTitle: '输入地点关键词',
           locationLabel: '地点关键词 (匹配地址)',
-          locationPlaceholder: '例如: 广科, 001...'
+          locationPlaceholder: '例如: 广科, 001...',
         },
         // show-event 组件
         eventCard: {
           eventImage: '事件图片',
-          userAvatar: '用户头像'
-        }
+          userAvatar: '用户头像',
+        },
       },
       // Tab5 页面
       tab5: {
@@ -220,7 +222,7 @@ export class LanguageService {
           submit: '提交',
           submitReq: '提交求助',
           submitHelp: '发布帮助',
-          submitAuth: '提交认证'
+          submitAuth: '提交认证',
         },
         placeholder: {
           reqTitle: '简明描述你的需求（如：求修电脑）',
@@ -237,9 +239,9 @@ export class LanguageService {
           phone: '11位中国大陆手机号',
           idCard: '18位身份证号码',
           area: '如：XX小区',
-          intro: '简要介绍你的服务经验或特长（选填）'
-        }
-      }
+          intro: '简要介绍你的服务经验或特长（选填）',
+        },
+      },
     },
     en: {
       nav: {
@@ -247,7 +249,7 @@ export class LanguageService {
         search: 'Search',
         publish: 'Publish',
         msg: 'Message',
-        me: 'Me'
+        me: 'Me',
       },
       tab1: {
         btnText: 'EN',
@@ -260,7 +262,8 @@ export class LanguageService {
         helpTitle: 'Help',
         noEvent: 'No requests yet',
         noHelp: 'No help events yet',
-        more: 'More'
+        more: 'More',
+        unknownDistance: 'Unknown distance',
       },
       // Tab2 页面
       tab2: {
@@ -271,7 +274,7 @@ export class LanguageService {
         filterRequest: 'Request',
         filterHelp: 'Help',
         unknownDistance: 'Unknown distance',
-        loadFailed: 'Tab2 load failed'
+        loadFailed: 'Tab2 load failed',
       },
       // Tab3 页面 (消息/聊天)
       tab3: {
@@ -287,7 +290,7 @@ export class LanguageService {
         noMessage: 'No messages',
         loginToast: 'Please login or register',
         loadRoomsFailed: 'Failed to load chat list',
-        unknownUser: 'User'
+        unknownUser: 'User',
       },
       // Tab4 页面 (个人中心)
       tab4: {
@@ -389,7 +392,7 @@ export class LanguageService {
         categoryRequired: 'Category is required',
         locationRequired: 'Location is required',
         detailsRequired: 'Details are required',
-        priceInvalid: 'Price must be between 0 and 1,000,000'
+        priceInvalid: 'Price must be between 0 and 1,000,000',
       },
       // 共享组件
       shared: {
@@ -408,13 +411,13 @@ export class LanguageService {
           // 地点筛选模态框
           locationFilterTitle: 'Enter Location Keyword',
           locationLabel: 'Location Keyword (Match Address)',
-          locationPlaceholder: 'e.g., Campus, 001...'
+          locationPlaceholder: 'e.g., Campus, 001...',
         },
         // show-event 组件
         eventCard: {
           eventImage: 'Event Image',
-          userAvatar: 'User Avatar'
-        }
+          userAvatar: 'User Avatar',
+        },
       },
       // Tab5 页面
       tab5: {
@@ -451,7 +454,7 @@ export class LanguageService {
           submit: 'Submit',
           submitReq: 'Submit Request',
           submitHelp: 'Post Offer',
-          submitAuth: 'Submit Verification'
+          submitAuth: 'Submit Verification',
         },
         placeholder: {
           reqTitle: 'Briefly describe your need',
@@ -468,10 +471,10 @@ export class LanguageService {
           phone: '11 digits CN Mobile',
           idCard: '18 digits ID Number',
           area: 'e.g. XX Community',
-          intro: 'Briefly introduce your experience'
-        }
-      }
-    }
+          intro: 'Briefly introduce your experience',
+        },
+      },
+    },
   };
 
   constructor() {}
@@ -484,7 +487,7 @@ export class LanguageService {
     const newLang = this.currentLangSubject.value === 'zh' ? 'en' : 'zh';
     this.currentLangSubject.next(newLang);
   }
-  
+
   getCurrentLang() {
     return this.currentLangSubject.value;
   }

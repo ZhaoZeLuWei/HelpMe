@@ -411,7 +411,9 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     // 发送定位消息
     this.socket.emit('chat message', {
       messageType: 'location',
-      text: picked.text + (picked.address !== picked.text ? ' · ' + picked.address : ''),
+      text:
+        picked.text +
+        (picked.address !== picked.text ? ' · ' + picked.address : ''),
       location: {
         lng: picked.lng,
         lat: picked.lat,
@@ -825,15 +827,6 @@ export class ChatDetailPage implements OnInit, OnDestroy {
           }
         },
       });
-  }
-
-  private async showToast(message: string) {
-    const toast = await this.toastCtrl.create({
-      message,
-      duration: 2000,
-      position: 'bottom',
-    });
-    await toast.present();
   }
 
   ngOnDestroy() {

@@ -3,11 +3,10 @@ import { CommonModule } from '@angular/common';
 // 修改后 (确保 IonList 和 IonItem 都在)
 import {
   IonHeader, IonToolbar, IonContent, IonTitle,
-  IonLabel, IonButton,
+  IonButton,
   IonRow, IonCol,
-  IonIcon, IonModal, IonList, IonItem,
-  IonSearchbar, IonRange, IonButtons,
-  IonInput
+  IonIcon, IonModal,
+  IonSearchbar, IonButtons,
 } from '@ionic/angular/standalone';
 
 import {
@@ -40,11 +39,10 @@ import { LanguageService } from '../../services/language.service';
     CommonModule,
     ReactiveFormsModule,
     IonHeader, IonToolbar, IonContent, IonTitle,
-    IonLabel, IonButton,
+    IonButton,
     IonRow, IonCol,
-    IonIcon, IonModal, IonList, IonItem, // <--- 添加 IonItem
-    IonSearchbar, IonRange, IonButtons,
-    IonInput,
+    IonIcon, IonModal,
+    IonSearchbar, IonButtons,
   ]
 })
 export class UniversalSearchComponent implements OnInit {
