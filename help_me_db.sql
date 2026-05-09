@@ -104,6 +104,7 @@ CREATE TABLE Orders (
   ServiceTime        TIMESTAMP      NULL,
   CompletionTime     TIMESTAMP      NULL,
   RefundTime         TIMESTAMP      NULL,
+  EventSnapshot      JSON           NULL,
 
   KEY idx_orders_event (EventId),
   KEY idx_orders_consumer (ConsumerId),
@@ -117,7 +118,7 @@ CREATE TABLE Orders (
     ON DELETE RESTRICT ON UPDATE CASCADE,
 
   CONSTRAINT fk_orders_consumer
-    FOREIGN KEY (ConsumerId) REFERENCES Consumers(ConsumerId)
+    FOREIGN KEY (ConsumerId) REFERENCES Users(UserId)
     ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

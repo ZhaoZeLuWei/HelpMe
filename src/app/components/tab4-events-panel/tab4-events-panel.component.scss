@@ -1,0 +1,34 @@
+.tasks-list {
+  padding: 12px;
+}
+
+.task-item {
+  border-radius: 16px;
+  margin-bottom: 12px;
+}
+
+.task-actions {
+  --inner-padding-end: 8px;
+  --inner-padding-start: 8px;
+  --padding-bottom: 8px;
+  --min-height: 46px;
+}
+
+.task-actions ion-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.task-title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.task-meta {
+  margin: 0;
+  color: var(--ion-color-medium);
+  font-size: 13px;
+}

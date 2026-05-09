@@ -74,6 +74,23 @@
   p { font-size: 15px; margin: 0; font-weight: 500; }
 }
 
+/* ===== 小卡片网格布局 – 与首页保持一致 ===== */
+.small-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 0 10px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+}
+
+.card-item {
+  width: 100%;
+}
+
 /* ===== 模态框 – 与队友自定义弹窗同风格 ===== */
 ion-modal {
   --border-radius: 20px;

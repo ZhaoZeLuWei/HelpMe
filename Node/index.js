@@ -7,15 +7,16 @@ const { createServer } = require("node:http");
 const { Server } = require("socket.io");
 const { uploadDir } = require("./routes/upload.js");
 const { registerChatHandler } = require("./chatHandler.js");
+const { setIO } = require("./socketInstance.js");
 const connectDB = require("./help_me_chat_db");
 
 //all routes imports here 这里引用路由
 const testRoutes = require("./routes/test.js");
 const userRoutes = require("./routes/user.js");
 const eventRoutes = require("./routes/event.js");
+const orderRoutes = require("./routes/order.js");
 const verifyRoutes = require("./routes/verify.js");
 
-//const orderRoutes = require("./routes/order.js");
 const reviewRoutes = require("./routes/review.js");
 const chatRoutes = require("./routes/chat.js");
 const locationRoutes = require("./routes/location.js");
@@ -29,8 +30,8 @@ app.use("/img", express.static(uploadDir));
 app.use("/test", testRoutes);
 app.use(userRoutes);
 app.use(eventRoutes);
+app.use(orderRoutes);
 app.use(verifyRoutes);
-//app.use(orderRoutes);
 app.use(reviewRoutes);
 app.use(chatRoutes);
 app.use(locationRoutes);
@@ -61,6 +62,9 @@ const io = new Server(server, {
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
+
+// 将 io 实例注册到单例，供路由中使用
+setIO(io);
 
 // get user jwt
 io.use((socket, next) => {

@@ -1,13 +1,9 @@
 const express = require("express");
 const { ObjectId } = require("mongodb");
-const fs = require("node:fs/promises");
-const path = require("node:path");
 const { getLocationDb } = require("../help_me_location_db.js");
 
 const router = express.Router();
 const COLLECTION_NAME = "places";
-
-const SEED_FILE_PATH = path.join(__dirname, "..", "sql", "location.seed.json");
 
 let initPromise = null;
 
@@ -16,84 +12,7 @@ function toNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
-function normalizeTags(tags) {
-  if (Array.isArray(tags)) {
-    return tags
-      .map((item) => String(item || "").trim())
-      .filter(Boolean)
-      .slice(0, 10);
-  }
-
-  if (typeof tags === "string") {
-    return tags
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .slice(0, 10);
-  }
-
-  return [];
-}
-
-function buildSeedDocument(place) {
-  const lng = toNumber(place?.lng);
-  const lat = toNumber(place?.lat);
-  if (lng === null || lat === null) {
-    return null;
-  }
-
-  const name = String(place?.name || "").trim();
-  if (!name) {
-    return null;
-  }
-
-  return {
-    name,
-    shortName: String(place?.shortName || name).trim(),
-    district: String(place?.district || "").trim(),
-    address: String(place?.address || "").trim(),
-    lng,
-    lat,
-    tags: normalizeTags(place?.tags),
-    sortWeight: Number.isFinite(Number(place?.sortWeight))
-      ? Number(place.sortWeight)
-      : 0,
-    geo: {
-      type: "Point",
-      coordinates: [lng, lat],
-    },
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-}
-
-async function loadSeedFromFile() {
-  const content = await fs.readFile(SEED_FILE_PATH, "utf8");
-  const parsed = JSON.parse(content);
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-
-  return parsed.map(buildSeedDocument).filter(Boolean);
-}
-
-function buildKeywordQuery(keyword) {
-  const q = String(keyword || "").trim();
-  if (!q) return { isActive: true };
-
-  const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-  return {
-    isActive: true,
-    $or: [
-      { name: regex },
-      { shortName: regex },
-      { district: regex },
-      { address: regex },
-      { tags: regex },
-    ],
-  };
-}
+// ================= 数据库初始化（只建索引，不读文件） =================
 
 async function initPlacesCollection() {
   if (!initPromise) {
@@ -101,23 +20,18 @@ async function initPlacesCollection() {
       const db = await getLocationDb();
       const places = db.collection(COLLECTION_NAME);
 
+      // 只要库是空的，这些索引指令就是安全的
       await places.createIndex({ geo: "2dsphere" });
       await places.createIndex({ name: 1 });
       await places.createIndex({ tags: 1 });
       await places.createIndex({ isActive: 1, sortWeight: -1 });
-
-      const count = await places.countDocuments({});
-      if (count === 0) {
-        const seed = await loadSeedFromFile();
-        if (seed.length > 0) {
-          await places.insertMany(seed);
-        }
-      }
     })();
   }
 
   return initPromise;
 }
+
+// ================= 数据格式化 =================
 
 function mapPlace(place) {
   const coordinates = Array.isArray(place?.geo?.coordinates)
@@ -140,6 +54,25 @@ function mapPlace(place) {
   };
 }
 
+function buildKeywordQuery(keyword) {
+  const q = String(keyword || "").trim();
+  if (!q) return { isActive: true };
+
+  const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  return {
+    isActive: true,
+    $or: [
+      { name: regex },
+      { shortName: regex },
+      { district: regex },
+      { address: regex },
+      { tags: regex },
+    ],
+  };
+}
+
+// ================= 路由拦截器（自动初始化） =================
+
 router.use(async (req, res, next) => {
   try {
     await initPlacesCollection();
@@ -150,6 +83,9 @@ router.use(async (req, res, next) => {
   }
 });
 
+// ================= 接口 =================
+
+// 搜索建议
 router.get("/locations/suggest", async (req, res) => {
   const db = await getLocationDb();
   const places = db.collection(COLLECTION_NAME);
@@ -202,6 +138,7 @@ router.get("/locations/suggest", async (req, res) => {
   }
 });
 
+// 附近地点
 router.get("/locations/nearby", async (req, res) => {
   const db = await getLocationDb();
   const places = db.collection(COLLECTION_NAME);
@@ -246,6 +183,7 @@ router.get("/locations/nearby", async (req, res) => {
   }
 });
 
+// 地点详情
 router.get("/locations/:id", async (req, res) => {
   const db = await getLocationDb();
   const places = db.collection(COLLECTION_NAME);
@@ -267,7 +205,56 @@ router.get("/locations/:id", async (req, res) => {
     return res.status(500).json({ success: false, error: "查询地点详情失败" });
   }
 });
+// 保存地点（从高德地图获取后存入数据库）
+router.post("/locations/save", async (req, res) => {
+  const db = await getLocationDb();
+  const places = db.collection(COLLECTION_NAME);
 
+  const { locations } = req.body;
+  if (!Array.isArray(locations) || locations.length === 0) {
+    return res.status(400).json({ success: false, error: "无效的地点数据" });
+  }
+
+  try {
+    const now = new Date();
+    const docs = locations.map((loc) => ({
+      name: loc.name,
+      shortName: loc.name,
+      district: loc.district || "",
+      address: loc.address || loc.name,
+      lng: Number(loc.lng) || 0,
+      lat: Number(loc.lat) || 0,
+      tags: [],
+      sortWeight: 0,
+      geo: {
+        type: "Point",
+        coordinates: [Number(loc.lng) || 0, Number(loc.lat) || 0],
+      },
+      isActive: true,
+      source: "amap",  // 标记数据来源
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    // 批量插入或更新（如果已存在则更新）
+    const bulkOps = docs.map((doc) => ({
+      updateOne: {
+        filter: { name: doc.name, address: doc.address },
+        update: { $set: doc },
+        upsert: true,
+      },
+    }));
+
+    await places.bulkWrite(bulkOps);
+
+    return res.json({ success: true, count: docs.length });
+  } catch (err) {
+    console.error("保存地点失败:", err);
+    return res.status(500).json({ success: false, error: "保存地点失败" });
+  }
+});
+
+// 管理端列表
 router.get("/admin/locations", async (req, res) => {
   const db = await getLocationDb();
   const places = db.collection(COLLECTION_NAME);
@@ -288,6 +275,7 @@ router.get("/admin/locations", async (req, res) => {
     return res.status(500).json({ success: false, error: "查询地点失败" });
   }
 });
-
-
+router.get("/test", (req, res) => {
+  res.json({ message: "location routes working" });
+});
 module.exports = router;

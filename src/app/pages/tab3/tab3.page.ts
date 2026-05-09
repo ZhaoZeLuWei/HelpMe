@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { io } from 'socket.io-client';
+import { environment } from '../../../environments/environment';
 //Standalone need to import specific component tag
 import {
   IonContent,
@@ -61,7 +62,7 @@ export class Tab3Page implements OnInit {
 
     // Init Connection
     //用户独享socket 房间 ，用于实时更新聊天列表 ！！！（重要突破）
-    this.socket = io('http://localhost:3000', {
+    this.socket = io(environment.apiBase, {
       auth: {
         token: this.auth.token,
         serverOffset: this.serverOffset,
@@ -102,7 +103,9 @@ export class Tab3Page implements OnInit {
   async loadUserRooms(userId: number) {
     try {
       const query = new URLSearchParams({ userId: String(userId) }).toString(); // query = "userId=100002"
-      const resp = await fetch(`http://localhost:3000/api/rooms/list?${query}`); // 正确拼接 URL
+      const resp = await fetch(
+        `${environment.apiBase}/api/rooms/list?${query}`,
+      ); // 正确拼接 URL
       const data = await resp.json();
       console.log(data);
 
@@ -110,13 +113,22 @@ export class Tab3Page implements OnInit {
         this.chatRooms = data.data.rooms.map((room: any) => {
           let name = '';
           let avatar = '';
+          const unreadCount = room.unreadCount?.[this.getUser.UserId] || 0;
 
           if (
             room.type === 'system' ||
-            (room._id && room._id.startsWith('system_'))
+            (room.roomId && room.roomId.startsWith('system_'))
           ) {
             name = this.t.systemNotification;
             avatar = 'assets/icon/notification.svg';
+
+            // 更新系统通知房间的最新消息和未读数
+            this.systemRoom = {
+              ...this.systemRoom,
+              lastMsg: room.lastMsg || this.t.noNewNotification,
+              count: unreadCount,
+              updatedAt: room.updatedAt,
+            };
           } else {
             const eventName = room.event?.name || '';
             let otherChatName = `${this.t.unknownUser} ${room.partnerId ?? ''}`;
@@ -132,8 +144,6 @@ export class Tab3Page implements OnInit {
 
             name = `${otherChatName}${eventName ? ` ${eventName}` : ''}`;
           }
-
-          const unreadCount = room.unreadCount?.[this.getUser.UserId] || 0;
 
           return {
             roomId: room.roomId,
@@ -151,6 +161,9 @@ export class Tab3Page implements OnInit {
           (a, b) =>
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
         );
+
+        // 过滤掉系统通知房间（已在顶部单独显示）
+        this.chatRooms = this.chatRooms.filter((r) => r.type !== 'system');
         console.log(this.chatRooms);
         this.showChat = true;
       }
@@ -161,7 +174,7 @@ export class Tab3Page implements OnInit {
 
   getAvatarUrl(path: string): string {
     if (!path) return '';
-    return path.startsWith('http') ? path : `http://localhost:3000${path}`;
+    return path.startsWith('http') ? path : `${environment.apiBase}${path}`;
   }
 
   //根据登陆用户信息来进入对应用户的通知聊天房间
@@ -173,6 +186,7 @@ export class Tab3Page implements OnInit {
       lastMsg: this.t.noNewNotification,
       count: 0,
       type: 'system',
+      updatedAt: new Date(),
     };
   }
 
@@ -264,6 +278,10 @@ export class Tab3Page implements OnInit {
     const room = this.chatRooms.find((r) => r.roomId === roomId);
     if (room) {
       room.count = 0; // 本地红点清零
+    }
+    // 系统通知房间单独处理
+    if (this.systemRoom?.roomId === roomId) {
+      this.systemRoom.count = 0;
     }
   }
 }

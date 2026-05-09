@@ -5,7 +5,6 @@ import {
   IonHeader, IonToolbar, IonContent, IonTitle,
   IonLabel, IonButton,
   IonRow, IonCol,
-  IonGrid,
   IonIcon, IonModal, IonList, IonItem,
   IonSearchbar, IonRange, IonButtons,
   IonInput
@@ -43,7 +42,6 @@ import { LanguageService } from '../../services/language.service';
     IonHeader, IonToolbar, IonContent, IonTitle,
     IonLabel, IonButton,
     IonRow, IonCol,
-    IonGrid,
     IonIcon, IonModal, IonList, IonItem, // <--- 添加 IonItem
     IonSearchbar, IonRange, IonButtons,
     IonInput,

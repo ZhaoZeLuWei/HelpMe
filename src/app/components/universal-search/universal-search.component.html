@@ -65,12 +65,11 @@
 
     <!-- ===== 4. 列表展示区 (动态模板) ===== -->
 
-    <ion-grid class="event-list-container">
-      <ion-row>
+    <div class="event-list-container">
+      <div class="small-card-grid">
         @if (filteredEvents().length > 0) {
           @for (event of filteredEvents(); track event.id) {
-            <ion-col size="6" size-md="4">
-
+            <div class="card-item">
               <!--
                    ngTemplateOutlet: 核心代码
                    1. [ngTemplateOutlet]: 渲染父组件传进来的模板
@@ -80,20 +79,17 @@
   event: event,
   onItemClick: handleCardClick.bind(this)
 }"></ng-container>
-
-            </ion-col>
+            </div>
           }
         } @else {
           <!-- 空状态保持不变 ... -->
-          <ion-col size="12">
-            <div class="empty-state">
-              <ion-icon name="file-tray" size="large" color="medium"></ion-icon>
-              <p>{{ t.noResults }}</p>
-            </div>
-          </ion-col>
+          <div class="empty-state">
+            <ion-icon name="file-tray" size="large" color="medium"></ion-icon>
+            <p>{{ t.noResults }}</p>
+          </div>
         }
-      </ion-row>
-    </ion-grid>
+      </div>
+    </div>
 
     <!-- ==================== 模态框区域 ==================== -->
 

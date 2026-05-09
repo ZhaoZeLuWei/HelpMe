@@ -1,5 +1,12 @@
-import {Component, OnDestroy, OnInit, signal, inject, booleanAttribute} from '@angular/core';
-import {io} from 'socket.io-client';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  signal,
+  inject,
+  ViewChild,
+} from '@angular/core';
+import { io } from 'socket.io-client';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   IonContent,
@@ -14,18 +21,18 @@ import {
   IonButton,
   IonAvatar,
 } from '@ionic/angular/standalone';
-import { DatePipe } from "@angular/common";
-import {ActivatedRoute, Router} from "@angular/router";
-import {HttpClient} from "@angular/common/http";
-import {ToastController} from "@ionic/angular";
+import { DatePipe } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { ToastController } from '@ionic/angular';
 import { environment } from '../../../environments/environment';
 
 //Models( Data structure) imports here
-import {ChatModel} from "../../models/chat.model";
-import { ChatHistory } from "../../models/chatHistory.model";
+import { ChatModel } from '../../models/chat.model';
+import { ChatHistory } from '../../models/chatHistory.model';
 
 //import Service
-import {AuthService} from "../../services/auth.service";
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-chat-detail',
@@ -50,6 +57,7 @@ import {AuthService} from "../../services/auth.service";
   ],
 })
 export class ChatDetailPage implements OnInit, OnDestroy {
+  @ViewChild('chatContent') chatContent!: IonContent;
   socket: any;
   //signal NEW in angular rather than RxJS
   messages = signal<ChatModel[]>([]);
@@ -63,10 +71,10 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   //get user info from chat list page(Tab3)
   roomInfoTab3: any;
   myself: any; //from socket io
-  roomId:string = "";
+  roomId: string = '';
   getUserFromService: any;
   serverOffset = 0;
-  showChat:boolean = true;
+  showChat: boolean = true;
   readonly defaultAvatar = 'assets/icon/user.svg';
   myAvatar = this.defaultAvatar;
   otherAvatar = this.defaultAvatar;
@@ -90,7 +98,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       this.otherAvatar = this.toAvatarUrl(this.roomInfoTab3.avatar);
     }
     //add else if ( for event detail page create a chat room 3-16)
-    else if (state?.roomId){
+    else if (state?.roomId) {
       this.roomId = state.roomId;
     }
 
@@ -103,27 +111,27 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     this.loadHistory(this.roomId);
 
     // Init Connection
-    this.socket = io('http://localhost:3000', {
+    this.socket = io(environment.apiBase, {
       auth: {
         token: this.auth.token,
-        serverOffset: this.serverOffset
-      }
+        serverOffset: this.serverOffset,
+      },
     });
 
     //get myself from socket io chat handler
-    this.socket.on('myself', (user:any) => {
+    this.socket.on('myself', (user: any) => {
       this.myself = user;
       console.log(this.myself.id);
       console.log(this.myself.name);
-    })
+    });
 
     //send JOIN room request to server
     this.socket.on('connect', () => {
-      if(this.roomId){
+      if (this.roomId) {
         this.socket.emit('joinRoom', this.roomId);
-        console.log("Joined room", this.roomId);
+        console.log('Joined room', this.roomId);
       }
-    })
+    });
 
     // step 2: receive msg from node and show it
     this.socket.on('chat message', (msg: ChatModel, offset?: number) => {
@@ -133,46 +141,52 @@ export class ChatDetailPage implements OnInit, OnDestroy {
         this.serverOffset = offset;
         this.socket.auth.serverOffset = offset;
       }
+
+      // 收到新消息后自动滚动到底部
+      setTimeout(() => {
+        this.chatContent?.scrollToBottom(300);
+      }, 50);
     });
 
     //tell user the connnection with this room chat finally success!!~~
-    this.socket.on(
-      'connectSuccess',
-      async (msg: ChatModel) => {
-        const toast = await this.toastCtrl.create({
-          message: msg.text,
-          duration: 500,
-          position: 'top',
-          color: 'light',
-        });
-        await toast.present();
-      }
-    );
+    this.socket.on('connectSuccess', async (msg: ChatModel) => {
+      const toast = await this.toastCtrl.create({
+        message: msg.text,
+        duration: 500,
+        position: 'top',
+        color: 'light',
+      });
+      await toast.present();
+    });
   }
 
-//load msg history by API using ROOM_ID from chat list page !
+  //load msg history by API using ROOM_ID from chat list page !
   loadHistory(roomId: string) {
     this.http
       .get<ChatHistory>(
-        `http://localhost:3000/api/messages/history?roomId=${roomId}`
+        `${environment.apiBase}/api/messages/history?roomId=${roomId}&pageSize=100&sortOrder=desc`,
       )
       .subscribe({
         next: (res) => {
           if (!res.success) return;
-          //rebuild the data structure into <messages> store
           console.log(res);
-          const apiMsg: ChatModel[] = res.data.messages.map(msg => ({
-            text: msg.text,
-            senderId: msg.senderId,
-            userName: msg.userName,
-            sendTime: msg.sendTime,
-            avatar: msg.avatar,
-          }));
+          // 倒序获取最新消息后，反转为正序（从旧到新）用于显示
+          const apiMsg: ChatModel[] = res.data.messages
+            .reverse()
+            .map((msg) => ({
+              text: msg.text,
+              senderId: msg.senderId,
+              userName: msg.userName,
+              sendTime: msg.sendTime,
+              avatar: msg.avatar,
+            }));
 
           this.messages.set(apiMsg);
 
-          // 如果你后面用 offset / ack
-          //this.serverOffset = res.data.messages.length;
+          // 加载完成后自动滚动到底部
+          setTimeout(() => {
+            this.chatContent?.scrollToBottom(0);
+          }, 100);
         },
         error: (err) => {
           console.error('加载历史消息失败', err);
@@ -196,7 +210,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
   //在messages这个数据结构中，继续顺序添加新的msg
   private addMessage(msg: ChatModel) {
-    this.messages.update(prev => [...prev, msg]);
+    this.messages.update((prev) => [...prev, msg]);
   }
 
   private loadMyAvatar() {
@@ -207,7 +221,8 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       .get<any>(`${environment.apiBase}/users/${userId}/profile`)
       .subscribe({
         next: (res) => {
-          const avatarPath = res?.user?.UserAvatar || res?.user?.userAvatar || '';
+          const avatarPath =
+            res?.user?.UserAvatar || res?.user?.userAvatar || '';
           this.myAvatar = this.toAvatarUrl(avatarPath);
         },
         error: () => {
@@ -237,7 +252,10 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   }
 
   private getCurrentUserId(): string {
-    const userId = this.myself?.id ?? this.getUserFromService?.UserId ?? this.getUserFromService?.id;
+    const userId =
+      this.myself?.id ??
+      this.getUserFromService?.UserId ??
+      this.getUserFromService?.id;
     return userId ? String(userId) : '';
   }
 
@@ -255,5 +273,4 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       this.socket.disconnect();
     }
   }
-
 }
