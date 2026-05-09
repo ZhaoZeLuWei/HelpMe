@@ -288,7 +288,7 @@ export class ParticularPage implements OnInit {
     if (this.isCurrentUserCreator) {
       this.router.navigate(['/tabs/tab4']);
     } else if (this.userInfo.name) {
-      this.router.navigate(['/user-particular'], {
+      this.navCtrl.navigateForward('/user-particular', {
         queryParams: {
           name: this.userInfo.name,
           userId: this.event?.creatorId,
@@ -328,6 +328,7 @@ export class ParticularPage implements OnInit {
   async openOrderLocationPicker() {
     const modal = await this.modalCtrl.create({
       component: LocationPickerComponent,
+      cssClass: 'location-picker-modal',
       componentProps: {
         selectedPlaceId: '',
         selectedText: this.orderForm.value.DetailLocation || '',

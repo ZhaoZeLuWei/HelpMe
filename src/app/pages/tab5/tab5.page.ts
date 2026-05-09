@@ -225,6 +225,7 @@ export class Tab5Page implements OnInit, OnDestroy {
 
     const modal = await this.modalCtrl.create({
       component: LocationPickerComponent,
+      cssClass: 'location-picker-modal',
       componentProps: {
         selectedPlaceId: form.get('LocationPlaceId')?.value || '',
         selectedText: form.get('Location')?.value || '',

@@ -68,7 +68,10 @@ const getChatHistory = async (queryParams) => {
       id: msg._id.toString(),
       roomId: msg.roomId,
       senderId: msg.senderId,
-      text: msg.text,
+      messageType: msg.messageType || 'text',
+      text: msg.text || '',
+      imageUrl: msg.imageUrl || '',
+      location: msg.location || null,
       sendTime: new Date(msg.sendTime).toLocaleString(),
       userName: msg.userName,
       targetUserId: msg.targetUserId ?? null,
@@ -402,7 +405,10 @@ module.exports.registerChatHandler = (io, socket) => {
 
       const messageData = {
         roomId: roomId,
-        text: msg.text,
+        messageType: msg.messageType || 'text',
+        text: msg.text || '',
+        imageUrl: msg.imageUrl || '',
+        location: msg.location || null,
         senderId: socket.user.id,
         userName: socket.user.name,
         timestamp: new Date(),

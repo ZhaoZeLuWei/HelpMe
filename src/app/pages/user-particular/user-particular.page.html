@@ -18,13 +18,12 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" scroll-y="true">
+<ion-content [fullscreen]="true" class="user-particular-content">
 
   <div class="detail-container">
 
-    <!-- 右侧内容区 -->
-    <div class="content-area">
-      <!-- 发布者信息 -->
+    <!-- 用户信息卡片 -->
+    <div class="info-card">
       <div class="publisher-info">
         <div class="avatar-container">
           <img
@@ -72,7 +71,10 @@
           }
         </div>
       </div>
-      <!-- 标签页导航 -->
+    </div>
+
+    <!-- 标签页导航卡片 -->
+    <div class="info-card">
       <div class="tab-navigation">
         <div
           class="tab-item"
@@ -98,6 +100,8 @@
       </div>
 
       <!-- 标签页内容 -->
+    </div>
+    <div class="info-card">
       <div class="tab-content">
         <!-- 发布的活动栏 -->
         @if (activeTab === 'active-events') {
@@ -110,22 +114,21 @@
               </div>
             }
             @for (event of activeEvents; track event.EventId) {
-              <div class="event-item" (click)="goToEventDetail(event)" style="cursor: pointer;">
-                <div class="type-indicator">
-                  <ion-icon [name]="getTypeIcon(event.EventType)" [style.color]="getTypeColor(event.EventType)"></ion-icon>
-                  <span class="type-label" [style.color]="getTypeColor(event.EventType)">{{ getTypeText(event.EventType) }}</span>
+              <div class="event-item" (click)="goToEventDetail(event)">
+                <span class="type-badge" [style.background]="getTypeColor(event.EventType) + '18'" [style.color]="getTypeColor(event.EventType)">
+                  <ion-icon [name]="getTypeIcon(event.EventType)"></ion-icon>
+                  {{ getTypeText(event.EventType) }}
+                </span>
+                <div class="list-item-main">
+                  <div class="list-item-title">{{ event.EventTitle }}</div>
+                  <div class="list-item-meta">
+                    <span class="price">¥{{ event.Price }}</span>
+                    <span>{{ event.EventCategory }}</span>
+                  </div>
                 </div>
-                <div class="event-info">
-                  <h4>{{ event.EventTitle }}</h4>
-                  <p class="event-category">{{ event.EventCategory }}</p>
-                  <p class="event-price">¥{{ event.Price }}</p>
-                  <p class="event-time">{{ formatDate(event.CreateTime) }}</p>
-                </div>
+                <div class="list-item-end">{{ formatDate(event.CreateTime) }}</div>
                 @if (isCurrentUser) {
-                  <ion-button 
-                    fill="clear" 
-                    size="small" 
-                    (click)="goToEditEvent(event.EventId); $event.stopPropagation()">
+                  <ion-button fill="clear" size="small" (click)="goToEditEvent(event.EventId); $event.stopPropagation()">
                     <ion-icon slot="icon-only" name="create-outline"></ion-icon>
                   </ion-button>
                 }
@@ -146,19 +149,19 @@
             }
             @for (comment of userComments; track comment.id) {
               <div class="comment-item">
-                <div class="type-indicator">
-                  <ion-icon [name]="getTypeIcon(comment.EventType)" [style.color]="getTypeColor(comment.EventType)"></ion-icon>
-                  <span class="type-label" [style.color]="getTypeColor(comment.EventType)">{{ getTypeText(comment.EventType) }}</span>
-                </div>
-                <div class="comment-content-wrapper">
+                <span class="type-badge" [style.background]="getTypeColor(comment.EventType) + '18'" [style.color]="getTypeColor(comment.EventType)">
+                  <ion-icon [name]="getTypeIcon(comment.EventType)"></ion-icon>
+                  {{ getTypeText(comment.EventType) }}
+                </span>
+                <div class="list-item-main">
                   <div class="comment-header">
                     <img [src]="getCommentAvatarUrl(comment.authorAvatar)" class="comment-avatar" />
                     <span class="comment-author">{{ comment.authorName }}</span>
                     <span class="comment-score">{{ comment.rating }}分</span>
                   </div>
                   <p class="comment-content">{{ comment.content }}</p>
-                  <p class="comment-time">{{ formatDate(comment.createTime) }}</p>
                 </div>
+                <div class="list-item-end">{{ formatDate(comment.createTime) }}</div>
               </div>
             }
           </div>
@@ -175,21 +178,16 @@
               </div>
             }
             @for (activity of activityFeed; track activity.id) {
-              <div class="activity-item" (click)="goToEventDetail(activity)" style="cursor: pointer;">
-                <div class="type-indicator">
-                  <ion-icon [name]="getTypeIcon(activity.EventType)" [style.color]="getTypeColor(activity.EventType)"></ion-icon>
-                  <span class="type-label" [style.color]="getTypeColor(activity.EventType)">{{ getTypeText(activity.EventType) }}</span>
+              <div class="activity-item" (click)="goToEventDetail(activity)">
+                <span class="type-badge" [style.background]="getTypeColor(activity.EventType) + '18'" [style.color]="getTypeColor(activity.EventType)">
+                  <ion-icon [name]="getTypeIcon(activity.EventType)"></ion-icon>
+                  {{ activity.activityType }}
+                </span>
+                <div class="list-item-main">
+                  <div class="list-item-title">{{ activity.title }}</div>
+                  <div class="list-item-meta">{{ activity.description }}</div>
                 </div>
-                <div class="activity-content-wrapper">
-                  <div class="activity-header">
-                    <span class="activity-type">{{ activity.activityType }}</span>
-                    <span class="activity-time">{{ formatDate(activity.date) }}</span>
-                  </div>
-                  <div class="activity-content">
-                    <h4>{{ activity.title }}</h4>
-                    <p>{{ activity.description }}</p>
-                  </div>
-                </div>
+                <div class="list-item-end">{{ formatDate(activity.date) }}</div>
               </div>
             }
           </div>

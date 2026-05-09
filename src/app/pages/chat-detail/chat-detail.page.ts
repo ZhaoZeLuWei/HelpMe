@@ -5,6 +5,7 @@ import {
   signal,
   inject,
   ViewChild,
+  ElementRef,
 } from '@angular/core';
 import { io } from 'socket.io-client';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -32,11 +33,14 @@ import {
   IonLabel,
   IonModal,
   IonBadge,
+  IonSpinner,
 } from '@ionic/angular/standalone';
 import { DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ToastController, AlertController } from '@ionic/angular';
+import { ModalController } from '@ionic/angular/standalone';
+import { imageOutline, locationOutline } from 'ionicons/icons';
 import { environment } from '../../../environments/environment';
 
 //Models( Data structure) imports here
@@ -50,6 +54,12 @@ import {
   ReviewSubmitPayload,
 } from '../../components/review-modal/review-modal.component';
 import { ReviewDetailModalComponent } from '../../components/review-detail-modal/review-detail-modal.component';
+
+// 位置选择器
+import {
+  LocationPickerComponent,
+  type PickedLocation,
+} from '../../components/location-picker/location-picker.component';
 
 @Component({
   selector: 'app-chat-detail',
@@ -76,11 +86,16 @@ import { ReviewDetailModalComponent } from '../../components/review-detail-modal
     IonBadge,
     ReviewModalComponent,
     ReviewDetailModalComponent,
+    IonSpinner,
   ],
 })
 export class ChatDetailPage implements OnInit, OnDestroy {
   @ViewChild('chatContent') chatContent!: IonContent;
+  @ViewChild('chatFileInput') chatFileInput!: ElementRef<HTMLInputElement>;
   socket: any;
+
+  // 暴露给模板使用
+  env = environment;
   //signal NEW in angular rather than RxJS
   messages = signal<ChatModel[]>([]);
 
@@ -90,6 +105,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
   private alertCtrl = inject(AlertController);
+  private modalCtrl = inject(ModalController);
 
   //get user info from chat list page(Tab3)
   roomInfoTab3: any;
@@ -107,6 +123,9 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     nonNullable: true,
     validators: [Validators.required],
   });
+
+  // 图片上传状态
+  uploadingImage = signal(false);
 
   // 订单房间相关
   isOrderRoom = false;
@@ -133,6 +152,10 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     3: 'success',
     4: 'danger',
   };
+
+  constructor() {
+    addIcons({ imageOutline, locationOutline });
+  }
 
   ngOnInit() {
     addIcons({
@@ -203,11 +226,22 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     });
 
     // step 2: receive msg from node and show it
-    this.socket.on('chat message', (msg: ChatModel, offset?: number) => {
+    this.socket.on('chat message', (msg: any, offset?: number) => {
+      // 构造完整消息对象，兼容新旧格式
+      const fullMsg: ChatModel = {
+        messageType: msg.messageType || 'text',
+        text: msg.text || '',
+        imageUrl: msg.imageUrl || '',
+        location: msg.location || null,
+        senderId: msg.senderId,
+        userName: msg.userName,
+        sendTime: msg.sendTime,
+        avatar: msg.avatar,
+        targetUserId: msg.targetUserId,
+      };
       // 过滤：只显示发给自己的或所有人的消息
-      if (!this.isMessageVisible(msg)) return;
-
-      this.addMessage(msg);
+      if (!this.isMessageVisible(fullMsg)) return;
+      this.addMessage(fullMsg);
 
       if (offset) {
         this.serverOffset = offset;
@@ -259,8 +293,11 @@ export class ChatDetailPage implements OnInit, OnDestroy {
           // 倒序获取最新消息后，反转为正序（从旧到新）用于显示
           const apiMsg: ChatModel[] = res.data.messages
             .reverse()
-            .map((msg) => ({
-              text: msg.text,
+            .map((msg: any) => ({
+              messageType: msg.messageType || 'text',
+              text: msg.text || '',
+              imageUrl: msg.imageUrl || '',
+              location: msg.location || null,
               senderId: msg.senderId,
               userName: msg.userName,
               sendTime: msg.sendTime,
@@ -290,10 +327,106 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     if (checkMsg && checkMsg.trim()) {
       // only send text; server will attach sender identity
       this.socket.emit('chat message', {
+        messageType: 'text',
         text: checkMsg,
       });
       this.messageInput.reset();
     }
+  }
+
+  // ================= 照片发送 =================
+
+  triggerFileInput() {
+    this.chatFileInput?.nativeElement.click();
+  }
+
+  async onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    input.value = ''; // 重置input，允许重复选同一文件
+
+    // 校验文件类型和大小
+    if (!file.type.startsWith('image/')) {
+      this.showToast('请选择图片文件');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      this.showToast('图片不能超过10MB');
+      return;
+    }
+
+    this.uploadingImage.set(true);
+
+    try {
+      // 上传图片到服务器
+      const formData = new FormData();
+      formData.append('images', file);
+
+      const res = await fetch(`${environment.apiBase}/upload/images`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || '上传失败');
+      }
+
+      const data = await res.json();
+      if (!data.success || !data.paths?.length) {
+        throw new Error('上传返回数据异常');
+      }
+
+      const imageUrl = data.paths[0];
+
+      // 发送图片消息（不传 text，让服务端用默认值）
+      this.socket.emit('chat message', {
+        messageType: 'image',
+        imageUrl: imageUrl,
+      });
+    } catch (err: any) {
+      this.showToast(err.message || '图片上传失败，请重试');
+      console.error('图片上传失败:', err);
+    } finally {
+      this.uploadingImage.set(false);
+    }
+  }
+
+  // ================= 定位发送 =================
+
+  async sendLocation() {
+    const modal = await this.modalCtrl.create({
+      component: LocationPickerComponent,
+    });
+
+    await modal.present();
+    const { data, role } = await modal.onDidDismiss();
+
+    if (role !== 'confirm' || !data?.selected) return;
+
+    const picked: PickedLocation = data.selected;
+
+    // 发送定位消息
+    this.socket.emit('chat message', {
+      messageType: 'location',
+      text: picked.text + (picked.address !== picked.text ? ' · ' + picked.address : ''),
+      location: {
+        lng: picked.lng,
+        lat: picked.lat,
+        address: picked.address,
+      },
+    });
+  }
+
+  private async showToast(message: string) {
+    const t = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      position: 'bottom',
+    });
+    await t.present();
   }
 
   //在messages这个数据结构中，继续顺序添加新的msg
@@ -483,6 +616,24 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   get isCurrentUserBuyer(): boolean {
     const userId = this.auth.currentUserId;
     return userId != null && this.orderInfo?.ConsumerId === userId;
+  }
+
+  // ================= 图片预览和定位查看 =================
+
+  previewImage(url: string) {
+    window.open(url, '_blank');
+  }
+
+  openMapLocation(location: { lng: number; lat: number; address: string }) {
+    // 高德地图 URI 打开定位
+    window.open(
+      `https://uri.amap.com/marker?position=${location.lng},${location.lat}&name=${encodeURIComponent(location.address)}`,
+      '_blank',
+    );
+  }
+
+  get orderStatusMapForPreview(): Record<number, string> {
+    return this.orderStatusMap;
   }
 
   /** 判断当前用户是否是卖家 */

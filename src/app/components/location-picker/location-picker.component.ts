@@ -29,6 +29,16 @@ interface LocationOption {
   distanceMeters?: number | null;
 }
 
+interface CachedLocationEntry {
+  placeId: string;
+  text: string;
+  address: string;
+  lng: number;
+  lat: number;
+  useCount: number;
+  timestamp: number;
+}
+
 interface AddressDetail {
   province: string;
   city: string;
@@ -66,6 +76,8 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   pendingConfirmLocation = signal<PickedLocation | null>(null);
   nearbyLocations = signal<LocationOption[]>([]);
   addressDetail = signal<AddressDetail | null>(null);
+  addressBook = signal<CachedLocationEntry[]>([]);
+  showAddressBook = signal(false);
 
   private map: any = null;
   private geocoder: any = null;
@@ -87,6 +99,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
 
   ngOnInit(): void {
     this.clearExpiredCache();
+    this.loadAddressBook();
   }
 
   ngAfterViewInit(): void {
@@ -431,7 +444,9 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
       });
       
       // 👇 关键：插件加载完后，立刻主动去查一次当前坐标的周边和地址
-      this.reverseGeocode(this.centerLng, this.centerLat);
+      this.reverseGeocode(this.centerLng, this.centerLat).then(() => {
+        this.autoLocateOnOpen();
+      });
     });
 
     setTimeout(() => {
@@ -715,6 +730,90 @@ private async saveNearbyToBackend(locations: LocationOption[]) {
       }
     } catch (err) {
       console.error('清理过期缓存失败:', err);
+    }
+  }
+
+  // ================= 地址簿方法 =================
+
+  private loadAddressBook(): void {
+    const cached = this.getCachedLocations();
+    const sorted = cached
+      .sort((a: any, b: any) => (b.useCount || 0) - (a.useCount || 0))
+      .slice(0, 10);
+    this.addressBook.set(sorted as CachedLocationEntry[]);
+  }
+
+  selectCachedLocation(entry: CachedLocationEntry): void {
+    this.selectLocation({
+      id: entry.placeId,
+      name: entry.text,
+      address: entry.address,
+      lng: entry.lng,
+      lat: entry.lat,
+      district: '',
+      distanceMeters: null,
+    });
+    this.showAddressBook.set(false);
+  }
+
+  removeFromAddressBook(placeId: string): void {
+    const locations = this.getCachedLocations().filter(
+      (item: any) => item.placeId !== placeId
+    );
+    localStorage.setItem(this.CACHE_KEY, JSON.stringify(locations));
+    this.loadAddressBook();
+  }
+
+  formatRelativeTime(timestamp: number): string {
+    const diffMs = Date.now() - timestamp;
+    const diffMinutes = Math.floor(diffMs / 60000);
+    if (diffMinutes < 1) return '刚刚';
+    if (diffMinutes < 60) return `${diffMinutes}分钟前`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}小时前`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays}天前`;
+    const diffMonths = Math.floor(diffDays / 30);
+    return `${diffMonths}个月前`;
+  }
+
+  // ================= 地址簿切换 =================
+
+  toggleAddressBook(): void {
+    this.showAddressBook.set(!this.showAddressBook());
+    if (this.showAddressBook()) {
+      this.loadAddressBook();
+    }
+  }
+
+  // ================= 自动定位（打开时自动检测） =================
+
+  private async autoLocateOnOpen(): Promise<void> {
+    if (!navigator.geolocation) return;
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        });
+      });
+
+      const lng = position.coords.longitude;
+      const lat = position.coords.latitude;
+
+      this.selectedMapLocation.set({ lng, lat });
+
+      if (this.map) {
+        this.map.setCenter([lng, lat]);
+        this.map.setZoom(16);
+        this.addMapMarker(lng, lat);
+      }
+
+      await this.reverseGeocode(lng, lat);
+    } catch (_err) {
+      // 静默失败，用户可手动点 GPS 按钮
     }
   }
 

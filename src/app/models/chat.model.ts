@@ -6,4 +6,11 @@ export interface ChatModel {
   sendTime: string | Date;
   avatar?: string;
   targetUserId?: number | null;
+  messageType?: 'text' | 'image' | 'location';
+  imageUrl?: string;
+  location?: {
+    lng: number;
+    lat: number;
+    address: string;
+  } | null;
 }

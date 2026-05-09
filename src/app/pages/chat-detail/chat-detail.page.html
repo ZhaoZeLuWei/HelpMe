@@ -140,7 +140,31 @@
             >
             <span class="timestamp"> {{ msg.sendTime | date:'HH:mm' }}</span>
           </div>
-          <div class="message-bubble">{{ msg.text }}</div>
+          <div class="message-bubble">
+            @if (msg.messageType === 'image' && msg.imageUrl) {
+              <div class="msg-image-wrap">
+                <img
+                  [src]="env.apiBase + msg.imageUrl"
+                  alt="图片消息"
+                  class="msg-image"
+                  (click)="previewImage(env.apiBase + msg.imageUrl)"
+                />
+              </div>
+              @if (msg.text) {
+                <p class="msg-image-caption">{{ msg.text }}</p>
+              }
+            } @else if (msg.messageType === 'location' && msg.location) {
+              <div class="msg-location" (click)="openMapLocation(msg.location!)">
+                <ion-icon name="location-outline" class="loc-icon"></ion-icon>
+                <div class="loc-info">
+                  <span class="loc-address">{{ msg.location.address }}</span>
+                  <span class="loc-coords">{{ msg.location.lat?.toFixed(4) }}, {{ msg.location.lng?.toFixed(4) }}</span>
+                </div>
+              </div>
+            } @else {
+              {{ msg.text }}
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -151,7 +175,24 @@
 @if (showChat) {
 <ion-footer>
   <ion-toolbar>
-    <ion-item lines="none">
+    <ion-item lines="none" class="chat-footer-item">
+      <input
+        #chatFileInput
+        type="file"
+        accept="image/*"
+        hidden
+        (change)="onFileSelected($event)"
+      />
+      <ion-button slot="start" fill="clear" size="small" (click)="triggerFileInput()" [disabled]="uploadingImage()" class="chat-action-btn">
+        @if (uploadingImage()) {
+          <ion-spinner name="crescent" slot="icon-only"></ion-spinner>
+        } @else {
+          <ion-icon slot="icon-only" name="image-outline"></ion-icon>
+        }
+      </ion-button>
+      <ion-button slot="start" fill="clear" size="small" (click)="sendLocation()" class="chat-action-btn">
+        <ion-icon slot="icon-only" name="location-outline"></ion-icon>
+      </ion-button>
       <ion-input
         [formControl]="messageInput"
         placeholder="输入消息..."
