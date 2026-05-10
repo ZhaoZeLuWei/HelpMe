@@ -63,6 +63,8 @@ CREATE TABLE Events (
   Photos         TEXT           NULL,
   Location       VARCHAR(100)   NOT NULL,
   LocationPlaceId VARCHAR(24)   NULL,
+  LocationLng    DECIMAL(10,7)  NULL,
+  LocationLat    DECIMAL(10,7)  NULL,
   Price          DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
   EventDetails   VARCHAR(255)   NOT NULL,
   CreateTime     TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
