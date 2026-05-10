@@ -123,7 +123,7 @@ router.get("/api/cards", async (req, res) => {
     if (lang !== 'zh') {
       cards = await Promise.all(
         cards.map(card =>
-          translateFields(card, ['title', 'demand', 'address'], lang, 'zh')
+          translateFields(card, ['title', 'demand', 'address', 'name'], lang, 'zh')
         )
       );
     }
@@ -245,7 +245,7 @@ router.get("/events/:id", async (req, res) => {
     if (lang !== 'zh') {
       event = await translateFields(
         event,
-        ['EventTitle', 'EventDetails', 'Location'],
+        ['EventTitle', 'EventDetails', 'Location', 'UserName'],
         lang,
         'zh'
       );

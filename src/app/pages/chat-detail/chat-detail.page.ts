@@ -33,6 +33,7 @@ import { ChatHistory } from '../../models/chatHistory.model';
 
 //import Service
 import { AuthService } from '../../services/auth.service';
+import { LanguageService } from '../../services/language.service';
 
 @Component({
   selector: 'app-chat-detail',
@@ -67,6 +68,9 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
+  private langService = inject(LanguageService);
+
+  t = this.langService.getTranslations('zh').chatDetail;
 
   //get user info from chat list page(Tab3)
   roomInfoTab3: any;
@@ -86,6 +90,10 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   });
 
   ngOnInit() {
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).chatDetail;
+    });
+
     //get user from Node server first
     this.getUserFromService = this.auth.currentUser;
     console.log(this.getUserFromService);
@@ -149,9 +157,9 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     });
 
     //tell user the connnection with this room chat finally success!!~~
-    this.socket.on('connectSuccess', async (msg: ChatModel) => {
+    this.socket.on('connectSuccess', async (_msg: ChatModel) => {
       const toast = await this.toastCtrl.create({
-        message: msg.text,
+        message: this.t.connected,
         duration: 500,
         position: 'top',
         color: 'light',
@@ -235,6 +243,16 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     const userId = this.getCurrentUserId();
     if (!userId) return false;
     return String(msg.senderId) === userId;
+  }
+
+  isSystemMessage(msg: ChatModel): boolean {
+    return String(msg.senderId) === 'system_bot' || msg.userName === '系统通知';
+  }
+
+  getSenderName(msg: ChatModel): string {
+    if (this.isSystemMessage(msg)) return this.t.systemNotification;
+    if (this.isMyMessage(msg)) return this.myself?.name || this.t.me;
+    return msg.userName || this.roomInfoTab3?.name || this.t.other;
   }
 
   getMessageAvatar(msg: ChatModel): string {

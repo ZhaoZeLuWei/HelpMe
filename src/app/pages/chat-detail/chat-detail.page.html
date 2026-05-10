@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/tabs/tab3"></ion-back-button>
     </ion-buttons>
-    <ion-title>聊天详情</ion-title>
+    <ion-title>{{ t.title }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -15,15 +15,14 @@
         <ion-avatar class="message-avatar">
           <img
             [src]="getMessageAvatar(msg)"
-            alt="用户头像"
+            [alt]="t.userAvatar"
             (error)="onAvatarError($event)"
           />
         </ion-avatar>
         <div class="message-main">
           <div class="message-meta">
             <span class="user-name"
-              >{{ isMyMessage(msg) ? (myself?.name || '我') : (msg.userName ||
-              roomInfoTab3?.name || '对方') }}</span
+              >{{ getSenderName(msg) }}</span
             >
             <span class="timestamp"> {{ msg.sendTime | date:'HH:mm' }}</span>
           </div>
@@ -41,12 +40,12 @@
     <ion-item lines="none">
       <ion-input
         [formControl]="messageInput"
-        placeholder="输入消息..."
+        [placeholder]="t.inputPlaceholder"
         (keyup.enter)="sendMessage()"
       >
       </ion-input>
       <ion-button slot="end" fill="clear" (click)="sendMessage()">
-        发送
+        {{ t.send }}
       </ion-button>
     </ion-item>
   </ion-toolbar>

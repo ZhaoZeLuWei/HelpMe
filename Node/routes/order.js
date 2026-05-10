@@ -2,6 +2,7 @@ const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
 const { sendSystemMessage } = require("../chatHandler.js");
+const { translateFields } = require("./translateHelper");
 
 const router = express.Router();
 
@@ -199,6 +200,17 @@ router.get("/orders", authRequired, async (req, res) => {
        ORDER BY o.OrderCreateTime DESC`,
       [...params, userId],
     );
+
+    // 翻译
+    const lang = req.query.lang || "zh";
+    if (lang !== "zh") {
+      const translated = await Promise.all(
+        rows.map((r) =>
+          translateFields(r, ["EventTitle", "EventDetails", "ConsumerName", "ProviderName"], lang, "zh")
+        )
+      );
+      return res.json({ success: true, orders: translated });
+    }
 
     return res.json({ success: true, orders: rows });
   } catch (err) {

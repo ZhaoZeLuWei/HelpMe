@@ -1,7 +1,7 @@
 <div class="tasks-list">
   @if (isLoading) {
     <div class="empty-state">
-      <ion-text color="medium"><p>事件加载中...</p></ion-text>
+      <ion-text color="medium"><p>{{ t?.eventLoading || '加载中...' }}</p></ion-text>
     </div>
   }
   @for (event of events; track event.id) {
@@ -14,9 +14,9 @@
       >
         <ion-label>
           <h2 class="task-title">{{ event.title }}</h2>
-          <p class="task-meta">{{ event.location || "未填写地点" }}</p>
+          <p class="task-meta">{{ event.location || (t?.notFilled || '未填写地点') }}</p>
           <p class="task-meta">
-            事件号：{{ event.id }} · {{ event.createdAt }}
+            {{ t?.eventNo || '事件号：' }}{{ event.id }} · {{ event.createdAt }}
           </p>
         </ion-label>
         <ion-badge slot="end" [color]="event.statusColor">{{
@@ -25,25 +25,25 @@
       </ion-item>
       <ion-item lines="none" class="task-actions">
         <ion-buttons slot="end">
-          <ion-button (click)="viewDetail.emit(event.id)">详情</ion-button>
+          <ion-button (click)="viewDetail.emit(event.id)">{{ t?.viewDetails || '详情' }}</ion-button>
           @if (blockedEditIds.has(event.id)) {
             <ion-button disabled color="medium"
-              >订单进行中，禁止编辑</ion-button
+              >{{ t?.stopEditOrderInProgress || '订单进行中，禁止编辑' }}</ion-button
             >
             <ion-button disabled color="medium"
-              >有关联订单，禁止删除</ion-button
+              >{{ t?.linkedOrderBlockDelete || '有关联订单，禁止删除' }}</ion-button
             >
           } @else {
-            <ion-button (click)="edit.emit(event.id)">编辑</ion-button>
+            <ion-button (click)="edit.emit(event.id)">{{ t?.edit || '编辑' }}</ion-button>
             <ion-button
               color="danger"
               [disabled]="deletingIds.has(event.id)"
               (click)="remove.emit(event.id)"
             >
               @if (deletingIds.has(event.id)) {
-                删除中...
+                {{ t?.deleting || '删除中...' }}
               } @else {
-                删除
+                {{ t?.delete || '删除' }}
               }
             </ion-button>
           }
@@ -54,7 +54,7 @@
   @if (!isLoading && events.length === 0) {
     <div class="empty-state">
       <ion-icon name="document-text" class="empty-icon"></ion-icon>
-      <ion-text color="medium"><p>暂无事件</p></ion-text>
+      <ion-text color="medium"><p>{{ t?.noEvents || '暂无事件' }}</p></ion-text>
     </div>
   }
 </div>

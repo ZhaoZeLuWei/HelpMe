@@ -58,14 +58,7 @@ export class Tab1Page implements OnInit {
   }
 
   ngOnInit() {
-    this.getCardData('request').subscribe(data => {
-      this.requestList = data;
-      this.updateEventData();
-    });
-    this.getCardData('help').subscribe(data => {
-      this.helpList = data;
-      this.updateEventData();
-    });
+    this.loadCardLists();
 
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
       this.t = this.langService.getTranslations(lang).tab1;
@@ -134,7 +127,7 @@ export class Tab1Page implements OnInit {
   confirmSwitchLanguage() {
     this.langService.toggleLanguage();
     this.showLangConfirmModal = false;
-    this.loadCardLists();   // 重新加载数据
+    this.loadCardLists();
   }
 
   cancelSwitchLanguage() {
@@ -149,5 +142,45 @@ export class Tab1Page implements OnInit {
 
   trackById(index: number, item: CardItem): string {
     return item.id;
+  }
+
+  public onTranslateBtnClick(): void {
+    this.handleStaticTranslate();
+    this.handleDynamicTranslate();
+  }
+
+  private handleStaticTranslate(): void {
+    console.log('静态文本翻译已执行');
+  }
+
+  private handleDynamicTranslate(): void {
+    if (!this.dynamicSourceText.trim()) {
+      console.warn('无待翻译的动态文本');
+      return;
+    }
+
+    this.translateService
+      .translateText({
+        sourceText: this.dynamicSourceText,
+        sourceLang: this.sourceLang,
+        targetLang: this.targetLang,
+      })
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.translatedText = res.targetText;
+            console.log('翻译成功，结果：', this.translatedText);
+            alert('翻译成功：' + this.translatedText);
+          }
+        },
+        error: (err) => {
+          console.error('翻译失败', err);
+          alert('翻译失败，请检查后端服务是否启动');
+        },
+      });
+  }
+
+  public toggleTranslateLanguage(): void {
+    [this.sourceLang, this.targetLang] = [this.targetLang, this.sourceLang];
   }
 }

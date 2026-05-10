@@ -1,16 +1,15 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <!-- 返回箭头 -->
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
         <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
-        返回
+        {{ t.back }}
       </ion-button>
     </ion-buttons>
     <ion-buttons slot="end">
       <ion-button (click)="goHome()">
         <ion-icon slot="start" name="home-outline"></ion-icon>
-        主页
+        {{ t.home }}
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -18,9 +17,7 @@
 
 <ion-content [fullscreen]="true">
   <div class="detail-container">
-    <!-- 右侧内容区 -->
     <div class="content-area">
-      <!-- 发布者信息 -->
       <div class="publisher-info" (click)="goToUserParticular()">
         <div class="avatar-container">
           <img
@@ -40,55 +37,53 @@
             </ion-badge>
           </h3>
           <p class="publisher-meta">
-            买家评分: {{ (userInfo.buyerRanking || 0) }} 分
+            {{ t.buyerRating }} {{ (userInfo.buyerRanking || 0) }} 分
             <br />
-            服务评分：{{ (userInfo.serviceRanking || 0) }} 分
+            {{ t.serviceRating }} {{ (userInfo.serviceRanking || 0) }} 分
             <br />
-            服务次数：{{ (userInfo.orderCount || 0) }} 次
+            {{ t.serviceCount }} {{ (userInfo.orderCount || 0) }} 次
             <br />
-            注册时间：{{ userInfo.CreateTime }}
+            {{ t.registerTime }} {{ userInfo.CreateTime }}
           </p>
         </div>
       </div>
 
-      <!-- 任务核心信息 -->
       <div class="event-info">
         <h2 class="event-title">{{event?.title}}</h2>
         <div class="event-details">
           <p>
-            <ion-icon name="location-outline"></ion-icon> 地点：{{
+            <ion-icon name="location-outline"></ion-icon> {{ t.location }} {{
             event?.address }}
           </p>
           <p>
-            <ion-icon name="time-outline"></ion-icon> 时间：{{ event?.createTime
+            <ion-icon name="time-outline"></ion-icon> {{ t.time }} {{ event?.createTime
             }}
           </p>
           <p>
-            <ion-icon name="cash-outline"></ion-icon> 价格：¥{{ event?.price }}
+            <ion-icon name="cash-outline"></ion-icon> {{ t.price }} ¥{{ event?.price }}
           </p>
         </div>
         <p class="event-description">{{ event?.demand }}</p>
       </div>
 
-      <!-- 任务图标区 -->
       <div class="event-icon-area">
         <img
           [src]="event && event.cardImage ? apiBase + event.cardImage : ''"
-          alt="暂无任务图片"
+          [alt]="t.noImage"
           class="event-icon"
         />
       </div>
     </div>
   </div>
 </ion-content>
-<!-- 底部固定栏：与 ion-content 并列 -->
+
 <ion-footer id="particular-footer">
   <ion-toolbar>
     <ion-row class="bottom-actions">
       <ion-col>
         <ion-button expand="block" fill="outline" (click)="onCollect()">
           <ion-icon slot="start" name="star-outline"></ion-icon>
-          收藏
+          {{ t.favorite }}
         </ion-button>
       </ion-col>
       @if (!isCurrentUserCreator) {
@@ -100,7 +95,7 @@
           [disabled]="!canCreateOrder"
         >
           <ion-icon slot="start" name="document-text"></ion-icon>
-          {{ canCreateOrder ? '下单' : '暂不可下单' }}
+          {{ canCreateOrder ? t.placeOrder : t.cannotOrder }}
         </ion-button>
       </ion-col>
       }
@@ -110,7 +105,7 @@
             slot="start"
             [name]="isCurrentUserCreator ? 'create-outline' : 'chatbubble-outline'"
           ></ion-icon>
-          {{ isCurrentUserCreator ? '编辑' : '聊一聊' }}
+          {{ isCurrentUserCreator ? t.edit : t.chat }}
         </ion-button>
       </ion-col>
     </ion-row>
@@ -122,9 +117,9 @@
   <ng-template>
     <ion-header>
       <ion-toolbar>
-        <ion-title>编辑事件</ion-title>
+        <ion-title>{{ t.editEvent }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="clear" (click)="closeEditModal()">关闭</ion-button>
+          <ion-button fill="clear" (click)="closeEditModal()">{{ t.close }}</ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -132,35 +127,35 @@
       <form [formGroup]="editForm">
         <ion-list lines="full">
           <ion-item>
-            <ion-label position="stacked">标题 *</ion-label>
+            <ion-label position="stacked">{{ t.titleRequired }}</ion-label>
             <ion-input
               formControlName="EventTitle"
               placeholder="简明描述"
             ></ion-input>
           </ion-item>
           <ion-item>
-            <ion-label position="stacked">类型 *</ion-label>
+            <ion-label position="stacked">{{ t.typeRequired }}</ion-label>
             <ion-select formControlName="EventType" interface="popover">
-              <ion-select-option [value]="0">求助</ion-select-option>
-              <ion-select-option [value]="1">帮助</ion-select-option>
+              <ion-select-option [value]="0">{{ t.request }}</ion-select-option>
+              <ion-select-option [value]="1">{{ t.help }}</ion-select-option>
             </ion-select>
           </ion-item>
           <ion-item>
-            <ion-label position="stacked">类别 *</ion-label>
+            <ion-label position="stacked">{{ t.categoryRequired }}</ion-label>
             <ion-input
               formControlName="EventCategory"
               placeholder="如：电脑维修"
             ></ion-input>
           </ion-item>
           <ion-item>
-            <ion-label position="stacked">位置 *</ion-label>
+            <ion-label position="stacked">{{ t.locationRequired }}</ion-label>
             <ion-input
               formControlName="Location"
               placeholder="详细地址"
             ></ion-input>
           </ion-item>
           <ion-item>
-            <ion-label position="stacked">价格 (¥)</ion-label>
+            <ion-label position="stacked">{{ t.priceLabel }}</ion-label>
             <ion-input
               type="number"
               formControlName="Price"
@@ -168,7 +163,7 @@
             ></ion-input>
           </ion-item>
           <ion-item>
-            <ion-label position="stacked">详细描述 *</ion-label>
+            <ion-label position="stacked">{{ t.detailsRequired }}</ion-label>
             <ion-textarea
               formControlName="EventDetails"
               placeholder="补充说明"
@@ -181,7 +176,7 @@
             (click)="submitEdit()"
             [disabled]="isSavingEdit"
           >
-            {{ isSavingEdit ? '保存中...' : '保存修改' }}
+            {{ isSavingEdit ? t.saving : t.save }}
           </ion-button>
         </div>
       </form>
@@ -193,9 +188,9 @@
   <ng-template>
     <ion-header>
       <ion-toolbar>
-        <ion-title>填写订单信息</ion-title>
+        <ion-title>{{ t.orderForm }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="clear" (click)="closeOrderModal()">关闭</ion-button>
+          <ion-button fill="clear" (click)="closeOrderModal()">{{ t.close }}</ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -203,14 +198,14 @@
       <form [formGroup]="orderForm">
         <ion-list lines="full">
           <ion-item>
-            <ion-label position="stacked">详细地址 *</ion-label>
+            <ion-label position="stacked">{{ t.addressRequired }}</ion-label>
             <ion-input
               formControlName="DetailLocation"
               placeholder="请输入上门/交付地址"
             ></ion-input>
           </ion-item>
           <ion-item>
-            <ion-label position="stacked">补充信息</ion-label>
+            <ion-label position="stacked">{{ t.extraInfo }}</ion-label>
             <ion-textarea
               formControlName="AdditionalInfo"
               [autoGrow]="true"
@@ -224,7 +219,7 @@
             (click)="submitOrder()"
             [disabled]="isSubmittingOrder"
           >
-            {{ isSubmittingOrder ? '提交中...' : '确认下单' }}
+            {{ isSubmittingOrder ? t.submitting : t.confirmOrder }}
           </ion-button>
         </div>
       </form>

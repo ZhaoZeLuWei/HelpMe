@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
+import { LanguageService } from 'src/app/services/language.service';
 import { addIcons } from 'ionicons';
 import {
   chevronBackOutline,
@@ -40,8 +41,10 @@ export class UserParticularPage implements OnInit {
   private router = inject(Router);
   private location = inject(Location);
   private authService = inject(AuthService);
+  private langService = inject(LanguageService);
   private modalCtrl = inject(ModalController);
   readonly apiBase = environment.apiBase;
+  t = this.langService.getTranslations('zh').userParticular;
 
   isCurrentUser: boolean = false;
 
@@ -82,6 +85,10 @@ export class UserParticularPage implements OnInit {
   }
 
   ngOnInit() {
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).userParticular;
+    });
+
     this.route.queryParams.subscribe(params => {
       this.userInfo.name = params['name'] || '';
       this.userId = params['userId'] ? Number(params['userId']) : null;
@@ -162,7 +169,7 @@ export class UserParticularPage implements OnInit {
             .map(event => ({
               id: event.EventId,
               title: event.EventTitle,
-              description: event.EventDetails || '暂无描述',
+              description: event.EventDetails || this.t.noDescription,
               activityType: this.getActivityType(event.status),
               date: event.CreateTime,
               EventType: event.EventType
@@ -176,17 +183,18 @@ export class UserParticularPage implements OnInit {
 
   getActivityType(status: string): string {
     const map: Record<string, string> = {
-      published: '发布活动',
-      inProgress: '活动进行中',
-      completed: '活动完成',
-      review: '待评价'
+      published: this.t.published,
+      inProgress: this.t.inProgress,
+      completed: this.t.completed,
+      review: this.t.pendingReview
     };
-    return map[status] || '活动';
+    return map[status] || this.t.activity;
   }
 
   formatDate(dateString: string): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString('zh-CN', {
+    const locale = this.langService.getCurrentLang() === 'en' ? 'en-US' : 'zh-CN';
+    return date.toLocaleDateString(locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -220,11 +228,11 @@ export class UserParticularPage implements OnInit {
   getServiceRoleText(providerRole: number): string {
     switch (providerRole) {
       case 1:
-        return '热心用户';
+        return this.t.enthusiast;
       case 2:
-        return '服务达人';
+        return this.t.expert;
       default:
-        return '普通用户';
+        return this.t.normal;
     }
   }
 
@@ -244,7 +252,7 @@ export class UserParticularPage implements OnInit {
   }
 
   getTypeText(eventType: number): string {
-    return eventType === 1 ? '帮助' : '求助';
+    return eventType === 1 ? this.t.help : this.t.request;
   }
 
   getTypeColor(eventType: number): string {

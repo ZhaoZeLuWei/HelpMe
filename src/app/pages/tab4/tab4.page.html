@@ -31,10 +31,10 @@
 
   <ion-segment [value]="activeSection" (ionChange)="onSectionChange($event)">
     <ion-segment-button value="events"
-      ><ion-label>我的事件</ion-label></ion-segment-button
+      ><ion-label>{{ t.myEvents }}</ion-label></ion-segment-button
     >
     <ion-segment-button value="orders"
-      ><ion-label>我的订单</ion-label></ion-segment-button
+      ><ion-label>{{ t.myOrders }}</ion-label></ion-segment-button
     >
   </ion-segment>
 
@@ -71,10 +71,10 @@
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>订单评价</ion-title>
+          <ion-title>{{ t.orderReviewTitle }}</ion-title>
           <ion-buttons slot="end"
             ><ion-button fill="clear" (click)="closeReviewModal()"
-              >关闭</ion-button
+              >{{ t.close }}</ion-button
             ></ion-buttons
           >
         </ion-toolbar>
@@ -82,21 +82,21 @@
       <ion-content>
         <form [formGroup]="reviewForm" class="review-form">
           <ion-item>
-            <ion-label position="stacked">评分</ion-label>
+            <ion-label position="stacked">{{ t.rating }}</ion-label>
             <ion-select formControlName="Score" interface="popover">
-              <ion-select-option [value]="5">5 分</ion-select-option>
-              <ion-select-option [value]="4">4 分</ion-select-option>
-              <ion-select-option [value]="3">3 分</ion-select-option>
-              <ion-select-option [value]="2">2 分</ion-select-option>
-              <ion-select-option [value]="1">1 分</ion-select-option>
+              <ion-select-option [value]="5">{{ t.fiveStar }}</ion-select-option>
+              <ion-select-option [value]="4">{{ t.fourStar }}</ion-select-option>
+              <ion-select-option [value]="3">{{ t.threeStar }}</ion-select-option>
+              <ion-select-option [value]="2">{{ t.twoStar }}</ion-select-option>
+              <ion-select-option [value]="1">{{ t.oneStar }}</ion-select-option>
             </ion-select>
           </ion-item>
           <ion-item>
-            <ion-label position="stacked">评价内容</ion-label>
+            <ion-label position="stacked">{{ t.reviewContent }}</ion-label>
             <ion-textarea
               formControlName="Text"
               [autoGrow]="true"
-              placeholder="写下你的评价"
+              [placeholder]="t.reviewPlaceholder"
             ></ion-textarea>
           </ion-item>
           <div class="modal-actions">
@@ -104,9 +104,9 @@
               fill="outline"
               color="medium"
               (click)="closeReviewModal()"
-              >取消</ion-button
+              >{{ t.cancel }}</ion-button
             >
-            <ion-button (click)="submitReview()">提交评价</ion-button>
+            <ion-button (click)="submitReview()">{{ t.submitReview }}</ion-button>
           </div>
         </form>
       </ion-content>
@@ -117,10 +117,10 @@
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>订单评价详情</ion-title>
+          <ion-title>{{ t.reviewDetailTitle }}</ion-title>
           <ion-buttons slot="end">
             <ion-button fill="clear" (click)="closeReviewDetail()"
-              >关闭</ion-button
+              >{{ t.close }}</ion-button
             >
           </ion-buttons>
         </ion-toolbar>
@@ -128,7 +128,7 @@
       <ion-content>
         @if (isLoadingReviews) {
         <div class="empty-state">
-          <ion-text color="medium"><p>加载中...</p></ion-text>
+          <ion-text color="medium"><p>{{ t.loading }}</p></ion-text>
         </div>
         } @else if (reviewDetailList.length === 0) {
         <div class="empty-state">
@@ -136,7 +136,7 @@
             name="chatbubble-ellipses-outline"
             class="empty-icon"
           ></ion-icon>
-          <ion-text color="medium"><p>暂无评价</p></ion-text>
+          <ion-text color="medium"><p>{{ t.noReviews }}</p></ion-text>
         </div>
         } @else {
         <div class="review-detail-list">
@@ -262,12 +262,12 @@
               detail="true"
               (click)="openLocationPicker('profileEdit')"
             >
-              <ion-label>所在地 *</ion-label>
+              <ion-label>{{ t.locationLabelProfile }} *</ion-label>
               <ion-note
                 slot="end"
                 [color]="editProfileForm.value.Location ? 'primary' : 'medium'"
               >
-                {{ editProfileForm.value.Location || '请选择地点' }}
+                {{ editProfileForm.value.Location || t.locationPlaceholderProfile }}
               </ion-note>
             </ion-item>
 
@@ -326,10 +326,10 @@
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>编辑事件</ion-title>
+          <ion-title>{{ t.editEventTitle }}</ion-title>
           <ion-buttons slot="end">
             <ion-button fill="clear" (click)="closeEditModal()"
-              >关闭</ion-button
+              >{{ t.close }}</ion-button
             >
           </ion-buttons>
         </ion-toolbar>
@@ -338,24 +338,24 @@
         <form [formGroup]="editForm">
           <ion-list lines="full">
             <ion-item>
-              <ion-label position="stacked">标题 *</ion-label>
+              <ion-label position="stacked">{{ t.titleLabel }} *</ion-label>
               <ion-input
                 formControlName="EventTitle"
-                placeholder="简明描述"
+                [placeholder]="t.titlePlaceholder"
               ></ion-input>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">类型 *</ion-label>
+              <ion-label position="stacked">{{ t.typeLabel }} *</ion-label>
               <ion-select formControlName="EventType" interface="popover">
-                <ion-select-option [value]="0">求助</ion-select-option>
-                <ion-select-option [value]="1">帮助</ion-select-option>
+                <ion-select-option [value]="0">{{ t.typeRequest }}</ion-select-option>
+                <ion-select-option [value]="1">{{ t.typeHelp }}</ion-select-option>
               </ion-select>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">类别 *</ion-label>
+              <ion-label position="stacked">{{ t.categoryLabel }} *</ion-label>
               <ion-input
                 formControlName="EventCategory"
-                placeholder="如：电脑维修"
+                [placeholder]="t.categoryPlaceholder"
               ></ion-input>
             </ion-item>
             <ion-item
@@ -363,27 +363,27 @@
               detail="true"
               (click)="openLocationPicker('eventEdit')"
             >
-              <ion-label>位置 *</ion-label>
+              <ion-label>{{ t.locationLabel }} *</ion-label>
               <ion-note
                 slot="end"
                 [color]="editForm.value.Location ? 'primary' : 'medium'"
               >
-                {{ editForm.value.Location || '请选择地点' }}
+                {{ editForm.value.Location || t.locationPlaceholder }}
               </ion-note>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">价格 (¥)</ion-label>
+              <ion-label position="stacked">{{ t.priceLabel }}</ion-label>
               <ion-input
                 type="number"
                 formControlName="Price"
-                placeholder="0 表示无偿帮助"
+                [placeholder]="t.pricePlaceholder"
               ></ion-input>
             </ion-item>
             <ion-item>
-              <ion-label position="stacked">详细描述 *</ion-label>
+              <ion-label position="stacked">{{ t.detailsLabel }} *</ion-label>
               <ion-textarea
                 formControlName="EventDetails"
-                placeholder="补充说明"
+                [placeholder]="t.detailsPlaceholder"
               ></ion-textarea>
             </ion-item>
           </ion-list>
@@ -393,7 +393,7 @@
               (click)="submitEdit()"
               [disabled]="isSavingEdit"
             >
-              {{ isSavingEdit ? '保存中...' : '保存修改' }}
+              {{ isSavingEdit ? t.saving : t.save }}
             </ion-button>
           </div>
         </form>
@@ -409,10 +409,10 @@
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>订单详情</ion-title>
+          <ion-title>{{ t.orderInfo }}</ion-title>
           <ion-buttons slot="end">
             <ion-button fill="clear" (click)="closeOrderDetail()"
-              >关闭</ion-button
+              >{{ t.close }}</ion-button
             >
           </ion-buttons>
         </ion-toolbar>
@@ -420,47 +420,44 @@
       <ion-content>
         @if (currentOrderDetail) {
         <div class="order-detail-content">
-          <!-- 订单基本信息 -->
           <div class="detail-section">
-            <h3>订单信息</h3>
-            <p><strong>订单号：</strong>{{ currentOrderDetail.id }}</p>
-            <p><strong>下单时间：</strong>{{ currentOrderDetail.createdAt }}</p>
+            <h3>{{ t.orderInfo }}</h3>
+            <p><strong>{{ t.orderId }}</strong>{{ currentOrderDetail.id }}</p>
+            <p><strong>{{ t.orderTime }}</strong>{{ currentOrderDetail.createdAt }}</p>
             <p>
-              <strong>角色：</strong>{{ currentOrderDetail.role === 'buyer' ?
-              '买家' : '卖家' }}
+              <strong>{{ t.buyer === '买家' ? '角色：' : 'Role: ' }}</strong>{{ currentOrderDetail.role === 'buyer' ?
+              t.buyer : t.seller }}
             </p>
-            <p><strong>订单状态：</strong>{{ currentOrderDetail.status }}</p>
-            <p><strong>成交价格：</strong>¥{{ currentOrderDetail.price }}</p>
+            <p><strong>{{ t.orderStatus }}</strong>{{ currentOrderDetail.status }}</p>
+            <p><strong>{{ t.dealPrice }}</strong>¥{{ currentOrderDetail.price }}</p>
           </div>
 
-          <!-- 下单时的事件快照 -->
           <div class="detail-section snapshot-section">
             <h3>
               <ion-icon name="time-outline"></ion-icon>
-              下单时的事件信息
+              {{ t.eventInfoOnOrder }}
             </h3>
-            <p><strong>标题：</strong>{{ currentOrderDetail.snapshotTitle }}</p>
+            <p><strong>{{ currentOrderDetail.snapshotTitle ? '标题：' : 'Title: ' }}</strong>{{ currentOrderDetail.snapshotTitle }}</p>
             <p>
-              <strong>类别：</strong>{{ currentOrderDetail.snapshotCategory ||
-              '未分类' }}
+              <strong>{{ t.categoryColon }}</strong>{{ currentOrderDetail.snapshotCategory ||
+              t.uncategorized }}
             </p>
             <p>
-              <strong>地点：</strong>{{ currentOrderDetail.snapshotLocation ||
-              '未填写' }}
+              <strong>{{ t.locationColon }}</strong>{{ currentOrderDetail.snapshotLocation ||
+              t.notFilled }}
             </p>
             <p>
-              <strong>价格：</strong>¥{{ currentOrderDetail.snapshotPrice }}
+              <strong>{{ t.priceColon }}</strong>¥{{ currentOrderDetail.snapshotPrice }}
             </p>
             @if (currentOrderDetail.snapshotDetails) {
             <p>
-              <strong>描述：</strong>{{ currentOrderDetail.snapshotDetails }}
+              <strong>{{ t.descriptionColon }}</strong>{{ currentOrderDetail.snapshotDetails }}
             </p>
             }
 
-            <!-- 照片展示 -->
             @if (currentOrderDetail.snapshotPhotos?.length > 0) {
             <div class="snapshot-photos">
-              <p><strong>事件照片：</strong></p>
+              <p><strong>{{ t.eventPhotos }}</strong></p>
               <div class="photo-grid">
                 @for (photo of currentOrderDetail.snapshotPhotos; track $index)
                 {
