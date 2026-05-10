@@ -45,6 +45,7 @@ import { ModalController } from '@ionic/angular/standalone';
 import { ToastController } from '@ionic/angular';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
+import { LanguageService } from 'src/app/services/language.service';
 import { NavController } from '@ionic/angular';
 import {
   LocationPickerComponent,
@@ -116,11 +117,13 @@ export class ParticularPage implements OnInit {
   private router = inject(Router);
   private location = inject(Location);
   private authService = inject(AuthService);
+  private langService = inject(LanguageService);
   private modalCtrl = inject(ModalController);
   private toastController = inject(ToastController);
   private navCtrl = inject(NavController);
   private fb = inject(FormBuilder);
   readonly apiBase = environment.apiBase;
+  t = this.langService.getTranslations('zh').particular;
 
   @ViewChild('editEventModal')
   editEventModal!: EditEventModalComponent;
@@ -167,6 +170,10 @@ export class ParticularPage implements OnInit {
   previewPhotoIndex = 0;
 
   ngOnInit() {
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).particular;
+    });
+
     this.route.queryParams.subscribe((params) => {
       const eventId = params['eventId'];
       if (eventId) {
@@ -177,7 +184,8 @@ export class ParticularPage implements OnInit {
 
   async loadEventDetail(eventId: string) {
     try {
-      const resp = await fetch(`${this.apiBase}/events/${eventId}`);
+      const lang = this.langService.getCurrentLang();
+      const resp = await fetch(`${this.apiBase}/events/${eventId}?lang=${lang}`);
       if (resp.ok) {
         const data = await resp.json();
         if (data?.success && data?.event) {
@@ -312,7 +320,7 @@ export class ParticularPage implements OnInit {
   openOrderModal() {
     if (!this.event) return;
     if (!this.canCreateOrder) {
-      this.showToast('该事件当前存在未完结订单，暂不可下单');
+      this.showToast(this.t.cannotOrder);
       return;
     }
     // 预选事件地址为下单地址
@@ -379,16 +387,16 @@ export class ParticularPage implements OnInit {
       });
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.success) {
-        this.showToast(data?.error || '下单失败');
+        this.showToast(data?.error || this.t.networkError);
         return;
       }
       this.closeOrderModal();
       this.canCreateOrder = false;
       this.activeOrder = { OrderId: data.orderId, OrderStatus: 0 };
-      this.showToast('下单成功，等待卖家确认');
+      this.showToast(this.t.orderSuccess);
     } catch (e) {
       console.error('submitOrder error', e);
-      this.showToast('网络错误，请稍后重试');
+      this.showToast(this.t.networkError);
     } finally {
       this.isSubmittingOrder = false;
     }
@@ -397,7 +405,7 @@ export class ParticularPage implements OnInit {
   async onFollow() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录');
+      this.showToast(this.t.loginFirst);
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
         component: LoginPage,
@@ -422,7 +430,7 @@ export class ParticularPage implements OnInit {
   async onCollect() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录');
+      this.showToast(this.t.loginFirst);
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
         component: LoginPage,
@@ -467,7 +475,7 @@ export class ParticularPage implements OnInit {
   async onChat() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录');
+      this.showToast(this.t.loginFirst);
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
         component: LoginPage,
@@ -580,7 +588,7 @@ export class ParticularPage implements OnInit {
       const data = await resp.json();
 
       if (data.success) {
-        this.showToast('修改成功');
+        this.showToast(this.t.editSuccess);
         this.closeEditModal();
         this.loadEventDetail(String(this.event.id));
       } else {

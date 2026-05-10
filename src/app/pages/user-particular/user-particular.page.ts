@@ -1,21 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  IonButton,
-  IonContent,
-  IonHeader,
-  IonToolbar,
-  IonIcon,
-  IonButtons,
-  IonTitle,
-  IonBadge,
-  ModalController,
-} from '@ionic/angular/standalone';
+import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonTitle, IonBadge, ModalController } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
-import { ToastController } from '@ionic/angular';
+import { LanguageService } from 'src/app/services/language.service';
 import { addIcons } from 'ionicons';
 import {
   chevronBackOutline,
@@ -26,7 +16,7 @@ import {
   homeOutline,
   createOutline,
   handLeftOutline,
-  heart,
+  heart
 } from 'ionicons/icons';
 
 @Component({
@@ -51,12 +41,12 @@ export class UserParticularPage implements OnInit {
   private router = inject(Router);
   private location = inject(Location);
   private authService = inject(AuthService);
+  private langService = inject(LanguageService);
   private modalCtrl = inject(ModalController);
-  private toastController = inject(ToastController);
   readonly apiBase = environment.apiBase;
+  t = this.langService.getTranslations('zh').userParticular;
 
   isCurrentUser: boolean = false;
-  isFollowing: boolean = false;
 
   userInfo: any = {
     name: '',
@@ -69,7 +59,7 @@ export class UserParticularPage implements OnInit {
     serviceRanking: 0,
     isVerified: '未认证',
     stats: { favorites: 0, views: 0, follows: 0 },
-    CreateTime: '',
+    CreateTime: ''
   };
 
   userId: number | null = null;
@@ -90,12 +80,16 @@ export class UserParticularPage implements OnInit {
       homeOutline,
       createOutline,
       handLeftOutline,
-      heart,
+      heart
     });
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe((params) => {
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).userParticular;
+    });
+
+    this.route.queryParams.subscribe(params => {
       this.userInfo.name = params['name'] || '';
       this.userId = params['userId'] ? Number(params['userId']) : null;
 
@@ -105,22 +99,13 @@ export class UserParticularPage implements OnInit {
         this.loadUserComments(this.userId);
         this.loadActivityFeed(this.userId);
         this.checkIsCurrentUser();
-        this.checkFollowStatus();
       }
     });
   }
 
   checkIsCurrentUser() {
     const currentUserId = this.authService.currentUserId;
-    this.isCurrentUser =
-      currentUserId !== null &&
-      this.userId !== null &&
-      currentUserId === this.userId;
-  }
-
-  async checkFollowStatus() {
-    if (this.isCurrentUser || !this.userId) return;
-    this.isFollowing = await this.authService.checkFollow(this.userId);
+    this.isCurrentUser = currentUserId !== null && this.userId !== null && currentUserId === this.userId;
   }
 
   switchTab(tab: string) {
@@ -181,13 +166,13 @@ export class UserParticularPage implements OnInit {
               const dateB = new Date(b.CreateTime || 0).getTime();
               return dateB - dateA;
             })
-            .map((event) => ({
+            .map(event => ({
               id: event.EventId,
               title: event.EventTitle,
-              description: event.EventDetails || '暂无描述',
+              description: event.EventDetails || this.t.noDescription,
               activityType: this.getActivityType(event.status),
               date: event.CreateTime,
-              EventType: event.EventType,
+              EventType: event.EventType
             }));
         }
       }
@@ -198,22 +183,23 @@ export class UserParticularPage implements OnInit {
 
   getActivityType(status: string): string {
     const map: Record<string, string> = {
-      published: '发布活动',
-      inProgress: '活动进行中',
-      completed: '活动完成',
-      review: '待评价',
+      published: this.t.published,
+      inProgress: this.t.inProgress,
+      completed: this.t.completed,
+      review: this.t.pendingReview
     };
-    return map[status] || '活动';
+    return map[status] || this.t.activity;
   }
 
   formatDate(dateString: string): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString('zh-CN', {
+    const locale = this.langService.getCurrentLang() === 'en' ? 'en-US' : 'zh-CN';
+    return date.toLocaleDateString(locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit',
+      minute: '2-digit'
     });
   }
 
@@ -242,13 +228,11 @@ export class UserParticularPage implements OnInit {
   getServiceRoleText(providerRole: number): string {
     switch (providerRole) {
       case 1:
-        return '热心用户';
+        return this.t.enthusiast;
       case 2:
-        return '服务达人';
-      case 3:
-        return '商家';
+        return this.t.expert;
       default:
-        return '普通用户';
+        return this.t.normal;
     }
   }
 
@@ -257,8 +241,6 @@ export class UserParticularPage implements OnInit {
       case 1:
         return 'warning';
       case 2:
-        return 'success';
-      case 3:
         return 'success';
       default:
         return 'medium';
@@ -270,7 +252,7 @@ export class UserParticularPage implements OnInit {
   }
 
   getTypeText(eventType: number): string {
-    return eventType === 1 ? '帮助' : '求助';
+    return eventType === 1 ? this.t.help : this.t.request;
   }
 
   getTypeColor(eventType: number): string {
@@ -306,13 +288,13 @@ export class UserParticularPage implements OnInit {
     this.router.navigate(['/particular'], {
       queryParams: {
         eventId: eventId,
-        title: event.EventTitle || event.title,
-      },
+        title: event.EventTitle || event.title
+      }
     });
   }
   goToEditEvent(eventId: number) {
-    this.router.navigate(['/tabs/tab4'], {
-      queryParams: { editEvent: eventId },
+    this.router.navigate(['/tabs/tab4'], { 
+      queryParams: { editEvent: eventId } 
     });
   }
 
@@ -334,7 +316,7 @@ export class UserParticularPage implements OnInit {
       console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage,
+        component: LoginPage
       });
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;
@@ -356,12 +338,12 @@ export class UserParticularPage implements OnInit {
     }
     this.router.navigate(['/chat-detail'], {
       state: { targetUser: this.userInfo },
-      replaceUrl: true,
+      replaceUrl: true
     });
 
     const chatData = {
       TargetUserId: this.userId,
-      PartnerId: currentUserId,
+      PartnerId: currentUserId
     };
     console.log('聊天数据:', chatData);
   }
@@ -369,9 +351,10 @@ export class UserParticularPage implements OnInit {
   async onFollow() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
+      console.log('请先登录');
       const { LoginPage } = await import('../login/login.page');
       const modal = await this.modalCtrl.create({
-        component: LoginPage,
+        component: LoginPage
       });
       modal.onDidDismiss().then(() => {
         const newUserId = this.authService.currentUserId;
@@ -382,16 +365,6 @@ export class UserParticularPage implements OnInit {
       await modal.present();
       return;
     }
-    if (!this.userId) return;
-    const result = await this.authService.toggleFollow(this.userId);
-    if (result !== null) {
-      this.isFollowing = result;
-      const toast = await this.toastController.create({
-        message: result ? '已关注' : '已取消关注',
-        duration: 2000,
-        position: 'bottom',
-      });
-      await toast.present();
-    }
+    console.log('关注按钮点击');
   }
 }

@@ -31,23 +31,12 @@
 
   <ion-segment [value]="activeSection" (ionChange)="onSectionChange($event)">
     <ion-segment-button value="events"
-      ><ion-label>我的事件</ion-label></ion-segment-button
+      ><ion-label>{{ t.myEvents }}</ion-label></ion-segment-button
     >
     <ion-segment-button value="orders"
-      ><ion-label>我的订单</ion-label></ion-segment-button
+      ><ion-label>{{ t.myOrders }}</ion-label></ion-segment-button
     >
   </ion-segment>
-
-  <div class="action-buttons-row">
-    <ion-button fill="outline" size="small" (click)="openFavoritesModal()">
-      <ion-icon slot="start" name="star-outline"></ion-icon>
-      我的收藏
-    </ion-button>
-    <ion-button fill="outline" size="small" (click)="openFollowsModal()">
-      <ion-icon slot="start" name="people-outline"></ion-icon>
-      关注的人
-    </ion-button>
-  </div>
 
   @if (activeSection === 'events') {
   <app-tab4-events-panel
@@ -55,7 +44,6 @@
     [isLoading]="isLoadingEvents"
     [deletingIds]="deletingIds"
     [blockedEditIds]="getBlockedEditIds()"
-    [blockedEditOnlyIds]="getBlockedEditOnlyIds()"
     [t]="t"
     (viewDetail)="goToEventDetail($event)"
     (edit)="editTask($event)"
@@ -79,18 +67,105 @@
   ></app-tab4-orders-panel>
   }
 
-  <app-review-modal
-    [isOpen]="isReviewModalOpen"
-    [isSaving]="isSubmittingReview"
-    (didDismiss)="closeReviewModal()"
-    (submit)="handleReviewSubmit($event)"
-  ></app-review-modal>
+  <ion-modal [isOpen]="isReviewModalOpen" (didDismiss)="closeReviewModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ t.orderReviewTitle }}</ion-title>
+          <ion-buttons slot="end"
+            ><ion-button fill="clear" (click)="closeReviewModal()"
+              >{{ t.close }}</ion-button
+            ></ion-buttons
+          >
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <form [formGroup]="reviewForm" class="review-form">
+          <ion-item>
+            <ion-label position="stacked">{{ t.rating }}</ion-label>
+            <ion-select formControlName="Score" interface="popover">
+              <ion-select-option [value]="5">{{ t.fiveStar }}</ion-select-option>
+              <ion-select-option [value]="4">{{ t.fourStar }}</ion-select-option>
+              <ion-select-option [value]="3">{{ t.threeStar }}</ion-select-option>
+              <ion-select-option [value]="2">{{ t.twoStar }}</ion-select-option>
+              <ion-select-option [value]="1">{{ t.oneStar }}</ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">{{ t.reviewContent }}</ion-label>
+            <ion-textarea
+              formControlName="Text"
+              [autoGrow]="true"
+              [placeholder]="t.reviewPlaceholder"
+            ></ion-textarea>
+          </ion-item>
+          <div class="modal-actions">
+            <ion-button
+              fill="outline"
+              color="medium"
+              (click)="closeReviewModal()"
+              >{{ t.cancel }}</ion-button
+            >
+            <ion-button (click)="submitReview()">{{ t.submitReview }}</ion-button>
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 
-  <app-review-detail-modal
-    [isOpen]="isReviewDetailOpen"
-    [orderId]="reviewDetailOrderId"
-    (didDismiss)="closeReviewDetail()"
-  ></app-review-detail-modal>
+  <ion-modal [isOpen]="isReviewDetailOpen" (didDismiss)="closeReviewDetail()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ t.reviewDetailTitle }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="closeReviewDetail()"
+              >{{ t.close }}</ion-button
+            >
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        @if (isLoadingReviews) {
+        <div class="empty-state">
+          <ion-text color="medium"><p>{{ t.loading }}</p></ion-text>
+        </div>
+        } @else if (reviewDetailList.length === 0) {
+        <div class="empty-state">
+          <ion-icon
+            name="chatbubble-ellipses-outline"
+            class="empty-icon"
+          ></ion-icon>
+          <ion-text color="medium"><p>{{ t.noReviews }}</p></ion-text>
+        </div>
+        } @else {
+        <div class="review-detail-list">
+          @for (r of reviewDetailList; track r.id) {
+          <ion-card class="review-item">
+            <ion-item lines="none">
+              <ion-avatar slot="start">
+                <img [src]="getReviewAvatar(r.authorAvatar)" alt="头像" />
+              </ion-avatar>
+              <ion-label>
+                <h2>{{ r.authorName }}</h2>
+                <p>{{ r.createTime }}</p>
+              </ion-label>
+              <ion-badge slot="end" color="warning" class="review-score-badge"
+                >{{ r.rating }} 分</ion-badge
+              >
+            </ion-item>
+            @if (r.content) {
+            <ion-item lines="none">
+              <ion-text>{{ r.content }}</ion-text>
+            </ion-item>
+            }
+          </ion-card>
+          }
+        </div>
+        }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 
   <ion-modal
     [isOpen]="isEditProfileModalOpen"
@@ -187,12 +262,12 @@
               detail="true"
               (click)="openLocationPicker('profileEdit')"
             >
-              <ion-label>所在地 *</ion-label>
+              <ion-label>{{ t.locationLabelProfile }} *</ion-label>
               <ion-note
                 slot="end"
                 [color]="editProfileForm.value.Location ? 'primary' : 'medium'"
               >
-                {{ editProfileForm.value.Location || '请选择地点' }}
+                {{ editProfileForm.value.Location || t.locationPlaceholderProfile }}
               </ion-note>
             </ion-item>
 
@@ -247,110 +322,81 @@
   ></ion-alert>
 
   <!-- 编辑事件弹窗 -->
-  <app-edit-event-modal
-    #editEventModal
-    [isOpen]="isEditModalOpen"
-    [eventData]="editingEventData"
-    [isSaving]="isSavingEdit"
-    (didDismiss)="closeEditModal()"
-    (save)="submitEdit($event)"
-    (openLocationPicker)="openLocationPicker('eventEdit')"
-  ></app-edit-event-modal>
-
-  <!-- 我的收藏弹窗 -->
-  <ion-modal
-    [isOpen]="isFavoritesModalOpen"
-    (didDismiss)="closeFavoritesModal()"
-  >
+  <ion-modal [isOpen]="isEditModalOpen" (didDismiss)="closeEditModal()">
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>我的收藏</ion-title>
+          <ion-title>{{ t.editEventTitle }}</ion-title>
           <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeFavoritesModal()"
-              >关闭</ion-button
+            <ion-button fill="clear" (click)="closeEditModal()"
+              >{{ t.close }}</ion-button
             >
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
       <ion-content>
-        @if (isLoadingFavorites) {
-        <div class="empty-state">
-          <ion-text color="medium"><p>加载中...</p></ion-text>
-        </div>
-        } @else if (favoritesList.length === 0) {
-        <div class="empty-state">
-          <ion-icon name="star-outline" class="empty-icon"></ion-icon>
-          <ion-text color="medium"><p>暂无收藏</p></ion-text>
-        </div>
-        } @else {
-        <div class="favorites-list">
-          @for (fav of favoritesList; track fav.id) {
-          <app-show-event
-            [event]="fav"
-            (cardClick)="onFavoriteCardClick($event)"
-          ></app-show-event>
-          }
-        </div>
-        }
-      </ion-content>
-    </ng-template>
-  </ion-modal>
-
-  <!-- 关注的人弹窗 -->
-  <ion-modal [isOpen]="isFollowsModalOpen" (didDismiss)="closeFollowsModal()">
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>关注的人</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeFollowsModal()"
-              >关闭</ion-button
+        <form [formGroup]="editForm">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">{{ t.titleLabel }} *</ion-label>
+              <ion-input
+                formControlName="EventTitle"
+                [placeholder]="t.titlePlaceholder"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ t.typeLabel }} *</ion-label>
+              <ion-select formControlName="EventType" interface="popover">
+                <ion-select-option [value]="0">{{ t.typeRequest }}</ion-select-option>
+                <ion-select-option [value]="1">{{ t.typeHelp }}</ion-select-option>
+              </ion-select>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ t.categoryLabel }} *</ion-label>
+              <ion-input
+                formControlName="EventCategory"
+                [placeholder]="t.categoryPlaceholder"
+              ></ion-input>
+            </ion-item>
+            <ion-item
+              button
+              detail="true"
+              (click)="openLocationPicker('eventEdit')"
             >
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        @if (isLoadingFollows) {
-        <div class="empty-state">
-          <ion-text color="medium"><p>加载中...</p></ion-text>
-        </div>
-        } @else if (followsList.length === 0) {
-        <div class="empty-state">
-          <ion-icon name="people-outline" class="empty-icon"></ion-icon>
-          <ion-text color="medium"><p>暂未关注任何人</p></ion-text>
-        </div>
-        } @else {
-        <div class="follows-list">
-          @for (user of followsList; track user.UserId) {
-          <div class="follow-item" (click)="goToUserFromFollow(user)">
-            <div class="follow-avatar-container">
-              <img
-                [src]="getAssetUrl(user.UserAvatar) || 'assets/icon/user.svg'"
-                alt="头像"
-                class="follow-avatar"
-              />
-            </div>
-            <div class="follow-info">
-              <h4>{{ user.UserName }}</h4>
-              <p>{{ user.Location || '未设置地点' }}</p>
-              <p class="follow-meta">
-                服务评分：{{ user.ServiceRanking || 0 }} · 粉丝：{{
-                user.OrderCount || 0 }}
-              </p>
-            </div>
+              <ion-label>{{ t.locationLabel }} *</ion-label>
+              <ion-note
+                slot="end"
+                [color]="editForm.value.Location ? 'primary' : 'medium'"
+              >
+                {{ editForm.value.Location || t.locationPlaceholder }}
+              </ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ t.priceLabel }}</ion-label>
+              <ion-input
+                type="number"
+                formControlName="Price"
+                [placeholder]="t.pricePlaceholder"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ t.detailsLabel }} *</ion-label>
+              <ion-textarea
+                formControlName="EventDetails"
+                [placeholder]="t.detailsPlaceholder"
+              ></ion-textarea>
+            </ion-item>
+          </ion-list>
+          <div style="padding: 16px">
             <ion-button
-              fill="outline"
-              color="danger"
-              size="small"
-              (click)="removeFollow(user.UserId); $event.stopPropagation()"
+              expand="block"
+              (click)="submitEdit()"
+              [disabled]="isSavingEdit"
             >
-              取消关注
+              {{ isSavingEdit ? t.saving : t.save }}
             </ion-button>
           </div>
-          }
-        </div>
-        }
+        </form>
       </ion-content>
     </ng-template>
   </ion-modal>
@@ -363,10 +409,10 @@
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>订单详情</ion-title>
+          <ion-title>{{ t.orderInfo }}</ion-title>
           <ion-buttons slot="end">
             <ion-button fill="clear" (click)="closeOrderDetail()"
-              >关闭</ion-button
+              >{{ t.close }}</ion-button
             >
           </ion-buttons>
         </ion-toolbar>
@@ -374,70 +420,44 @@
       <ion-content>
         @if (currentOrderDetail) {
         <div class="order-detail-content">
-          <!-- 订单基本信息 -->
           <div class="detail-section">
-            <h3>订单信息</h3>
-            <p><strong>订单号：</strong>{{ currentOrderDetail.id }}</p>
-            <p><strong>下单时间：</strong>{{ currentOrderDetail.createdAt }}</p>
+            <h3>{{ t.orderInfo }}</h3>
+            <p><strong>{{ t.orderId }}</strong>{{ currentOrderDetail.id }}</p>
+            <p><strong>{{ t.orderTime }}</strong>{{ currentOrderDetail.createdAt }}</p>
             <p>
-              <strong>角色：</strong>{{ currentOrderDetail.role === 'buyer' ?
-              '买家' : '卖家' }}
+              <strong>{{ t.buyer === '买家' ? '角色：' : 'Role: ' }}</strong>{{ currentOrderDetail.role === 'buyer' ?
+              t.buyer : t.seller }}
             </p>
-            <p><strong>订单状态：</strong>{{ currentOrderDetail.status }}</p>
-            <p><strong>成交价格：</strong>¥{{ currentOrderDetail.price }}</p>
+            <p><strong>{{ t.orderStatus }}</strong>{{ currentOrderDetail.status }}</p>
+            <p><strong>{{ t.dealPrice }}</strong>¥{{ currentOrderDetail.price }}</p>
           </div>
 
-          <!-- 交付地址信息 -->
-          <div class="detail-section">
-            <h3>
-              <ion-icon name="location-outline"></ion-icon>
-              交付地址
-            </h3>
-            <p>
-              <strong>地址：</strong>{{ currentOrderDetail.deliveryAddress ||
-              '未填写' }}
-            </p>
-            @if (currentOrderDetail.deliverySpecific) {
-            <p>
-              <strong>具体位置：</strong>{{ currentOrderDetail.deliverySpecific
-              }}
-            </p>
-            } @if (currentOrderDetail.deliveryAdditionalInfo) {
-            <p>
-              <strong>补充信息：</strong>{{
-              currentOrderDetail.deliveryAdditionalInfo }}
-            </p>
-            }
-          </div>
-
-          <!-- 下单时的事件快照 -->
           <div class="detail-section snapshot-section">
             <h3>
               <ion-icon name="time-outline"></ion-icon>
-              下单时的事件信息
+              {{ t.eventInfoOnOrder }}
             </h3>
-            <p><strong>标题：</strong>{{ currentOrderDetail.snapshotTitle }}</p>
+            <p><strong>{{ currentOrderDetail.snapshotTitle ? '标题：' : 'Title: ' }}</strong>{{ currentOrderDetail.snapshotTitle }}</p>
             <p>
-              <strong>类别：</strong>{{ currentOrderDetail.snapshotCategory ||
-              '未分类' }}
+              <strong>{{ t.categoryColon }}</strong>{{ currentOrderDetail.snapshotCategory ||
+              t.uncategorized }}
             </p>
             <p>
-              <strong>地点：</strong>{{ currentOrderDetail.snapshotLocation ||
-              '未填写' }}
+              <strong>{{ t.locationColon }}</strong>{{ currentOrderDetail.snapshotLocation ||
+              t.notFilled }}
             </p>
             <p>
-              <strong>价格：</strong>¥{{ currentOrderDetail.snapshotPrice }}
+              <strong>{{ t.priceColon }}</strong>¥{{ currentOrderDetail.snapshotPrice }}
             </p>
             @if (currentOrderDetail.snapshotDetails) {
             <p>
-              <strong>描述：</strong>{{ currentOrderDetail.snapshotDetails }}
+              <strong>{{ t.descriptionColon }}</strong>{{ currentOrderDetail.snapshotDetails }}
             </p>
             }
 
-            <!-- 照片展示 -->
             @if (currentOrderDetail.snapshotPhotos?.length > 0) {
             <div class="snapshot-photos">
-              <p><strong>事件照片：</strong></p>
+              <p><strong>{{ t.eventPhotos }}</strong></p>
               <div class="photo-grid">
                 @for (photo of currentOrderDetail.snapshotPhotos; track $index)
                 {

@@ -16,8 +16,12 @@ export class TranslateService {
     return this.http.post(`${this.baseUrl}/translate`, params);
   }
 
-  // 从数据库获取动态文本
-  getDynamicText(id: string): Observable<any> {
-    return this.http.get(`${this.baseUrl}/dynamic-text/${id}`);
+  // 批量翻译
+  batchTranslate(params: {
+    texts: string[];
+    sourceLang?: string;
+    targetLang?: string;
+  }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/translate/batch`, params);
   }
 }
