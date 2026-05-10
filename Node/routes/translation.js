@@ -17,45 +17,7 @@ const clientConfig = {
 };
 const translateClient = new TmtClient(clientConfig);
 
-// 2. 批量翻译接口
-router.post("/api/translate/batch", async (req, res) => {
-  try {
-    const { texts, sourceLang = "zh", targetLang = "en" } = req.body;
-    if (!texts || !Array.isArray(texts) || texts.length === 0) {
-      return res.status(400).json({ success: false, error: "texts 必须是非空数组" });
-    }
-
-    const results = await Promise.all(
-      texts.map(async (text, idx) => {
-        const s = String(text).trim();
-        if (!s) return { idx, translated: text };
-        try {
-          const result = await translateClient.TextTranslate({
-            SourceText: s,
-            Source: sourceLang,
-            Target: targetLang,
-            ProjectId: 0,
-          });
-          return { idx, translated: result.TargetText };
-        } catch (err) {
-          console.error(`翻译失败 [${idx}]:`, err.message);
-          return { idx, translated: text };
-        }
-      })
-    );
-
-    const translations = [...texts];
-    for (const { idx, translated } of results) {
-      translations[idx] = translated;
-    }
-    return res.json({ success: true, translations });
-  } catch (error) {
-    console.error("批量翻译接口报错：", error);
-    return res.status(500).json({ success: false, error: "批量翻译失败", details: error.message });
-  }
-});
-
-// 3. 单条翻译接口
+// 2. 核心翻译接口（唯一需要的接口）
 router.post("/api/translate", async (req, res) => {
   try {
     const { sourceText, sourceLang = "zh", targetLang = "en" } = req.body;

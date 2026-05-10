@@ -2,12 +2,12 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonButton, IonContent, IonHeader, IonSearchbar, IonIcon } from '@ionic/angular/standalone';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Location } from '@angular/common';
-import { SearchStateService } from '../../services/search-state.service';
-import { HttpClientModule } from '@angular/common/http';
-import { LanguageService } from '../../services/language.service';
+import { ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';  // 添加这行
+import { SearchStateService } from '../../services/search-state.service'; // 根据实际路径调整
+import { HttpClientModule } from '@angular/common/http'; // ← 新增
 
 @Component({
   selector: 'app-search',
@@ -20,9 +20,9 @@ import { LanguageService } from '../../services/language.service';
     HttpClientModule,
     IonHeader,
     IonContent,
-    IonButton,
-    IonSearchbar,
-    IonIcon,
+    IonButton,    // ← 已有
+    IonSearchbar, // 如果模板里用到也加上
+    IonIcon,      // ← 添加IonIcon
   ],
 })
 export class SearchPage implements OnInit {
@@ -31,28 +31,24 @@ export class SearchPage implements OnInit {
   private http = inject(HttpClient);
   private location = inject(Location);
   private route = inject(ActivatedRoute);
-  private langService = inject(LanguageService);
 
   keyword = '';
   returnTo = '';
-  t = this.langService.getTranslations('zh').search;
 
   ngOnInit() {
     this.returnTo = this.route.snapshot.queryParams['returnTo'] || 'tabs/tab2';
-
-    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
-      this.t = this.langService.getTranslations(lang).search;
-    });
   }
 
   onSearch() {
     const kw = this.keyword.trim();
+    // 直接把关键词带回 Tab2（不再写全局 service）
     this.router.navigate(['/tabs/tab2'], {
-      queryParams: { search: kw },
+      queryParams: { search: kw }   // 只传关键词，不存 service 也可
     });
   }
 
   goBack() {
+    // 尝试返回上一页，如果没有历史则回首页
     if (window.history.length > 1) {
       this.location.back();
     } else {
@@ -62,5 +58,6 @@ export class SearchPage implements OnInit {
 
   aiSearch() {
     console.log('AI辅助搜索功能暂未开发');
+    // 为后续功能开发预留接口
   }
 }

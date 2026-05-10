@@ -37,19 +37,19 @@
   <div class="user-info-section">
     @if (userInfo?.realName) {
       <div class="info-row">
-        <span class="info-label">{{ t?.realNameLabel || '真实姓名：' }}</span>
+        <span class="info-label">真实姓名：</span>
         <span class="info-value">{{ userInfo.realName }}</span>
       </div>
     }
     @if (userInfo?.introduction) {
       <div class="info-row">
-        <span class="info-label">{{ t?.introLabel || '个人介绍：' }}</span>
+        <span class="info-label">个人介绍：</span>
         <span class="info-value">{{ userInfo.introduction }}</span>
       </div>
     }
     @if (userInfo?.birthDate) {
       <div class="info-row">
-        <span class="info-label">{{ t?.birthDateLabel || '出生日期：' }}</span>
+        <span class="info-label">出生日期：</span>
         <span class="info-value">{{ userInfo.birthDate }}</span>
       </div>
     }

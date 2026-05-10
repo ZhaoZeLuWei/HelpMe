@@ -16,7 +16,6 @@ import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
 import { LocationPickerComponent } from '../../components/location-picker/location-picker.component';
-import { LanguageService } from '../../services/language.service';
 
 @Component({
   selector: 'app-register',
@@ -29,14 +28,13 @@ export class RegisterPage {
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
-  private langService = inject(LanguageService);
-
-  t = this.langService.getTranslations('zh').register;
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 
+  // 两步注册流程
   step = signal<'verify' | 'info'>('verify');
 
+  // 验证手机号表单
   verifyForm = new FormGroup({
     phone: new FormControl('', [
       Validators.required,
@@ -48,6 +46,7 @@ export class RegisterPage {
     ]),
   });
 
+  // 用户信息表单
   infoForm = new FormGroup({
     userName: new FormControl('', [
       Validators.required,
@@ -71,28 +70,30 @@ export class RegisterPage {
     introduction: new FormControl('', [Validators.maxLength(200)]),
   });
 
+  // 头像相关
   avatarFile: File | null = null;
   avatarPreview: string | null = null;
   defaultAvatar = 'assets/icon/user.svg';
 
   sending = signal(false);
-  sendCooldown = signal(0);
+  sendCooldown = signal(0); // 秒
   registering = signal(false);
-
-  constructor() {
-    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
-      this.t = this.langService.getTranslations(lang).register;
-    });
-  }
 
   async sendCode() {
     if (this.verifyForm.controls.phone.invalid) {
-      await this.showToast(this.t.phoneRequired);
+      const t = await this.toastCtrl.create({
+        message: '请输入有效的11位手机号',
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await t.present();
       return;
     }
 
     if (this.sendCooldown() > 0) return;
 
+    // 先检查手机号是否已注册
     const phone = this.verifyForm.controls.phone.value || '';
     try {
       const resp = await fetch(`${this.auth['API_BASE']}/check-phone`, {
@@ -104,21 +105,46 @@ export class RegisterPage {
       const data = await resp.json().catch(() => null);
 
       if (!resp.ok || !data?.success) {
-        await this.showToast(data?.error || this.t.registerFail);
+        const t = await this.toastCtrl.create({
+          message: data?.error || '检查手机号失败，请稍后重试',
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await t.present();
         return;
       }
 
       if (data.exists) {
-        await this.showToast(this.t.phoneRegistered);
+        const t = await this.toastCtrl.create({
+          message: '该手机号已注册，请直接登录',
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await t.present();
         return;
       }
     } catch (err) {
       console.error('Check phone error:', err);
-      await this.showToast(this.t.serverUnreachable);
+      const t = await this.toastCtrl.create({
+        message: '无法连接到服务器',
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await t.present();
       return;
     }
 
-    await this.showToast(this.t.tip);
+    // 模拟发送验证码
+    const toast = await this.toastCtrl.create({
+      message: '验证码已发送，验证码为1234',
+      duration: 2000,
+      position: 'bottom',
+      positionAnchor: 'main-tab-bar',
+    });
+    await toast.present();
 
     this.sendCooldown.set(60);
     this.sending.set(true);
@@ -134,16 +160,30 @@ export class RegisterPage {
 
   async nextStep() {
     if (this.verifyForm.invalid) {
-      await this.showToast(this.t.pleaseComplete);
+      const t = await this.toastCtrl.create({
+        message: '请完善手机号和验证码',
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await t.present();
       return;
     }
 
+    // 验证验证码是否正确（简单验证）
     const code = this.verifyForm.controls.code.value || '';
     if (code !== '1234') {
-      await this.showToast(this.t.invalidCode);
+      const t = await this.toastCtrl.create({
+        message: '验证码错误',
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await t.present();
       return;
     }
 
+    // 进入下一步
     this.step.set('info');
   }
 
@@ -161,18 +201,33 @@ export class RegisterPage {
 
     if (!file) return;
 
+    // 验证文件类型
     if (!file.type.startsWith('image/')) {
-      await this.showToast('请选择图片文件');
+      const t = await this.toastCtrl.create({
+        message: '请选择图片文件',
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await t.present();
       return;
     }
 
+    // 验证文件大小（限制5MB）
     if (file.size > 5 * 1024 * 1024) {
-      await this.showToast('图片大小不能超过5MB');
+      const t = await this.toastCtrl.create({
+        message: '图片大小不能超过5MB',
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await t.present();
       return;
     }
 
     this.avatarFile = file;
 
+    // 生成预览
     const reader = new FileReader();
     reader.onload = (e) => {
       this.avatarPreview = e.target?.result as string;
@@ -190,14 +245,25 @@ export class RegisterPage {
 
   async submit() {
     if (this.infoForm.invalid) {
-      let message = this.t.pleaseComplete;
-      if (this.infoForm.controls.userName.invalid) message = '请输入用户名（2-20个字符）';
-      else if (this.infoForm.controls.realName.invalid) message = '请输入真实姓名（2-20个字符）';
-      else if (this.infoForm.controls.idCardNumber.invalid) message = '请输入有效的18位身份证号';
-      else if (this.infoForm.controls.location.invalid) message = '请输入所在地';
-      else if (this.infoForm.controls.birthDate.invalid) message = '请选择出生日期';
+      let message = '请完善必填信息';
+      if (this.infoForm.controls.userName.invalid)
+        message = '请输入用户名（2-20个字符）';
+      else if (this.infoForm.controls.realName.invalid)
+        message = '请输入真实姓名（2-20个字符）';
+      else if (this.infoForm.controls.idCardNumber.invalid)
+        message = '请输入有效的18位身份证号';
+      else if (this.infoForm.controls.location.invalid)
+        message = '请输入所在地';
+      else if (this.infoForm.controls.birthDate.invalid)
+        message = '请选择出生日期';
 
-      await this.showToast(message);
+      const t = await this.toastCtrl.create({
+        message,
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await t.present();
       return;
     }
 
@@ -231,11 +297,25 @@ export class RegisterPage {
     this.registering.set(false);
 
     if (!result.ok) {
-      await this.showToast(result.message);
+      const t = await this.toastCtrl.create({
+        message: result.message,
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await t.present();
       return;
     }
 
-    await this.showToast(`${this.t.registerSuccess}, ${userName}!`);
+    const t = await this.toastCtrl.create({
+      message: `注册成功，欢迎 ${userName}！`,
+      duration: 2000,
+      position: 'bottom',
+      positionAnchor: 'main-tab-bar',
+    });
+    await t.present();
+
+    // 注册成功后关闭 Modal
     await this.modalCtrl.dismiss();
   }
 
@@ -262,15 +342,5 @@ export class RegisterPage {
       location: data.selected.text,
       locationPlaceId: data.selected.placeId,
     });
-  }
-
-  private async showToast(message: string) {
-    const toast = await this.toastCtrl.create({
-      message,
-      duration: 2000,
-      position: 'bottom',
-      positionAnchor: 'main-tab-bar',
-    });
-    await toast.present();
   }
 }
