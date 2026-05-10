@@ -14,6 +14,7 @@ import {
 } from '@angular/forms';
 import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
+import { LanguageService } from '../../services/language.service';
 import { environment } from '../../../environments/environment';
 import { LocationPickerComponent } from '../../components/location-picker/location-picker.component';
 
@@ -28,6 +29,18 @@ export class RegisterPage {
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
+  private languageService = inject(LanguageService);
+
+  t: any;
+
+  constructor() {
+    this.t = this.languageService.getTranslations(
+      this.languageService.getCurrentLang(),
+    );
+    this.languageService.currentLang$.subscribe((lang) => {
+      this.t = this.languageService.getTranslations(lang);
+    });
+  }
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 

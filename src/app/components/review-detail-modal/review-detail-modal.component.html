@@ -2,16 +2,20 @@
   <ng-template>
     <ion-header>
       <ion-toolbar>
-        <ion-title>订单评价详情</ion-title>
+        <ion-title>{{ t.reviewDetail.title }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="clear" (click)="close()">关闭</ion-button>
+          <ion-button fill="clear" (click)="close()">{{
+            t.reviewDetail.close
+          }}</ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content class="review-detail-content">
       @if (isLoading) {
         <div class="empty-state">
-          <ion-text color="medium"><p>加载中...</p></ion-text>
+          <ion-text color="medium"
+            ><p>{{ t.reviewDetail.loading }}</p></ion-text
+          >
         </div>
       } @else if (reviews.length === 0) {
         <div class="empty-state">
@@ -19,7 +23,9 @@
             name="chatbubble-ellipses-outline"
             class="empty-icon"
           ></ion-icon>
-          <ion-text color="medium"><p>暂无评价</p></ion-text>
+          <ion-text color="medium"
+            ><p>{{ t.reviewDetail.noReviews }}</p></ion-text
+          >
         </div>
       } @else {
         <div class="review-list">
@@ -27,7 +33,10 @@
             <div class="review-card">
               <div class="review-header">
                 <ion-avatar>
-                  <img [src]="getAvatarUrl(r.authorAvatar)" alt="头像" />
+                  <img
+                    [src]="getAvatarUrl(r.authorAvatar)"
+                    [alt]="t.reviewDetail.avatarAlt"
+                  />
                 </ion-avatar>
                 <div class="review-meta">
                   <span class="author-name">{{ r.authorName }}</span>
@@ -40,7 +49,9 @@
                       class="star-icon"
                     ></ion-icon>
                   }
-                  <span class="score-text">{{ r.rating }}分</span>
+                  <span class="score-text"
+                    >{{ r.rating }}{{ t.reviewDetail.scoreUnit }}</span
+                  >
                 </div>
               </div>
               @if (r.content) {

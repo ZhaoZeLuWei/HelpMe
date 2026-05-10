@@ -40,7 +40,9 @@
         <div class="chat-header">
           <h2>{{user.name}}</h2>
           @if (user.orderId) {
-          <ion-badge color="primary" class="order-tag">订单</ion-badge>
+          <ion-badge color="primary" class="order-tag"
+            >{{ t.tab3Extra.orderTag }}</ion-badge
+          >
           }
           <ion-note color="medium">
             {{ formatChatTime(user.updatedAt)}}

@@ -27,6 +27,7 @@ import {
   IonIcon,
   IonTextarea,
 } from '@ionic/angular/standalone';
+import { LanguageService } from '../../services/language.service';
 
 export interface ReviewSubmitPayload {
   Score: number;
@@ -58,11 +59,21 @@ export class ReviewModalComponent implements OnChanges {
   @Output() didDismiss = new EventEmitter<void>();
   @Output() submit = new EventEmitter<ReviewSubmitPayload>();
 
+  t: any;
   reviewForm: FormGroup;
   stars = [1, 2, 3, 4, 5];
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    private languageService: LanguageService,
+  ) {
     addIcons({ star, starOutline });
+    this.t = this.languageService.getTranslations(
+      this.languageService.getCurrentLang(),
+    );
+    this.languageService.currentLang$.subscribe((lang) => {
+      this.t = this.languageService.getTranslations(lang);
+    });
     this.reviewForm = this.fb.group({
       Score: [5, [Validators.required]],
       Text: ['', [Validators.maxLength(200)]],

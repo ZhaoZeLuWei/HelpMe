@@ -2,9 +2,11 @@
   <ng-template>
     <ion-header>
       <ion-toolbar>
-        <ion-title>订单评价</ion-title>
+        <ion-title>{{ t.review.title }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="clear" (click)="close()">关闭</ion-button>
+          <ion-button fill="clear" (click)="close()">{{
+            t.review.close
+          }}</ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -12,7 +14,7 @@
       <div class="review-card">
         <!-- 星级选择 -->
         <div class="star-section">
-          <p class="section-label">请为此订单评分</p>
+          <p class="section-label">{{ t.review.scoreLabel }}</p>
           <div class="star-row">
             @for (value of stars; track value) {
               <button
@@ -26,18 +28,18 @@
               </button>
             }
           </div>
-          <p class="star-hint">{{ currentScore }} 分</p>
+          <p class="star-hint">{{ currentScore }} {{ t.review.scoreUnit }}</p>
         </div>
 
         <!-- 评价内容 -->
         <div class="text-section">
-          <p class="section-label">评价内容</p>
+          <p class="section-label">{{ t.review.contentLabel }}</p>
           <div class="textarea-wrapper">
             <ion-textarea
               [formControl]="textControl"
               [autoGrow]="true"
               rows="4"
-              placeholder="在此处写下你的评价（可为空）"
+              [placeholder]="t.review.placeholder"
               class="review-textarea"
             ></ion-textarea>
             <span class="char-count">{{ textLength }}/200</span>
@@ -53,7 +55,7 @@
             (click)="close()"
             class="cancel-btn"
           >
-            取消
+            {{ t.review.cancel }}
           </ion-button>
           <ion-button
             expand="block"
@@ -62,7 +64,7 @@
             [disabled]="isSaving || reviewForm.invalid"
             class="submit-btn"
           >
-            {{ isSaving ? "提交中..." : "提交评价" }}
+            {{ isSaving ? t.review.submitting : t.review.submit }}
           </ion-button>
         </div>
       </div>

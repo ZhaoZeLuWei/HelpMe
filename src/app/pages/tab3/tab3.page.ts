@@ -55,7 +55,10 @@ export class Tab3Page implements OnInit {
   chatRooms: any[] = [];
 
   // 翻译对象
-  t = this.langService.getTranslations('zh').tab3;
+  t = {
+    ...this.langService.getTranslations('zh').tab3,
+    tab3Extra: this.langService.getTranslations('zh').tab3Extra,
+  };
 
   ngOnInit() {
     this.showChat = false;

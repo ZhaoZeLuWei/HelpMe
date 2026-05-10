@@ -45,6 +45,7 @@ import { ModalController } from '@ionic/angular/standalone';
 import { ToastController } from '@ionic/angular';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
+import { LanguageService } from 'src/app/services/language.service';
 import { NavController } from '@ionic/angular';
 import {
   LocationPickerComponent,
@@ -92,6 +93,8 @@ import {
   ],
 })
 export class ParticularPage implements OnInit {
+  t: any;
+
   constructor() {
     addIcons({
       chevronBackOutline,
@@ -120,6 +123,7 @@ export class ParticularPage implements OnInit {
   private toastController = inject(ToastController);
   private navCtrl = inject(NavController);
   private fb = inject(FormBuilder);
+  private languageService = inject(LanguageService);
   readonly apiBase = environment.apiBase;
 
   @ViewChild('editEventModal')
@@ -167,6 +171,12 @@ export class ParticularPage implements OnInit {
   previewPhotoIndex = 0;
 
   ngOnInit() {
+    this.t = this.languageService.getTranslations(
+      this.languageService.getCurrentLang(),
+    );
+    this.languageService.currentLang$.subscribe((lang) => {
+      this.t = this.languageService.getTranslations(lang);
+    });
     this.route.queryParams.subscribe((params) => {
       const eventId = params['eventId'];
       if (eventId) {

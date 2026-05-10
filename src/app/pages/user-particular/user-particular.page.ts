@@ -15,6 +15,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
+import { LanguageService } from 'src/app/services/language.service';
 import { ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
@@ -53,7 +54,10 @@ export class UserParticularPage implements OnInit {
   private authService = inject(AuthService);
   private modalCtrl = inject(ModalController);
   private toastController = inject(ToastController);
+  private languageService = inject(LanguageService);
   readonly apiBase = environment.apiBase;
+
+  t: any;
 
   isCurrentUser: boolean = false;
   isFollowing: boolean = false;
@@ -95,6 +99,12 @@ export class UserParticularPage implements OnInit {
   }
 
   ngOnInit() {
+    this.t = this.languageService.getTranslations(
+      this.languageService.getCurrentLang(),
+    );
+    this.languageService.currentLang$.subscribe((lang) => {
+      this.t = this.languageService.getTranslations(lang);
+    });
     this.route.queryParams.subscribe((params) => {
       this.userInfo.name = params['name'] || '';
       this.userId = params['userId'] ? Number(params['userId']) : null;

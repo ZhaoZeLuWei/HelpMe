@@ -1,5 +1,5 @@
 // === 引入 Google Material Icons 字体 (如果全局未引入) ===
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
 
 // 页面整体容器
 .page-container {
@@ -31,23 +31,23 @@
   align-items: center;
   gap: 6px;
   background-color: var(--ion-card-background, var(--ion-background-color));
-  border: 1px solid #0F766E;
-  color: #0F766E;
+  border: 1px solid #0f766e;
+  color: #0f766e;
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.2s;
 
   .material-icons {
     font-size: 18px;
-    color: #0F766E;
+    color: #0f766e;
   }
 
   &:hover {
-    background-color: #0F766E;
+    background-color: #0f766e;
     color: white;
 
     .material-icons {
@@ -93,7 +93,7 @@
   }
 
   &:focus {
-    border-color: #0F766E;
+    border-color: #0f766e;
     box-shadow: 0 0 4px rgba(15, 118, 110, 0.2);
   }
 }
@@ -101,10 +101,10 @@
 .search-btn {
   height: 40px;
   padding: 0 24px;
-  border: 1px solid #0F766E;
+  border: 1px solid #0f766e;
   border-left: none;
   border-radius: 0 20px 20px 0;
-  background-color: #0F766E;
+  background-color: #0f766e;
   color: white;
   font-size: 15px;
   font-weight: 500;
@@ -112,11 +112,11 @@
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #115E59;
+    background-color: #115e59;
   }
 
   &:active {
-    background-color: #0D5E56;
+    background-color: #0d5e56;
   }
 }
 
@@ -145,7 +145,7 @@
   font-weight: 700;
   margin-bottom: 15px;
   padding-left: 10px;
-  border-left: 4px solid #0F766E;
+  border-left: 4px solid #0f766e;
 }
 
 // 网格布局
@@ -165,8 +165,8 @@
   position: absolute;
   bottom: 20px;
   right: 20px;
-  background-color: #0F766E;
-  border: 1px solid #0F766E;
+  background-color: #0f766e;
+  border: 1px solid #0f766e;
   color: white;
   border-radius: 8px;
   padding: 6px 12px;
@@ -179,15 +179,15 @@
   z-index: 10;
 
   &:hover {
-    background-color: #115E59;
-    border-color: #115E59;
+    background-color: #115e59;
+    border-color: #115e59;
     .css-triangle {
       border-left-color: white !important;
     }
   }
 
   &:active {
-    background-color: #0D5E56;
+    background-color: #0d5e56;
   }
 }
 
@@ -217,12 +217,14 @@
 }
 
 .custom-modal-card {
-  background-color: var(--ion-card-background, var(--ion-background-color));
+  background-color: var(--ion-card-background, #ffffff);
   width: 85%;
   max-width: 320px;
   border-radius: 20px;
   padding: 30px 20px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
   text-align: center;
   animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
@@ -237,7 +239,7 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px auto;
-  color: #0F766E;
+  color: #0f766e;
 
   .material-icons {
     font-size: 32px;
@@ -245,21 +247,21 @@
 }
 
 .modal-header {
-  color: var(--ion-text-color);
+  color: var(--ion-text-color, #000000);
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 10px;
 }
 
 .modal-body {
-  color: var(--ion-color-medium);
+  color: var(--ion-color-medium, #92949c);
   font-size: 14px;
   line-height: 1.6;
   margin-bottom: 30px;
 
   .sub-text {
     font-size: 12px;
-    color: var(--ion-color-medium-shade, var(--ion-color-medium));
+    color: var(--ion-color-medium-shade, #92949c);
     margin-top: 5px;
   }
 }
@@ -283,21 +285,21 @@
 }
 
 .modal-btn.cancel {
-  background-color: var(--ion-background-color-step-100);
-  color: var(--ion-color-medium);
+  background-color: var(--ion-background-color-step-100, #f4f5f8);
+  color: var(--ion-color-medium, #92949c);
 
   &:hover {
-    background-color: var(--ion-background-color-step-150);
+    background-color: var(--ion-background-color-step-150, #ebebec);
   }
 }
 
 .modal-btn.confirm {
-  background-color: #0F766E;
+  background-color: #0f766e;
   color: white;
   box-shadow: 0 4px 6px -1px rgba(15, 118, 110, 0.4);
 
   &:hover {
-    background-color: #115E59;
+    background-color: #115e59;
     transform: translateY(-1px);
   }
 
@@ -307,13 +309,23 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleUp {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 * {
@@ -354,13 +366,23 @@
 
 // 之前代码末尾的动画
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleUp {
-  from { transform: scale(0.8); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 * {

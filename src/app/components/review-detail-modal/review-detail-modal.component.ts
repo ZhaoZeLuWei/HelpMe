@@ -24,6 +24,7 @@ import {
   IonIcon,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
+import { LanguageService } from '../../services/language.service';
 
 export interface ReviewDetail {
   id: number;
@@ -60,12 +61,20 @@ export class ReviewDetailModalComponent implements OnChanges {
 
   private http = inject(HttpClient);
   private apiBase = environment.apiBase;
+  private languageService = inject(LanguageService);
 
+  t: any;
   isLoading = false;
   reviews: ReviewDetail[] = [];
 
   constructor() {
     addIcons({ star, starOutline, chatbubbleEllipsesOutline });
+    this.t = this.languageService.getTranslations(
+      this.languageService.getCurrentLang(),
+    );
+    this.languageService.currentLang$.subscribe((lang) => {
+      this.t = this.languageService.getTranslations(lang);
+    });
   }
 
   ngOnChanges(changes: SimpleChanges) {

@@ -31,21 +31,21 @@
 
   <ion-segment [value]="activeSection" (ionChange)="onSectionChange($event)">
     <ion-segment-button value="events"
-      ><ion-label>我的事件</ion-label></ion-segment-button
+      ><ion-label>{{ t.myEvents }}</ion-label></ion-segment-button
     >
     <ion-segment-button value="orders"
-      ><ion-label>我的订单</ion-label></ion-segment-button
+      ><ion-label>{{ t.myOrders }}</ion-label></ion-segment-button
     >
   </ion-segment>
 
   <div class="action-buttons-row">
     <ion-button fill="outline" size="small" (click)="openFavoritesModal()">
       <ion-icon slot="start" name="star-outline"></ion-icon>
-      我的收藏
+      {{ t.favoritesTitle }}
     </ion-button>
     <ion-button fill="outline" size="small" (click)="openFollowsModal()">
       <ion-icon slot="start" name="people-outline"></ion-icon>
-      关注的人
+      {{ t.followsTitle }}
     </ion-button>
   </div>
 
@@ -265,10 +265,10 @@
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>我的收藏</ion-title>
+          <ion-title>{{ t.favoritesTitle }}</ion-title>
           <ion-buttons slot="end">
             <ion-button fill="clear" (click)="closeFavoritesModal()"
-              >关闭</ion-button
+              >{{ t.close }}</ion-button
             >
           </ion-buttons>
         </ion-toolbar>
@@ -276,12 +276,12 @@
       <ion-content>
         @if (isLoadingFavorites) {
         <div class="empty-state">
-          <ion-text color="medium"><p>加载中...</p></ion-text>
+          <ion-text color="medium"><p>{{ t.loading }}</p></ion-text>
         </div>
         } @else if (favoritesList.length === 0) {
         <div class="empty-state">
           <ion-icon name="star-outline" class="empty-icon"></ion-icon>
-          <ion-text color="medium"><p>暂无收藏</p></ion-text>
+          <ion-text color="medium"><p>{{ t.noFavorites }}</p></ion-text>
         </div>
         } @else {
         <div class="favorites-list">
@@ -302,10 +302,10 @@
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>关注的人</ion-title>
+          <ion-title>{{ t.followsTitle }}</ion-title>
           <ion-buttons slot="end">
             <ion-button fill="clear" (click)="closeFollowsModal()"
-              >关闭</ion-button
+              >{{ t.close }}</ion-button
             >
           </ion-buttons>
         </ion-toolbar>
@@ -313,12 +313,12 @@
       <ion-content>
         @if (isLoadingFollows) {
         <div class="empty-state">
-          <ion-text color="medium"><p>加载中...</p></ion-text>
+          <ion-text color="medium"><p>{{ t.loading }}</p></ion-text>
         </div>
         } @else if (followsList.length === 0) {
         <div class="empty-state">
           <ion-icon name="people-outline" class="empty-icon"></ion-icon>
-          <ion-text color="medium"><p>暂未关注任何人</p></ion-text>
+          <ion-text color="medium"><p>{{ t.noFollows }}</p></ion-text>
         </div>
         } @else {
         <div class="follows-list">
@@ -333,10 +333,10 @@
             </div>
             <div class="follow-info">
               <h4>{{ user.UserName }}</h4>
-              <p>{{ user.Location || '未设置地点' }}</p>
+              <p>{{ user.Location || t.noLocation }}</p>
               <p class="follow-meta">
-                服务评分：{{ user.ServiceRanking || 0 }} · 粉丝：{{
-                user.OrderCount || 0 }}
+                {{ t.serviceRatingLabel }}{{ user.ServiceRanking || 0 }} · {{
+                t.followers }}{{ user.OrderCount || 0 }}
               </p>
             </div>
             <ion-button
@@ -345,7 +345,7 @@
               size="small"
               (click)="removeFollow(user.UserId); $event.stopPropagation()"
             >
-              取消关注
+              {{ t.unfollow }}
             </ion-button>
           </div>
           }
@@ -363,10 +363,10 @@
     <ng-template>
       <ion-header>
         <ion-toolbar>
-          <ion-title>订单详情</ion-title>
+          <ion-title>{{ t.orderDetailTitle }}</ion-title>
           <ion-buttons slot="end">
             <ion-button fill="clear" (click)="closeOrderDetail()"
-              >关闭</ion-button
+              >{{ t.close }}</ion-button
             >
           </ion-buttons>
         </ion-toolbar>
@@ -376,35 +376,43 @@
         <div class="order-detail-content">
           <!-- 订单基本信息 -->
           <div class="detail-section">
-            <h3>订单信息</h3>
-            <p><strong>订单号：</strong>{{ currentOrderDetail.id }}</p>
-            <p><strong>下单时间：</strong>{{ currentOrderDetail.createdAt }}</p>
+            <h3>{{ t.orderInfo }}</h3>
+            <p><strong>{{ t.orderId }}</strong>{{ currentOrderDetail.id }}</p>
             <p>
-              <strong>角色：</strong>{{ currentOrderDetail.role === 'buyer' ?
-              '买家' : '卖家' }}
+              <strong>{{ t.orderTime }}</strong>{{ currentOrderDetail.createdAt
+              }}
             </p>
-            <p><strong>订单状态：</strong>{{ currentOrderDetail.status }}</p>
-            <p><strong>成交价格：</strong>¥{{ currentOrderDetail.price }}</p>
+            <p>
+              <strong>{{ t.orderRole }}</strong>{{ currentOrderDetail.role ===
+              'buyer' ? t.buyer : t.seller }}
+            </p>
+            <p>
+              <strong>{{ t.orderStatus }}</strong>{{ currentOrderDetail.status
+              }}
+            </p>
+            <p>
+              <strong>{{ t.dealPrice }}</strong>¥{{ currentOrderDetail.price }}
+            </p>
           </div>
 
           <!-- 交付地址信息 -->
           <div class="detail-section">
             <h3>
               <ion-icon name="location-outline"></ion-icon>
-              交付地址
+              {{ t.deliveryAddress }}
             </h3>
             <p>
-              <strong>地址：</strong>{{ currentOrderDetail.deliveryAddress ||
-              '未填写' }}
+              <strong>{{ t.address }}</strong>{{
+              currentOrderDetail.deliveryAddress || t.notFilled }}
             </p>
             @if (currentOrderDetail.deliverySpecific) {
             <p>
-              <strong>具体位置：</strong>{{ currentOrderDetail.deliverySpecific
-              }}
+              <strong>{{ t.specificLocation }}</strong>{{
+              currentOrderDetail.deliverySpecific }}
             </p>
             } @if (currentOrderDetail.deliveryAdditionalInfo) {
             <p>
-              <strong>补充信息：</strong>{{
+              <strong>{{ t.additionalInfo }}</strong>{{
               currentOrderDetail.deliveryAdditionalInfo }}
             </p>
             }
@@ -414,30 +422,35 @@
           <div class="detail-section snapshot-section">
             <h3>
               <ion-icon name="time-outline"></ion-icon>
-              下单时的事件信息
+              {{ t.snapshotInfo }}
             </h3>
-            <p><strong>标题：</strong>{{ currentOrderDetail.snapshotTitle }}</p>
             <p>
-              <strong>类别：</strong>{{ currentOrderDetail.snapshotCategory ||
-              '未分类' }}
+              <strong>{{ t.snapshotTitle }}</strong>{{
+              currentOrderDetail.snapshotTitle }}
             </p>
             <p>
-              <strong>地点：</strong>{{ currentOrderDetail.snapshotLocation ||
-              '未填写' }}
+              <strong>{{ t.snapshotCategory }}</strong>{{
+              currentOrderDetail.snapshotCategory || t.uncategorized }}
             </p>
             <p>
-              <strong>价格：</strong>¥{{ currentOrderDetail.snapshotPrice }}
+              <strong>{{ t.snapshotLocation }}</strong>{{
+              currentOrderDetail.snapshotLocation || t.notFilled }}
+            </p>
+            <p>
+              <strong>{{ t.snapshotPrice }}</strong>¥{{
+              currentOrderDetail.snapshotPrice }}
             </p>
             @if (currentOrderDetail.snapshotDetails) {
             <p>
-              <strong>描述：</strong>{{ currentOrderDetail.snapshotDetails }}
+              <strong>{{ t.snapshotDetails }}</strong>{{
+              currentOrderDetail.snapshotDetails }}
             </p>
             }
 
             <!-- 照片展示 -->
             @if (currentOrderDetail.snapshotPhotos?.length > 0) {
             <div class="snapshot-photos">
-              <p><strong>事件照片：</strong></p>
+              <p><strong>{{ t.snapshotPhotos }}</strong></p>
               <div class="photo-grid">
                 @for (photo of currentOrderDetail.snapshotPhotos; track $index)
                 {
