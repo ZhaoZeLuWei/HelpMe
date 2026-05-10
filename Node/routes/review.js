@@ -1,7 +1,8 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
-const { sendSystemMessage } = require("../chatHandler.js");
+const { sendOrderSystemMessage } = require("../chatHandler.js");
+const { getIO } = require("../socketInstance.js");
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.post("/reviews", authRequired, async (req, res) => {
     await conn.beginTransaction();
 
     const [orderRows] = await conn.query(
-      "SELECT OrderId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1",
+      "SELECT OrderId, EventId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1",
       [orderId],
     );
     if (!orderRows.length) {
@@ -75,17 +76,6 @@ router.post("/reviews", authRequired, async (req, res) => {
         Text ? String(Text).trim() : null,
       ],
     );
-
-    const scoreRows = await conn.query(
-      `SELECT
-        ROUND(AVG(Score), 1) AS avgScore,
-        COUNT(*) AS totalCount
-       FROM Comments
-       WHERE TargetUserId = ?`,
-      [targetUserId],
-    );
-    const avgScore = Number(scoreRows?.[0]?.[0]?.avgScore || 0);
-    const totalCount = Number(scoreRows?.[0]?.[0]?.totalCount || 0);
 
     // 根据谁在评价来更新对应的评分
     // 如果是买家评价卖家，更新卖家的 ServiceRanking
@@ -134,34 +124,64 @@ router.post("/reviews", authRequired, async (req, res) => {
       }
     }
 
-    // 检查双方是否都已评价
-    const [reviewCountRows] = await conn.query(
-      "SELECT COUNT(*) AS cnt FROM Comments WHERE OrderId = ?",
-      [orderId],
+    // 检查对方是否也已评价
+    const otherUserId =
+      order.ConsumerId === authorId ? order.ProviderId : order.ConsumerId;
+    const [otherReviewRows] = await conn.query(
+      "SELECT ReviewId FROM Comments WHERE OrderId = ? AND AuthorId = ? LIMIT 1",
+      [orderId, otherUserId],
     );
-    const reviewCount = Number(reviewCountRows?.[0]?.cnt || 0);
-    if (reviewCount >= 2) {
+    if (otherReviewRows.length > 0) {
       // 双方都已评价，将订单标记为已完成
       await conn.query(
         "UPDATE Orders SET OrderStatus = 3, CompletionTime = COALESCE(CompletionTime, NOW()) WHERE OrderId = ?",
         [orderId],
       );
+
+      // 通过Socket.IO实时推送订单状态变更给买卖双方
+      const io = getIO();
+      if (io) {
+        io.to(String(order.ConsumerId)).emit("orderStatusUpdate", {
+          orderId,
+          newStatus: 3,
+          eventId: order.EventId,
+        });
+        io.to(String(order.ProviderId)).emit("orderStatusUpdate", {
+          orderId,
+          newStatus: 3,
+          eventId: order.EventId,
+        });
+      }
     }
-    // 否则保持 OrderStatus = 2（待评价），等待另一方评价
 
     await conn.commit();
 
-    await sendSystemMessage({
-      roomId: `system_${targetUserId}`,
-      text: `您收到了一条新的评价，评分 ${score} 分。`,
-      senderId: authorId,
-    });
+    // 发送系统消息到订单聊天房间（各自只看到自己的那条）
+    if (order.EventId) {
+      const reviewRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+      // 给评价者本人的确认
+      await sendOrderSystemMessage({
+        roomId: reviewRoomId,
+        text: `您已提交评价，评分 ${score} 分。`,
+        senderId: authorId,
+        targetUserId: authorId,
+      }).catch((err) => console.error("发送系统消息失败:", err));
+      // 给对方的提醒（根据对方是否已评价显示不同文案）
+      const otherText =
+        otherReviewRows.length > 0
+          ? `对方已提交评价，订单已完结。`
+          : `对方已提交评价，请尽快评价。`;
+      await sendOrderSystemMessage({
+        roomId: reviewRoomId,
+        text: otherText,
+        senderId: authorId,
+        targetUserId: otherUserId,
+      }).catch((err) => console.error("发送系统消息失败:", err));
+    }
 
     return res.json({
       success: true,
       reviewId: result.insertId,
-      avgScore,
-      totalCount,
     });
   } catch (err) {
     if (conn) await conn.rollback().catch(() => {});
@@ -206,7 +226,7 @@ router.get("/reviews", async (req, res) => {
 });
 
 // 管理端评论列表
-router.get("/admin/reviews", async (_req, res) => {
+router.get("/admin/reviews", authRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT

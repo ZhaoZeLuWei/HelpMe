@@ -246,6 +246,7 @@ export class RegisterPage {
   async openLocationPicker() {
     const modal = await this.modalCtrl.create({
       component: LocationPickerComponent,
+      cssClass: 'location-picker-modal',
       componentProps: {
         selectedPlaceId:
           this.infoForm.controls.locationPlaceId.value || undefined,

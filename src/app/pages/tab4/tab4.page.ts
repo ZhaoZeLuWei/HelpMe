@@ -5,6 +5,7 @@ import {
   OnDestroy,
   ViewChild,
   inject,
+  ChangeDetectorRef,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -12,7 +13,8 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Subscription, interval } from 'rxjs';
+import { io } from 'socket.io-client';
+import { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 import {
   LocationPickerComponent,
@@ -38,6 +40,8 @@ import {
   locationOutline,
   ribbon,
   briefcase,
+  starOutline,
+  peopleOutline,
 } from 'ionicons/icons';
 
 import {
@@ -57,13 +61,8 @@ import {
   IonAlert,
   IonList,
   IonInput,
-  IonSelect,
-  IonSelectOption,
   IonTextarea,
   IonText,
-  IonCard,
-  IonAvatar,
-  IonBadge,
   ModalController,
 } from '@ionic/angular/standalone';
 
@@ -75,6 +74,20 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Tab4ProfileCardComponent } from '../../components/tab4-profile-card/tab4-profile-card.component';
 import { Tab4EventsPanelComponent } from '../../components/tab4-events-panel/tab4-events-panel.component';
 import { Tab4OrdersPanelComponent } from '../../components/tab4-orders-panel/tab4-orders-panel.component';
+import {
+  ShowEventComponent,
+  EventCardData,
+} from '../../components/show-event/show-event.component';
+import {
+  EditEventModalComponent,
+  EventEditData,
+  EditEventPayload,
+} from '../../components/edit-event-modal/edit-event-modal.component';
+import {
+  ReviewModalComponent,
+  ReviewSubmitPayload,
+} from '../../components/review-modal/review-modal.component';
+import { ReviewDetailModalComponent } from '../../components/review-detail-modal/review-detail-modal.component';
 
 @Component({
   selector: 'app-tab4',
@@ -99,17 +112,16 @@ import { Tab4OrdersPanelComponent } from '../../components/tab4-orders-panel/tab
     IonAlert,
     IonList,
     IonInput,
-    IonSelect,
-    IonSelectOption,
     IonTextarea,
     IonText,
-    IonCard,
-    IonAvatar,
-    IonBadge,
     ReactiveFormsModule,
     Tab4ProfileCardComponent,
     Tab4EventsPanelComponent,
     Tab4OrdersPanelComponent,
+    ShowEventComponent,
+    EditEventModalComponent,
+    ReviewModalComponent,
+    ReviewDetailModalComponent,
   ],
 })
 export class Tab4Page implements OnDestroy {
@@ -122,18 +134,18 @@ export class Tab4Page implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly langService = inject(LanguageService);
 
-  @ViewChild('editFileInput')
-  editFileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('editEventModal')
+  editEventModal!: EditEventModalComponent;
 
   @ViewChild('profileAvatarInput')
   profileAvatarInput!: ElementRef<HTMLInputElement>;
 
   isLoggedIn = false;
   private readonly _sub: Subscription;
-  private _pollSub: Subscription | null = null;
-  private static readonly POLL_INTERVAL_MS = 15_000;
+  private socket: any = null;
 
   // 翻译对象
   t = this.langService.getTranslations('zh').tab4;
@@ -185,31 +197,28 @@ export class Tab4Page implements OnDestroy {
   // 编辑弹窗状态
   isEditModalOpen = false;
   editingTaskId: number | null = null;
+  editingEventData: EventEditData | null = null;
   isSavingEdit = false;
-  readonly EDIT_MAX = 5;
-  editExistingPhotos: string[] = [];
-  editNewPhotos: Array<{ file: File; preview: string }> = [];
-  editForm: FormGroup = this.fb.group({
-    EventTitle: ['', Validators.required],
-    EventType: [0, Validators.required],
-    EventCategory: ['', Validators.required],
-    Location: ['', Validators.required],
-    LocationPlaceId: [''],
-    LocationLng: [null],
-    LocationLat: [null],
-    Price: [0, [Validators.min(0), Validators.max(1_000_000)]],
-    EventDetails: ['', Validators.required],
-  });
 
   async openLocationPicker(formType: 'eventEdit' | 'profileEdit') {
-    const form =
-      formType === 'eventEdit' ? this.editForm : this.editProfileForm;
+    const form = formType === 'eventEdit' ? null : this.editProfileForm;
+    const sharedModal = this.editEventModal;
+
+    const selectedPlaceId =
+      formType === 'eventEdit'
+        ? sharedModal?.getFormValue('LocationPlaceId') || ''
+        : form?.get('LocationPlaceId')?.value || '';
+    const selectedText =
+      formType === 'eventEdit'
+        ? sharedModal?.getFormValue('Location') || ''
+        : form?.get('Location')?.value || '';
 
     const modal = await this.modalController.create({
       component: LocationPickerComponent,
+      cssClass: 'location-picker-modal',
       componentProps: {
-        selectedPlaceId: form.get('LocationPlaceId')?.value || '',
-        selectedText: form.get('Location')?.value || '',
+        selectedPlaceId,
+        selectedText,
       },
     });
 
@@ -218,12 +227,18 @@ export class Tab4Page implements OnDestroy {
     if (role !== 'confirm' || !data?.selected) return;
 
     const picked: PickedLocation = data.selected;
-    form.patchValue({
+    const patchValue = {
       Location: picked.text,
       LocationPlaceId: picked.placeId,
       LocationLng: picked.lng,
       LocationLat: picked.lat,
-    });
+    };
+
+    if (formType === 'eventEdit') {
+      sharedModal?.patchForm(patchValue);
+    } else {
+      form?.patchValue(patchValue);
+    }
   }
 
   // 删除按钮配置
@@ -250,12 +265,28 @@ export class Tab4Page implements OnDestroy {
   ];
 
   activeSection: 'events' | 'orders' = 'events';
-  orderFilter: 'all' | 'pending' | 'active' | 'review' | 'done' = 'all';
+  orderFilter: 'all' | 'pending' | 'active' | 'review' | 'done' | 'cancelled' =
+    'all';
+
+  // 收藏 & 关注弹窗
+  isFavoritesModalOpen = false;
+  isFollowsModalOpen = false;
+  favoritesList: any[] = [];
+  followsList: any[] = [];
+  isLoadingFavorites = false;
+  isLoadingFollows = false;
 
   userInfo: any = this.createDefaultUserInfo();
   tasks: any[] = [];
   orders: any[] = [];
-  orderStats = { all: 0, pending: 0, active: 0, review: 0, done: 0 };
+  orderStats = {
+    all: 0,
+    pending: 0,
+    active: 0,
+    review: 0,
+    done: 0,
+    cancelled: 0,
+  };
   isLoadingEvents = false;
   isLoadingOrders = false;
   currentUserId: number | null = null;
@@ -281,6 +312,8 @@ export class Tab4Page implements OnDestroy {
       locationOutline,
       ribbon,
       briefcase,
+      starOutline,
+      peopleOutline,
     });
 
     // 订阅登录状态
@@ -288,7 +321,7 @@ export class Tab4Page implements OnDestroy {
       this.isLoggedIn = v;
       if (v) {
         void this.loadUserFromStorage();
-        this.startPolling();
+        this.connectSocket();
       } else {
         this.resetUserInfo();
       }
@@ -327,27 +360,34 @@ export class Tab4Page implements OnDestroy {
     ];
   }
 
-  // ---- 轮询：页面可见时每 15s 自动刷新订单 ----
-  private startPolling() {
-    if (this._pollSub) return;
-    this._pollSub = interval(Tab4Page.POLL_INTERVAL_MS).subscribe(() => {
-      if (this.isLoggedIn && this.currentUserId) {
-        void this.loadOrders(this.currentUserId);
+  // ---- Socket.IO 实时监听订单状态变更 ----
+  private connectSocket() {
+    if (this.socket?.connected) return;
+    this.socket = io(environment.apiBase, {
+      auth: { token: this.auth.token },
+    });
+    this.socket.on('orderStatusUpdate', () => {
+      if (this.currentUserId) {
+        this.loadOrders(this.currentUserId);
       }
     });
   }
 
-  private stopPolling() {
-    this._pollSub?.unsubscribe();
-    this._pollSub = null;
+  private disconnectSocket() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
   }
 
   ionViewDidEnter() {
-    this.startPolling();
+    if (this.isLoggedIn) {
+      this.connectSocket();
+    }
   }
 
   ionViewWillLeave() {
-    this.stopPolling();
+    this.disconnectSocket();
   }
 
   // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
@@ -387,10 +427,28 @@ export class Tab4Page implements OnDestroy {
     return this.orders.filter((order) => order.statusKey === this.orderFilter);
   }
 
-  // 获取有进行中/待评价订单的事件ID集合（用于禁用编辑按钮）
+  // 获取有未完结订单的事件ID集合（用于禁用编辑和删除按钮）
   getBlockedEditIds(): Set<number> {
     const blocked = new Set<number>();
     for (const order of this.orders) {
+      // 所有未取消的订单都阻止删除
+      if (
+        order.statusKey === 'pending' ||
+        order.statusKey === 'active' ||
+        order.statusKey === 'review' ||
+        order.statusKey === 'done'
+      ) {
+        blocked.add(order.eventId);
+      }
+    }
+    return blocked;
+  }
+
+  // 获取有进行中订单的事件ID集合（仅用于禁用编辑按钮）
+  getBlockedEditOnlyIds(): Set<number> {
+    const blocked = new Set<number>();
+    for (const order of this.orders) {
+      // 只有进行中的订单才阻止编辑，已完成的不阻止
       if (
         order.statusKey === 'pending' ||
         order.statusKey === 'active' ||
@@ -512,7 +570,7 @@ export class Tab4Page implements OnDestroy {
 
   ngOnDestroy(): void {
     this._sub.unsubscribe();
-    this.stopPolling();
+    this.disconnectSocket();
   }
 
   // 提取的默认用户信息
@@ -546,7 +604,7 @@ export class Tab4Page implements OnDestroy {
     this.orders = [];
     this.currentUserId = null;
     this.deletingIds.clear();
-    this.stopPolling();
+    this.disconnectSocket();
   }
 
   // 统一更新用户信息的工具方法
@@ -696,14 +754,36 @@ export class Tab4Page implements OnDestroy {
         )
         .map((o: any) => {
           const status = Number(o.OrderStatus);
-          const meta =
-            status === 0
-              ? { key: 'pending', label: '待确认', color: 'warning' }
-              : status === 1
-                ? { key: 'active', label: '进行中', color: 'primary' }
-                : status === 2
-                  ? { key: 'review', label: '待评价', color: 'medium' }
-                  : { key: 'done', label: '已完成', color: 'success' };
+          const hasReviewed = Number(o.HasReviewed || 0) > 0;
+          const otherHasReviewed = Number(o.OtherHasReviewed || 0) > 0;
+          let meta;
+          if (status === 0) {
+            meta = { key: 'pending', label: '待确认', color: 'warning' };
+          } else if (status === 1) {
+            meta = { key: 'active', label: '进行中', color: 'primary' };
+          } else if (status === 2) {
+            if (hasReviewed && otherHasReviewed) {
+              meta = { key: 'review', label: '双方已评价', color: 'medium' };
+            } else if (hasReviewed) {
+              meta = {
+                key: 'review',
+                label: '我方已评价，等待对方',
+                color: 'medium',
+              };
+            } else if (otherHasReviewed) {
+              meta = {
+                key: 'review',
+                label: '对方已评价，待我方评价',
+                color: 'medium',
+              };
+            } else {
+              meta = { key: 'review', label: '待评价', color: 'medium' };
+            }
+          } else if (status === 3) {
+            meta = { key: 'done', label: '已完成', color: 'success' };
+          } else {
+            meta = { key: 'cancelled', label: '已取消', color: 'danger' };
+          }
 
           // 解析事件快照（下单时的事件信息）
           let snapshot = null;
@@ -751,6 +831,7 @@ export class Tab4Page implements OnDestroy {
             role: Number(o.ConsumerId) === userId ? 'buyer' : 'seller',
             reviewCount: Number(o.ReviewCount || 0),
             hasReviewed: Number(o.HasReviewed || 0) > 0,
+            otherHasReviewed: Number(o.OtherHasReviewed || 0) > 0,
             // 快照字段：下单时的事件信息
             snapshot,
             snapshotTitle: snapshot?.EventTitle || o.EventTitle || '',
@@ -759,6 +840,11 @@ export class Tab4Page implements OnDestroy {
             snapshotDetails: snapshot?.EventDetails || '',
             snapshotCategory: snapshot?.EventCategory || '',
             snapshotPhotos,
+            // 交付地址结构化数据
+            deliveryAddress:
+              snapshot?.DeliveryAddress || o.DetailLocation || '',
+            deliverySpecific: snapshot?.DeliverySpecific || '',
+            deliveryAdditionalInfo: snapshot?.DeliveryAdditionalInfo || '',
           };
         });
 
@@ -776,6 +862,9 @@ export class Tab4Page implements OnDestroy {
         ).length,
         done: mapped.filter(
           (o: { statusKey: string }) => o.statusKey === 'done',
+        ).length,
+        cancelled: mapped.filter(
+          (o: { statusKey: string }) => o.statusKey === 'cancelled',
         ).length,
       };
     } catch (e) {
@@ -861,15 +950,7 @@ export class Tab4Page implements OnDestroy {
 
   reviewOrderId: number | null = null;
   isReviewModalOpen = false;
-  reviewForm: FormGroup = this.fb.group({
-    Score: [5, [Validators.required]],
-    Text: ['', [Validators.maxLength(200)]],
-  });
-
-  // 查看评价详情相关
-  isReviewDetailOpen = false;
-  isLoadingReviews = false;
-  reviewDetailList: any[] = [];
+  isSubmittingReview = false;
 
   openReviewModal(orderId: number) {
     const order = this.orders.find((o) => o.id === orderId);
@@ -884,17 +965,16 @@ export class Tab4Page implements OnDestroy {
   closeReviewModal() {
     this.isReviewModalOpen = false;
     this.reviewOrderId = null;
-    this.reviewForm.reset({ Score: 5, Text: '' });
   }
 
-  async submitReview() {
-    if (!this.reviewOrderId || this.reviewForm.invalid || !this.currentUserId)
-      return;
+  async handleReviewSubmit(payload: ReviewSubmitPayload) {
+    if (!this.reviewOrderId || !this.currentUserId) return;
     const order = this.orders.find((o) => o.id === this.reviewOrderId);
     if (!order) return;
     const targetUserId =
       order.role === 'buyer' ? order.providerId : order.consumerId;
 
+    this.isSubmittingReview = true;
     try {
       const resp = await fetch(`${this.API_BASE}/reviews`, {
         method: 'POST',
@@ -905,8 +985,8 @@ export class Tab4Page implements OnDestroy {
         body: JSON.stringify({
           OrderId: this.reviewOrderId,
           TargetUserId: targetUserId,
-          Score: this.reviewForm.value.Score,
-          Text: this.reviewForm.value.Text || '',
+          Score: payload.Score,
+          Text: payload.Text,
         }),
       });
       const data = await resp.json().catch(() => null);
@@ -918,39 +998,25 @@ export class Tab4Page implements OnDestroy {
       if (this.currentUserId) await this.loadOrders(this.currentUserId);
       await this.presentDeleteToast('评价已提交');
     } catch (e) {
-      console.error('submitReview error', e);
+      console.error('handleReviewSubmit error', e);
       await this.presentDeleteToast(this.t.networkError);
+    } finally {
+      this.isSubmittingReview = false;
     }
   }
 
   // ---- 查看评价详情 ----
-  async openReviewDetail(orderId: number) {
+  reviewDetailOrderId: number | null = null;
+  isReviewDetailOpen = false;
+
+  openReviewDetail(orderId: number) {
+    this.reviewDetailOrderId = orderId;
     this.isReviewDetailOpen = true;
-    this.isLoadingReviews = true;
-    this.reviewDetailList = [];
-    try {
-      const resp = await fetch(`${this.API_BASE}/reviews?orderId=${orderId}`);
-      const data = await resp.json().catch(() => null);
-      if (resp.ok && data?.success && Array.isArray(data.reviews)) {
-        this.reviewDetailList = data.reviews;
-      }
-    } catch (e) {
-      console.error('load reviews error', e);
-    } finally {
-      this.isLoadingReviews = false;
-    }
   }
 
   closeReviewDetail() {
     this.isReviewDetailOpen = false;
-    this.reviewDetailList = [];
-  }
-
-  getReviewAvatar(avatarPath?: string): string {
-    if (!avatarPath) return 'assets/icon/user.svg';
-    return avatarPath.startsWith('http')
-      ? avatarPath
-      : `${this.API_BASE}${avatarPath}`;
+    this.reviewDetailOrderId = null;
   }
 
   private async openEditModal(taskId: number): Promise<void> {
@@ -967,7 +1033,6 @@ export class Tab4Page implements OnDestroy {
         if (resp.ok && data?.success && data?.event) {
           source = { ...task, ...data.event };
 
-          // 检查是否有进行中或待评价的订单
           if (!data.event.canCreateOrder) {
             await this.presentDeleteToast(
               '订单进行中或待评价时，不允许编辑事件',
@@ -981,11 +1046,8 @@ export class Tab4Page implements OnDestroy {
     }
 
     this.editingTaskId = taskId;
-    this.resetEditPhotos();
-    this.editExistingPhotos = this.normalizePhotos(
-      source.Photos || source.photos,
-    );
-    this.editForm.reset({
+    this.editingEventData = {
+      id: taskId,
       EventTitle: source.EventTitle || source.title || '',
       EventType: source.EventType ?? 0,
       EventCategory: source.EventCategory || '',
@@ -997,108 +1059,23 @@ export class Tab4Page implements OnDestroy {
         source.LocationLat != null ? Number(source.LocationLat) : null,
       Price: source.Price ?? 0,
       EventDetails: source.EventDetails || '',
-    });
+      Photos: source.Photos || source.photos || null,
+    };
     this.isEditModalOpen = true;
   }
 
   closeEditModal() {
     this.isEditModalOpen = false;
     this.editingTaskId = null;
-    this.resetEditPhotos();
+    this.editingEventData = null;
   }
 
-  getEditPhotoItems(): Array<{
-    preview: string;
-    isExisting: boolean;
-    index: number;
-  }> {
-    const existing = this.editExistingPhotos.map((p, i) => ({
-      preview: this.getAssetUrl(p),
-      isExisting: true,
-      index: i,
-    }));
-    const next = this.editNewPhotos.map((p, i) => ({
-      preview: p.preview,
-      isExisting: false,
-      index: i,
-    }));
-    return [...existing, ...next];
-  }
-
-  getEditPhotoCount(): number {
-    return this.editExistingPhotos.length + this.editNewPhotos.length;
-  }
-
-  triggerEditFileInput(): void {
-    if (this.getEditPhotoCount() >= this.EDIT_MAX) {
-      void this.presentDeleteToast(`${this.t.uploadHint}`);
-      return;
-    }
-    this.editFileInput?.nativeElement.click();
-  }
-
-  onEditFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const files = input.files;
-    if (!files || files.length === 0) return;
-
-    const remaining = this.EDIT_MAX - this.getEditPhotoCount();
-    const pick = Array.from(files)
-      .filter((f) => f.type.startsWith('image/'))
-      .slice(0, remaining);
-
-    for (const f of pick) {
-      this.editNewPhotos.push({ file: f, preview: URL.createObjectURL(f) });
-    }
-
-    input.value = '';
-  }
-
-  removeEditPhoto(type: 'existing' | 'new', index: number): void {
-    if (type === 'existing') {
-      this.editExistingPhotos.splice(index, 1);
-      return;
-    }
-
-    const removed = this.editNewPhotos[index];
-    if (removed?.preview) URL.revokeObjectURL(removed.preview);
-    this.editNewPhotos.splice(index, 1);
-  }
-
-  private collectEditFormErrors(): string[] {
-    const msgs: string[] = [];
-    if (this.editForm.get('EventTitle')?.invalid)
-      msgs.push(this.t.titleRequired);
-    if (this.editForm.get('EventCategory')?.invalid)
-      msgs.push(this.t.categoryRequired);
-    if (this.editForm.get('Location')?.invalid)
-      msgs.push(this.t.locationRequired);
-    if (this.editForm.get('EventDetails')?.invalid)
-      msgs.push(this.t.detailsRequired);
-    if (this.editForm.get('Price')?.invalid) msgs.push(this.t.priceInvalid);
-    return msgs;
-  }
-
-  async submitEdit(): Promise<void> {
-    if (this.editForm.invalid) {
-      await this.presentDeleteToast(this.collectEditFormErrors().join('，'));
-      return;
-    }
-
+  async submitEdit(payload: EditEventPayload): Promise<void> {
     if (!this.editingTaskId) return;
     if (this.isSavingEdit) return;
 
     this.isSavingEdit = true;
-    const payload = this.editForm.getRawValue();
-
-    const uploaded = await this.uploadEditPhotos();
-    if (uploaded == null) {
-      this.isSavingEdit = false;
-      return;
-    }
-    const allPhotos = [...this.editExistingPhotos, ...uploaded];
-    const photosPayload =
-      allPhotos.length > 0 ? JSON.stringify(allPhotos) : null;
+    const { formData, photosJson } = payload;
 
     try {
       const resp = await fetch(
@@ -1109,7 +1086,7 @@ export class Tab4Page implements OnDestroy {
             'Content-Type': 'application/json',
             ...this.auth.getAuthHeader(),
           },
-          body: JSON.stringify({ ...payload, Photos: photosPayload }),
+          body: JSON.stringify({ ...formData, Photos: photosJson }),
         },
       );
 
@@ -1131,9 +1108,9 @@ export class Tab4Page implements OnDestroy {
       if (idx >= 0) {
         const updated = {
           ...this.tasks[idx],
-          ...payload,
-          title: payload.EventTitle,
-          Photos: photosPayload,
+          ...formData,
+          title: formData['EventTitle'],
+          Photos: photosJson,
         };
         this.tasks = [
           ...this.tasks.slice(0, idx),
@@ -1150,57 +1127,6 @@ export class Tab4Page implements OnDestroy {
     } finally {
       this.isSavingEdit = false;
     }
-  }
-
-  private async uploadEditPhotos(): Promise<string[] | null> {
-    if (this.editNewPhotos.length === 0) return [];
-
-    const fd = new FormData();
-    for (const p of this.editNewPhotos) {
-      fd.append('images', p.file);
-    }
-
-    try {
-      const resp = await fetch(`${this.API_BASE}/upload/images`, {
-        method: 'POST',
-        body: fd,
-      });
-      const data = await resp.json().catch(() => null);
-      if (!resp.ok || !data?.success || !Array.isArray(data.paths)) {
-        await this.presentDeleteToast(data?.error || this.t.networkError);
-        return null;
-      }
-      return data.paths;
-    } catch (e) {
-      console.error('uploadEditPhotos error', e);
-      await this.presentDeleteToast(this.t.networkError);
-      return null;
-    }
-  }
-
-  private resetEditPhotos(): void {
-    for (const p of this.editNewPhotos) {
-      if (p.preview) URL.revokeObjectURL(p.preview);
-    }
-    this.editNewPhotos = [];
-    this.editExistingPhotos = [];
-  }
-
-  private normalizePhotos(photos: any): string[] {
-    if (!photos) return [];
-    if (Array.isArray(photos)) return photos.filter(Boolean);
-    if (typeof photos === 'string') {
-      const raw = photos.trim();
-      if (!raw) return [];
-      try {
-        const arr = JSON.parse(raw);
-        if (Array.isArray(arr)) return arr.filter(Boolean);
-      } catch {
-        return [raw];
-      }
-      return [raw];
-    }
-    return [];
   }
 
   getAssetUrl(path: string): string {
@@ -1466,5 +1392,100 @@ export class Tab4Page implements OnDestroy {
     } catch (e) {
       console.error('deleteUploadedFile error', e);
     }
+  }
+
+  // ---- 收藏弹窗 ----
+  async openFavoritesModal() {
+    this.isFavoritesModalOpen = true;
+    await this.loadFavorites();
+  }
+
+  closeFavoritesModal() {
+    this.isFavoritesModalOpen = false;
+  }
+
+  async loadFavorites() {
+    this.isLoadingFavorites = true;
+    try {
+      const resp = await fetch(`${this.API_BASE}/favorites`, {
+        headers: this.auth.getAuthHeader(),
+      });
+      const data = await resp.json().catch(() => null);
+      if (data?.success && Array.isArray(data.favorites)) {
+        this.favoritesList = data.favorites.map((f: any) => ({
+          id: String(f.EventId),
+          title: f.EventTitle,
+          address: f.Location,
+          price: f.Price,
+          demand: f.EventDetails,
+          createTime: f.CreateTime,
+          cardImage: (() => {
+            try {
+              const photos = JSON.parse(f.Photos || '[]');
+              return Array.isArray(photos) ? photos[0] : photos;
+            } catch {
+              return f.Photos || '';
+            }
+          })(),
+          creatorId: f.CreatorId,
+          name: f.UserName || '',
+          avatar: f.UserAvatar || '',
+          distance: '',
+        }));
+      }
+    } catch (e) {
+      console.error('loadFavorites error', e);
+    } finally {
+      this.isLoadingFavorites = false;
+    }
+  }
+
+  onFavoriteCardClick(event: EventCardData) {
+    this.isFavoritesModalOpen = false;
+    this.cdr.detectChanges();
+    this.goToEventDetail(Number(event.id));
+  }
+
+  // ---- 关注弹窗 ----
+  async openFollowsModal() {
+    this.isFollowsModalOpen = true;
+    await this.loadFollows();
+  }
+
+  closeFollowsModal() {
+    this.isFollowsModalOpen = false;
+  }
+
+  async loadFollows() {
+    this.isLoadingFollows = true;
+    try {
+      const resp = await fetch(`${this.API_BASE}/follows`, {
+        headers: this.auth.getAuthHeader(),
+      });
+      const data = await resp.json().catch(() => null);
+      if (data?.success && Array.isArray(data.follows)) {
+        this.followsList = data.follows;
+      }
+    } catch (e) {
+      console.error('loadFollows error', e);
+    } finally {
+      this.isLoadingFollows = false;
+    }
+  }
+
+  async removeFollow(userId: number) {
+    const result = await this.auth.toggleFollow(userId);
+    if (result === false) {
+      this.followsList = this.followsList.filter((f) => f.UserId !== userId);
+      await this.presentDeleteToast('已取消关注');
+    }
+  }
+
+  goToUserFromFollow(user: any) {
+    this.isFollowsModalOpen = false;
+    this.cdr.detectChanges();
+    this.router.navigate(['/user-particular'], {
+      queryParams: { name: user.UserName, userId: user.UserId },
+    });
   }
 }

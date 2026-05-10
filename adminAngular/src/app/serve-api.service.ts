@@ -90,4 +90,10 @@ export class ServeAPIService {
   deleteAdminEvent(eventId: number): Observable<any> {
     return this.http.delete<any>(`${this.baseUrl}/admin/events/${eventId}`);
   }
+
+  // ========== 统计数据 ==========
+
+  getAdminStats(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/admin/stats`);
+  }
 }

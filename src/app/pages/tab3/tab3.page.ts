@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
+import { HttpClient } from '@angular/common/http';
 import { io } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
 //Standalone need to import specific component tag
@@ -15,7 +16,6 @@ import {
   IonNote,
   IonLabel,
 } from '@ionic/angular/standalone';
-import { Router } from '@angular/router';
 import { NavController, ToastController } from '@ionic/angular';
 import { LanguageService } from '../../services/language.service';
 
@@ -41,6 +41,7 @@ export class Tab3Page implements OnInit {
   //injects
   private navCtrl = inject(NavController);
   private auth = inject(AuthService);
+  private http = inject(HttpClient);
   private toastCtrl = inject(ToastController);
   private langService = inject(LanguageService);
 
@@ -58,7 +59,6 @@ export class Tab3Page implements OnInit {
 
   ngOnInit() {
     this.showChat = false;
-    console.log(this.getUser);
 
     // Init Connection
     //用户独享socket 房间 ，用于实时更新聊天列表 ！！！（重要突破）
@@ -68,108 +68,126 @@ export class Tab3Page implements OnInit {
         serverOffset: this.serverOffset,
       },
     });
+
+    // Socket 断连重连后自动加入房间
+    this.socket.on('connect', () => {
+      const userId = this.auth.currentUserId;
+      if (userId) {
+        this.socket.emit('joinRoom', null);
+        this.loadUserRooms(userId);
+      }
+    });
   }
 
   ionViewWillEnter() {
     //init each time
     this.showChat = false; // web page HTML show check
     this.getUser = this.auth.currentUser; // user get check
-    console.log(this.getUser);
 
-    if (this.getUser) {
-      //init system room
-      const sysRoom = `system_${this.getUser.UserId ?? this.getUser.UserId}`;
-      this.initSystemRoom(sysRoom);
-
-      this.socket.emit('joinRoom', null);
-      this.socket.off('listUpdate');
-
-      //start listen list update from socket
-      //重要突破 使用socket 在这里监听每一次消息变化情况！！（重要）
-      this.socket.on('listUpdate', (data: any) => {
-        console.log('new chat list update!', data);
-        if (this.getUser?.UserId) {
-          this.loadUserRooms(this.getUser.UserId);
-        }
-      });
-      //get all rooms with the target user
-      this.loadUserRooms(this.getUser.UserId);
-      console.log(this.chatRooms);
+    if (!this.getUser || !this.auth.token) {
+      this.checkAuth();
+      return;
     }
-    this.checkAuth(); // do checking
+
+    //init system room
+    const userId = this.auth.currentUserId;
+    const sysRoom = `system_${userId}`;
+    this.initSystemRoom(sysRoom);
+
+    this.socket.emit('joinRoom', null);
+    this.socket.off('listUpdate');
+
+    //start listen list update from socket
+    //重要突破 使用socket 在这里监听每一次消息变化情况！！（重要）
+    this.socket.on('listUpdate', (data: any) => {
+      if (userId) {
+        this.loadUserRooms(userId);
+      }
+    });
+    //get all rooms with the target user
+    this.loadUserRooms(userId);
   }
 
   //line 67 68 use api to get all list?
-  async loadUserRooms(userId: number) {
-    try {
-      const query = new URLSearchParams({ userId: String(userId) }).toString(); // query = "userId=100002"
-      const resp = await fetch(
-        `${environment.apiBase}/api/rooms/list?${query}`,
-      ); // 正确拼接 URL
-      const data = await resp.json();
-      console.log(data);
-
-      if (data?.success && Array.isArray(data.data?.rooms)) {
-        this.chatRooms = data.data.rooms.map((room: any) => {
-          let name = '';
-          let avatar = '';
-          const unreadCount = room.unreadCount?.[this.getUser.UserId] || 0;
-
-          if (
-            room.type === 'system' ||
-            (room.roomId && room.roomId.startsWith('system_'))
-          ) {
-            name = this.t.systemNotification;
-            avatar = 'assets/icon/notification.svg';
-
-            // 更新系统通知房间的最新消息和未读数
-            this.systemRoom = {
-              ...this.systemRoom,
-              lastMsg: room.lastMsg || this.t.noNewNotification,
-              count: unreadCount,
-              updatedAt: room.updatedAt,
-            };
-          } else {
-            const eventName = room.event?.name || '';
-            let otherChatName = `${this.t.unknownUser} ${room.partnerId ?? ''}`;
-            avatar = 'assets/icon/user.svg';
-
-            if (room.userA?.id !== this.getUser.UserId) {
-              otherChatName = room.userA?.name || otherChatName;
-              avatar = room.userA?.avatar || avatar;
-            } else if (room.userB?.id !== this.getUser.UserId) {
-              otherChatName = room.userB?.name || otherChatName;
-              avatar = room.userB?.avatar || avatar;
-            }
-
-            name = `${otherChatName}${eventName ? ` ${eventName}` : ''}`;
-          }
-
-          return {
-            roomId: room.roomId,
-            name,
-            lastMsg: room.lastMsg || '暂无消息',
-            count: unreadCount,
-            avatar,
-            type: room.type || 'user',
-            updatedAt: room.updatedAt,
-          };
-        });
-
-        // 可选：按更新时间排序
-        this.chatRooms.sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-        );
-
-        // 过滤掉系统通知房间（已在顶部单独显示）
-        this.chatRooms = this.chatRooms.filter((r) => r.type !== 'system');
-        console.log(this.chatRooms);
-        this.showChat = true;
-      }
-    } catch (err) {
-      console.error(this.t.loadRoomsFailed, err);
+  loadUserRooms(userId: number | null) {
+    if (!userId) {
+      this.showChat = true;
+      return;
     }
+
+    this.http
+      .get<any>(`${environment.apiBase}/api/rooms/list`, {
+        params: { userId: String(userId) },
+      })
+      .subscribe({
+        next: (data) => {
+          if (data?.success && Array.isArray(data.data?.rooms)) {
+            this.chatRooms = data.data.rooms.map((room: any) => {
+              let name = '';
+              let avatar = '';
+              const unreadCount = room.unreadCount?.[userId] || 0;
+
+              if (
+                room.type === 'system' ||
+                (room.roomId && room.roomId.startsWith('system_'))
+              ) {
+                name = this.t.systemNotification;
+                avatar = 'assets/icon/notification.svg';
+
+                // 更新系统通知房间的最新消息和未读数
+                this.systemRoom = {
+                  ...this.systemRoom,
+                  lastMsg: room.lastMsg || this.t.noNewNotification,
+                  count: unreadCount,
+                  updatedAt: room.updatedAt,
+                };
+              } else {
+                const eventName = room.event?.name || '';
+                let otherChatName = `${this.t.unknownUser} ${room.partnerId ?? ''}`;
+                avatar = 'assets/icon/user.svg';
+
+                if (room.userA?.id !== userId) {
+                  otherChatName = room.userA?.name || otherChatName;
+                  avatar = room.userA?.avatar || avatar;
+                } else if (room.userB?.id !== userId) {
+                  otherChatName = room.userB?.name || otherChatName;
+                  avatar = room.userB?.avatar || avatar;
+                }
+
+                name = `${otherChatName}${eventName ? ` ${eventName}` : ''}`;
+              }
+
+              return {
+                roomId: room.roomId,
+                name,
+                lastMsg: room.lastMsg || '暂无消息',
+                count: unreadCount,
+                avatar,
+                type: room.type || 'user',
+                orderId: room.orderId || null,
+                eventId: room.event?.id || null,
+                updatedAt: room.updatedAt,
+              };
+            });
+
+            // 可选：按更新时间排序
+            this.chatRooms.sort(
+              (a, b) =>
+                new Date(b.updatedAt).getTime() -
+                new Date(a.updatedAt).getTime(),
+            );
+
+            // 过滤掉系统通知房间（已在顶部单独显示）
+            this.chatRooms = this.chatRooms.filter((r) => r.type !== 'system');
+          }
+          this.showChat = true;
+        },
+        error: (err) => {
+          console.error(this.t.loadRoomsFailed, err);
+          // 请求失败也要显示聊天页面，避免卡在"请先登录"
+          this.showChat = true;
+        },
+      });
   }
 
   getAvatarUrl(path: string): string {
@@ -193,14 +211,11 @@ export class Tab3Page implements OnInit {
   private async checkAuth() {
     const token = this.auth.token;
     if (!token || !this.getUser) {
-      console.log('Please log in or Register');
       //简单粗暴的跳转到了登陆页 需要优化login page 1-23
       //wait to show toast at top and let user read the html contents then do navigation
       await this.loginToast();
       await new Promise((resolve) => setTimeout(resolve, 200));
       this.navCtrl.navigateRoot('/tabs/tab4', { animated: true });
-    } else {
-      this.showChat = true;
     }
   }
 
@@ -219,9 +234,14 @@ export class Tab3Page implements OnInit {
   //go to the chat with router
   goChat(user: any) {
     this.clearRoomUnread(user.roomId);
+    (document.activeElement as HTMLElement)?.blur();
 
     this.navCtrl.navigateForward(['/chat-detail', user.roomId], {
-      state: { targetUser: user },
+      state: {
+        targetUser: user,
+        orderId: user.orderId,
+        eventId: user.eventId,
+      },
     });
   }
 

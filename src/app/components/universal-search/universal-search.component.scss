@@ -14,15 +14,15 @@
   display: flex;
   align-items: center;
   padding: 10px 15px;
-  background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
+  background: var(--ion-background-color);
+  border-bottom: 1px solid var(--ion-background-color-step-150);
   gap: 10px;
 }
 
 .search-bar-custom {
   flex: 1;
-  max-width: 400px;          // 与队友一致
-  --background: #FFFFFF;
+  max-width: 400px;
+  --background: var(--ion-card-background, var(--ion-background-color));
   --box-shadow: none;
   --border-radius: 20px;
   --padding-start: 15px;
@@ -39,16 +39,16 @@
 
 /* ===== 筛选按钮行 – 与小卡片筛选条同风格 ===== */
 .filter-row {
-  background: #FFFFFF;
+  background: var(--ion-card-background, var(--ion-background-color));
   padding: 10px 0;
-  border-bottom: 1px solid #E2E8F0;
+  border-bottom: 1px solid var(--ion-background-color-step-150);
   ion-col { padding: 0 5px; }
 }
 
 /* ===== 列表容器 – 同队友网格 ===== */
 .event-list-container {
   padding: 10px;
-  background-color: #F8FAFC;
+  background-color: var(--ion-background-color);
 }
 
 /* ===== 空状态 – 直接复用队友空状态 ===== */
@@ -59,16 +59,16 @@
   align-items: center;
   justify-content: center;
   padding: 40px 10px;
-  color: #94A3B8;
+  color: var(--ion-color-medium);
   text-align: center;
-  background-color: #F8FAFC;
-  border: 2px dashed #E2E8F0;
+  background-color: var(--ion-background-color);
+  border: 2px dashed var(--ion-background-color-step-150);
   border-radius: 12px;
   margin: 0 10px;
 
   .material-icons {
     font-size: 48px;
-    color: #CBD5E1;
+    color: var(--ion-background-color-step-200);
     margin-bottom: 10px;
   }
   p { font-size: 15px; margin: 0; font-weight: 500; }
@@ -95,4 +95,140 @@
 ion-modal {
   --border-radius: 20px;
   --box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+}
+
+/* ===== 筛选弹窗公共样式 ===== */
+.filter-current-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px 4px;
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+.filter-current-tag ion-icon {
+  font-size: 16px;
+}
+
+/* ===== 价格档次卡片列表 ===== */
+.filter-card-list {
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--ion-card-background, #fff);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.filter-option:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.filter-option:active {
+  transform: translateY(0);
+}
+
+.filter-option.active {
+  border-color: var(--ion-color-primary);
+  background: rgba(var(--ion-color-primary-rgb), 0.04);
+  box-shadow: 0 2px 8px rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.filter-option-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--ion-text-color);
+}
+
+.filter-option-left ion-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.filter-option.active .filter-option-left {
+  font-weight: 600;
+  color: var(--ion-color-primary);
+}
+
+.filter-option-checked {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ion-color-primary);
+}
+
+/* ===== 地点筛选 ===== */
+.filter-search-area {
+  display: flex;
+  align-items: center;
+  margin: 12px 16px;
+  padding: 0 14px;
+  background: var(--ion-card-background, #fff);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--ion-background-color-step-150);
+  transition: border-color 0.2s;
+}
+
+.filter-search-area:focus-within {
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 2px 8px rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.filter-search-icon {
+  font-size: 18px;
+  color: var(--ion-color-medium);
+  flex-shrink: 0;
+}
+
+.filter-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 14px 10px;
+  font-size: 15px;
+  background: transparent;
+  color: var(--ion-text-color);
+  min-width: 0;
+}
+
+.filter-search-input::placeholder {
+  color: var(--ion-color-medium-shade);
+}
+
+.filter-clear-btn {
+  margin: 0;
+  height: 32px;
+  width: 32px;
+  --padding-start: 0;
+  --padding-end: 0;
+  color: var(--ion-color-medium);
+}
+
+.filter-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 20px;
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+
+.filter-hint ion-icon {
+  font-size: 14px;
 }

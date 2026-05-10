@@ -68,9 +68,13 @@ const getChatHistory = async (queryParams) => {
       id: msg._id.toString(),
       roomId: msg.roomId,
       senderId: msg.senderId,
-      text: msg.text,
+      messageType: msg.messageType || 'text',
+      text: msg.text || '',
+      imageUrl: msg.imageUrl || '',
+      location: msg.location || null,
       sendTime: new Date(msg.sendTime).toLocaleString(),
       userName: msg.userName,
+      targetUserId: msg.targetUserId ?? null,
     }));
 
     // 返回结果
@@ -211,6 +215,7 @@ const getRoomList = async (queryParams) => {
           id: Number(room.eventId) || 0,
           name: eventMap[Number(room.eventId)] || "未知事件",
         },
+        orderId: room.orderId || null,
         lastMsg: room.lastMsg || "",
         unreadCount: room.unreadCount || {},
         updatedAt: room.updatedAt,
@@ -274,6 +279,58 @@ const sendSystemMessage = async ({ roomId, text, senderId }) => {
   }
 };
 
+// 订单房间系统消息发送：写入 MongoDB + 更新 Room + 通知买卖双方
+const sendOrderSystemMessage = async ({
+  roomId,
+  text,
+  senderId,
+  targetUserId,
+}) => {
+  try {
+    const messageData = {
+      roomId,
+      text,
+      senderId,
+      userName: "系统通知",
+      sendTime: new Date(),
+      targetUserId: targetUserId || null,
+    };
+
+    await Message.create(messageData);
+
+    // 更新房间的 lastMsg 和 updatedAt
+    await Room.updateOne(
+      { _id: roomId },
+      { $set: { lastMsg: text, updatedAt: new Date() } },
+    );
+
+    const io = getIO();
+    if (io) {
+      // 实时推送到订单房间（有 targetUserId 时只推给指定用户）
+      if (targetUserId) {
+        io.to(String(targetUserId)).emit("chat message", messageData);
+      } else {
+        io.to(roomId).emit("chat message", messageData);
+      }
+
+      // 通知买卖双方刷新聊天列表
+      const room = await Room.findById(roomId);
+      if (room) {
+        const userIds = [room.creatorId, room.partnerId].filter(Boolean);
+        for (const uid of userIds) {
+          io.to(String(uid)).emit("listUpdate", {
+            roomId,
+            lastMsg: text,
+            updatedAt: new Date(),
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("sendOrderSystemMessage 失败:", err);
+  }
+};
+
 module.exports.registerChatHandler = (io, socket) => {
   //join the room 加入聊天房间代码
   const joinRoom = async (roomId) => {
@@ -283,7 +340,6 @@ module.exports.registerChatHandler = (io, socket) => {
     //user join into private chat list server room
     if (socket.user && socket.user.id) {
       socket.join(socket.user.id.toString());
-      console.log(`User ${socket.user.id} joined private room`);
     }
 
     if (!roomId) return;
@@ -309,12 +365,17 @@ module.exports.registerChatHandler = (io, socket) => {
 
       //share the room id to all socket functions!
       socket.currentRoom = roomId;
-      const joined = `connect to room ${roomId} SUCCESS ✅`;
-      console.log(joined);
+      console.log(`connect to room ${roomId} SUCCESS`);
+
+      // 根据房间类型发送不同的连接提示
+      const isSystemRoom = roomId.startsWith("system_");
+      const connectText = isSystemRoom
+        ? "已连接至通知中心"
+        : `${socket.user?.name || "对方"}已加入，可以开始聊天了`;
 
       //send connectSuccess Msg
       io.to(roomId).emit("connectSuccess", {
-        text: joined,
+        text: connectText,
         senderId: "system_bot",
         userName: "系统通知",
         sendTime: new Date(),
@@ -344,7 +405,10 @@ module.exports.registerChatHandler = (io, socket) => {
 
       const messageData = {
         roomId: roomId,
-        text: msg.text,
+        messageType: msg.messageType || 'text',
+        text: msg.text || '',
+        imageUrl: msg.imageUrl || '',
+        location: msg.location || null,
         senderId: socket.user.id,
         userName: socket.user.name,
         timestamp: new Date(),
@@ -407,3 +471,4 @@ module.exports.registerChatHandler = (io, socket) => {
 module.exports.getChatHistory = getChatHistory;
 module.exports.getRoomList = getRoomList;
 module.exports.sendSystemMessage = sendSystemMessage;
+module.exports.sendOrderSystemMessage = sendOrderSystemMessage;

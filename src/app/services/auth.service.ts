@@ -393,4 +393,71 @@ export class AuthService {
       return null;
     }
   }
+
+  // ----------------- 收藏 & 关注 -----------------
+  async toggleFavorite(eventId: number): Promise<boolean | null> {
+    try {
+      const res = await fetch(`${this.API_BASE}/favorites`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeader(),
+        },
+        body: JSON.stringify({ EventId: eventId }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data?.success) return data.favorited;
+      return null;
+    } catch (e) {
+      console.error('toggleFavorite error:', e);
+      return null;
+    }
+  }
+
+  async toggleFollow(followingId: number): Promise<boolean | null> {
+    try {
+      const res = await fetch(`${this.API_BASE}/follows`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeader(),
+        },
+        body: JSON.stringify({ FollowingId: followingId }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data?.success) return data.following;
+      return null;
+    } catch (e) {
+      console.error('toggleFollow error:', e);
+      return null;
+    }
+  }
+
+  async checkFavorite(eventId: number): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `${this.API_BASE}/favorites/check?eventId=${eventId}`,
+        { headers: this.getAuthHeader() },
+      );
+      const data = await res.json().catch(() => null);
+      return data?.favorited ?? false;
+    } catch (e) {
+      console.error('checkFavorite error:', e);
+      return false;
+    }
+  }
+
+  async checkFollow(userId: number): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `${this.API_BASE}/follows/check?userId=${userId}`,
+        { headers: this.getAuthHeader() },
+      );
+      const data = await res.json().catch(() => null);
+      return data?.following ?? false;
+    } catch (e) {
+      console.error('checkFollow error:', e);
+      return false;
+    }
+  }
 }

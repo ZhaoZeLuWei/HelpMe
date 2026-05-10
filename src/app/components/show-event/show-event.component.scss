@@ -13,8 +13,8 @@
 
 // 小卡片基础
 .small-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: var(--ion-card-background, var(--ion-background-color));
+  border: 1px solid var(--ion-background-color-step-150);
   border-radius: 10px;
   padding: 10px;
   position: relative;
@@ -27,16 +27,13 @@
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: #f0fdfa;
-    border-color: #0f766e;
-    box-shadow: 0 10px 15px -3px rgba(15, 118, 110, 0.15);
-    transform: translateY(-3px);
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
   }
 
   &:active {
-    transform: translateY(-1px);
-    background-color: #ccfbf1;
-    box-shadow: 0 2px 4px rgba(15, 118, 110, 0.1);
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   }
 }
 
@@ -46,7 +43,7 @@
   margin-bottom: 6px;
   border-radius: 8px;
   overflow: hidden;
-  background-color: #f1f5f9;
+  background-color: var(--ion-background-color-step-100);
   min-height: 140px;
   height: 140px;
 
@@ -92,7 +89,7 @@
   align-items: center;
   gap: 8px;
   margin: 6px 0;
-  overflow: hidden;          // 关键：不换行
+  overflow: hidden;
 }
 
 // 头像固定尺寸
@@ -101,7 +98,7 @@
   height: 28px;
   border-radius: 50%;
   overflow: hidden;
-  flex-shrink: 0;            // 防止被挤压
+  flex-shrink: 0;
 }
 
 .avatar-img-small {
@@ -115,14 +112,14 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;              // 允许收缩
+  min-width: 0;
   flex: 1;
 }
 
 .event-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--ion-text-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -134,29 +131,29 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  overflow: hidden;          // 不换行
+  overflow: hidden;
 }
 
 .user-name {
-  font-size: 14px;                // 比标题 14px 小一点
-  color: #1e293b;                 // 中性灰，区别于标题的 #1e293b
-  font-weight: 600;               // 用 500 替代 600，更细
+  font-size: 14px;
+  color: var(--ion-text-color);
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .user-address {
   font-size: 13px;
-  color: #64748b;
+  color: var(--ion-color-medium);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1 1 auto;            // 超长自动省略
+  flex: 1 1 auto;
 }
 
 // 需求描述
 .demand {
   font-size: 12px;
-  color: #475569;
+  color: var(--ion-color-medium);
   line-height: 1.4;
   margin-bottom: 8px;
   min-height: 34px;
@@ -167,7 +164,7 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--ion-background-color-step-100);
   padding-top: 6px;
   margin-top: 4px;
 }

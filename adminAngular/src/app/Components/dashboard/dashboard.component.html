@@ -1,0 +1,145 @@
+<div class="dashboard-page">
+  <h1>数据看板</h1>
+
+  <div class="stats-grid" *ngIf="!loading">
+    <!-- 用户统计 -->
+    <div class="stat-card blue">
+      <div class="stat-icon">
+        <mat-icon>people</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.userCount }}</span>
+        <span class="stat-label">注册用户</span>
+      </div>
+    </div>
+
+    <!-- 订单统计 -->
+    <div class="stat-card green">
+      <div class="stat-icon">
+        <mat-icon>description</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.orderCount }}</span>
+        <span class="stat-label">总订单数</span>
+      </div>
+    </div>
+
+    <!-- 事件统计 -->
+    <div class="stat-card orange">
+      <div class="stat-icon">
+        <mat-icon>event</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.eventCount }}</span>
+        <span class="stat-label">发布事件</span>
+      </div>
+    </div>
+
+    <!-- 待审核 -->
+    <div class="stat-card red">
+      <div class="stat-icon">
+        <mat-icon>info</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-value">{{ stats.pendingVerify }}</span>
+        <span class="stat-label">待审核</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详细统计 -->
+  <div class="detail-grid" *ngIf="!loading">
+    <!-- 订单状态分布 -->
+    <div class="detail-card">
+      <h3>订单状态分布</h3>
+      <div class="bar-chart">
+        <div class="bar-item">
+          <span class="bar-label">待确认</span>
+          <div class="bar-track">
+            <div
+              class="bar-fill yellow"
+              [style.width]="
+                (getOrderStatusCount(0) / (stats.orderCount || 1)) * 100 + '%'
+              "
+            ></div>
+          </div>
+          <span class="bar-value">{{ getOrderStatusCount(0) }}</span>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">进行中</span>
+          <div class="bar-track">
+            <div
+              class="bar-fill blue"
+              [style.width]="
+                (getOrderStatusCount(1) / (stats.orderCount || 1)) * 100 + '%'
+              "
+            ></div>
+          </div>
+          <span class="bar-value">{{ getOrderStatusCount(1) }}</span>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">待评价</span>
+          <div class="bar-track">
+            <div
+              class="bar-fill purple"
+              [style.width]="
+                (getOrderStatusCount(2) / (stats.orderCount || 1)) * 100 + '%'
+              "
+            ></div>
+          </div>
+          <span class="bar-value">{{ getOrderStatusCount(2) }}</span>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">已完成</span>
+          <div class="bar-track">
+            <div
+              class="bar-fill green"
+              [style.width]="
+                (getOrderStatusCount(3) / (stats.orderCount || 1)) * 100 + '%'
+              "
+            ></div>
+          </div>
+          <span class="bar-value">{{ getOrderStatusCount(3) }}</span>
+        </div>
+        <div class="bar-item">
+          <span class="bar-label">已取消</span>
+          <div class="bar-track">
+            <div
+              class="bar-fill gray"
+              [style.width]="
+                (getOrderStatusCount(4) / (stats.orderCount || 1)) * 100 + '%'
+              "
+            ></div>
+          </div>
+          <span class="bar-value">{{ getOrderStatusCount(4) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 事件类型分布 -->
+    <div class="detail-card">
+      <h3>事件类型分布</h3>
+      <div class="pie-chart-container">
+        <div class="pie-chart" [style.background]="getPieBackground()"></div>
+        <div class="pie-legend">
+          <div class="legend-item">
+            <span class="legend-color" style="background: #f59e0b"></span>
+            <span class="legend-label">求助事件</span>
+            <span class="legend-value">{{ getEventTypeCount(0) }}</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background: #10b981"></span>
+            <span class="legend-label">帮助事件</span>
+            <span class="legend-value">{{ getEventTypeCount(1) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 加载中 -->
+  <div class="loading" *ngIf="loading">
+    <div class="spinner"></div>
+    <span>加载中...</span>
+  </div>
+</div>

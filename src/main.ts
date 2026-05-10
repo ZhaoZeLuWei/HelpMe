@@ -11,7 +11,8 @@ import {
   chatbubbleOutline,
   locationOutline,
   timeOutline,
-  cashOutline
+  cashOutline,
+  documentText
 } from 'ionicons/icons';
 
 import { routes } from './app/app.routes';
@@ -26,7 +27,8 @@ addIcons({
   'chatbubble-outline': chatbubbleOutline,
   'location-outline': locationOutline,
   'time-outline': timeOutline,
-  'cash-outline': cashOutline
+  'cash-outline': cashOutline,
+  'document-text': documentText
 });
 
 bootstrapApplication(AppComponent, {

@@ -7,6 +7,9 @@
     </ion-buttons>
     <ion-title>选择地点</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="toggleAddressBook()" class="addr-book-btn">
+        地址簿
+      </ion-button>
       <ion-button (click)="confirmMapLocation()" [disabled]="!currentAddress()">
         <ion-icon slot="icon-only" name="save"></ion-icon>
       </ion-button>
@@ -138,4 +141,45 @@
       </ion-list>
     </div>
   }
+
+  <!-- ===== 地址簿覆盖层 ===== -->
+  @if (showAddressBook()) {
+    <div class="overlay">
+      <div class="overlay-header">
+        <ion-label class="overlay-title">常用地址</ion-label>
+        <ion-button fill="clear" size="small" (click)="toggleAddressBook()">关闭</ion-button>
+      </div>
+      @if (addressBook().length > 0) {
+        <ion-list lines="full">
+          @for (item of addressBook(); track item.placeId) {
+            <ion-item button detail="false" (click)="selectCachedLocation(item)">
+              <ion-label>
+                <h3>{{ item.text }}</h3>
+                <p class="address">{{ item.address }}</p>
+                <p class="address-meta">
+                  <span>已使用 {{ item.useCount }} 次</span>
+                  <span class="dot">·</span>
+                  <span>{{ formatRelativeTime(item.timestamp) }}</span>
+                </p>
+              </ion-label>
+              <ion-button
+                slot="end"
+                fill="clear"
+                size="small"
+                (click)="$event.stopPropagation(); removeFromAddressBook(item.placeId)"
+                class="delete-addr-btn"
+              >
+                <ion-icon slot="icon-only" name="close"></ion-icon>
+              </ion-button>
+            </ion-item>
+          }
+        </ion-list>
+      } @else {
+        <div class="state-box empty">
+          <p>暂无历史地址</p>
+        </div>
+      }
+    </div>
+  }
+
 </ion-content>
