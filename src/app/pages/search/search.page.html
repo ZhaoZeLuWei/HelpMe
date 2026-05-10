@@ -4,22 +4,24 @@
 <ion-content class="ion-padding">
   <ion-searchbar
     [(ngModel)]="keyword"
-    [placeholder]="t.placeholder"
+    placeholder="输入需求描述"
     (keyup.enter)="onSearch()"
   ></ion-searchbar>
 
+  <!-- 将按钮移动到搜索框下方 -->
   <div class="button-container">
     <ion-button size="large" (click)="goBack()">
       <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
-      {{ t.back }}
+      返回
     </ion-button>
     <ion-button size="large" (click)="onSearch()">
       <ion-icon slot="start" name="search-outline"></ion-icon>
-      {{ t.search }}
+      搜索
     </ion-button>
     <ion-button size="large" (click)="aiSearch()">
       <ion-icon slot="start" name="sparkles-outline"></ion-icon>
-      {{ t.aiAssist }}
+      AI辅助
     </ion-button>
   </div>
 </ion-content>
+

@@ -1,39 +1,40 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>{{ t.title }}</ion-title>
+    <ion-title>注册</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="closeModal()">{{ t.close }}</ion-button>
+      <ion-button (click)="closeModal()">关闭</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="register-content" [fullscreen]="true">
+  <!-- 第一步：验证手机号 -->
   @if (step() === 'verify') {
   <div class="step-container">
-    <h2>{{ t.step1Title }}</h2>
-    <p class="step-desc">{{ t.step1Hint }}</p>
+    <h2>验证手机号</h2>
+    <p class="step-desc">请输入您的手机号并获取验证码</p>
 
     <form [formGroup]="verifyForm">
       <ion-list>
         <ion-item>
-          <ion-label position="floating">{{ t.phone }}</ion-label>
+          <ion-label position="floating">手机号 </ion-label>
           <ion-input
             type="tel"
             inputmode="numeric"
             formControlName="phone"
             [maxlength]="11"
-            [placeholder]="t.phonePlaceholder"
+            placeholder="请输入手机号"
           ></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating">{{ t.code }}</ion-label>
+          <ion-label position="floating">验证码</ion-label>
           <ion-input
             type="tel"
             inputmode="numeric"
             formControlName="code"
             [maxlength]="4"
-            [placeholder]="t.codePlaceholder"
+            placeholder="请输入验证码"
           ></ion-input>
           <ion-button
             slot="end"
@@ -41,28 +42,30 @@
             (click)="sendCode()"
             [disabled]="sendCooldown() > 0"
           >
-            @if (sendCooldown() === 0) { {{ t.sendCode }} } @if (sendCooldown() > 0) {
+            @if (sendCooldown() === 0) { 发送验证码 } @if (sendCooldown() > 0) {
             {{ sendCooldown() }}s }
           </ion-button>
         </ion-item>
       </ion-list>
 
       <div class="actions">
-        <ion-button expand="block" (click)="nextStep()">{{ t.next }}</ion-button>
+        <ion-button expand="block" (click)="nextStep()"> 下一步 </ion-button>
       </div>
     </form>
 
-    <div class="hint">{{ t.tip }}</div>
+    <div class="hint">提示：测试验证码为 1234</div>
   </div>
   }
 
+  <!-- 第二步：填写用户信息 -->
   @if (step() === 'info') {
   <div class="step-container">
-    <h2>{{ t.step2Title }}</h2>
-    <p class="step-desc">{{ t.step2Hint }}</p>
+    <h2>完善个人信息</h2>
+    <p class="step-desc">请填写您的基本信息</p>
 
     <form [formGroup]="infoForm" (ngSubmit)="submit()">
       <ion-list>
+        <!-- 头像上传 -->
         <div class="avatar-upload-section">
           <div class="avatar-preview">
             @if (avatarPreview) {
@@ -73,7 +76,7 @@
           </div>
           <div class="avatar-actions">
             <ion-button size="small" (click)="triggerAvatarPicker()">
-              {{ avatarPreview ? t.changeAvatar : t.uploadAvatar }}
+              {{ avatarPreview ? '更换头像' : '上传头像' }}
             </ion-button>
             @if (avatarPreview) {
             <ion-button
@@ -82,7 +85,7 @@
               color="danger"
               (click)="removeAvatar()"
             >
-              {{ t.deleteAvatar }}
+              删除
             </ion-button>
             }
           </div>
@@ -93,59 +96,59 @@
             style="display: none"
             (change)="onAvatarSelected($event)"
           />
-          <p class="avatar-hint">{{ t.avatarHint }}</p>
+          <p class="avatar-hint">未上传将使用默认头像，支持jpg/png，最大5MB</p>
         </div>
 
         <ion-item>
-          <ion-label position="floating">{{ t.userName }}</ion-label>
+          <ion-label position="floating">用户名 *</ion-label>
           <ion-input
             type="text"
             formControlName="userName"
-            [placeholder]="'请输入用户名（2-20个字符）'"
+            placeholder="请输入用户名（2-20个字符）"
             [maxlength]="20"
           ></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating">{{ t.realName }}</ion-label>
+          <ion-label position="floating">真实姓名 *</ion-label>
           <ion-input
             type="text"
             formControlName="realName"
-            [placeholder]="'请输入真实姓名（2-20个字符）'"
+            placeholder="请输入真实姓名（2-20个字符）"
             [maxlength]="20"
           ></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating">{{ t.idCard }}</ion-label>
+          <ion-label position="floating">身份证号 *</ion-label>
           <ion-input
             type="text"
             formControlName="idCardNumber"
-            [placeholder]="'请输入18位身份证号'"
+            placeholder="请输入18位身份证号"
             [maxlength]="18"
           ></ion-input>
         </ion-item>
 
         <ion-item button detail="true" (click)="openLocationPicker()">
-          <ion-label>{{ t.location }}</ion-label>
+          <ion-label>所在地 *</ion-label>
           <ion-note
             slot="end"
             [class.placeholder]="!infoForm.controls.location.value"
           >
-            {{ infoForm.controls.location.value || t.locationPlaceholder }}
+            {{ infoForm.controls.location.value || '请选择地点' }}
           </ion-note>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating">{{ t.birthDate }}</ion-label>
+          <ion-label position="floating">出生日期 *</ion-label>
           <ion-input type="date" formControlName="birthDate"></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating">{{ t.intro }}</ion-label>
+          <ion-label position="floating">个人介绍</ion-label>
           <ion-textarea
             formControlName="introduction"
-            [placeholder]="t.introPlaceholder"
+            placeholder="简单介绍一下自己吧（选填，最多200字）"
             [maxlength]="200"
             [autoGrow]="true"
             rows="3"
@@ -155,15 +158,15 @@
 
       <div class="actions">
         <ion-button expand="block" fill="outline" (click)="backToVerify()">
-          {{ t.prev }}
+          上一步
         </ion-button>
         <ion-button expand="block" type="submit" [disabled]="registering()">
-          @if (registering()) { {{ t.registering }} } @else { {{ t.submit }} }
+          @if (registering()) { 注册中... } @else { 完成注册 }
         </ion-button>
       </div>
     </form>
 
-    <div class="hint">{{ t.requiredHint }}</div>
+    <div class="hint">* 标记为必填项</div>
   </div>
   }
 </ion-content>

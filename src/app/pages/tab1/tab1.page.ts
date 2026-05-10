@@ -1,22 +1,21 @@
-/* src/app/tab1/tab1.page.ts */
-import {
-  Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, inject,
-} from '@angular/core';
+/* src/app/tab1/tab1.page.ts（修复版） */
+import { Component, OnInit, inject } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { map } from 'rxjs';
+import { map, firstValueFrom } from 'rxjs';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
+import { getUserPosition, calculateDistance, formatDistance, resolveAddress, isOnlineService } from '../../components/show-event/show-event.component';
 import { LanguageService } from '../../services/language.service';
 import { TranslateService } from '../../services/translate.service';
 
+// 卡片数据接口
 interface CardItem {
   id: string;
   creatorId: number;
   cardImage: string;
-  icon: string;
   distance: string;
   name: string;
   address: string;
@@ -25,6 +24,8 @@ interface CardItem {
   avatar: string;
   createTime: string;
   title: string;
+  lng?: number | null;
+  lat?: number | null;
 }
 
 @Component({
@@ -33,7 +34,6 @@ interface CardItem {
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
   imports: [IonicModule, CommonModule, ShowEventComponent, HttpClientModule],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class Tab1Page implements OnInit {
   private readonly API_BASE = environment.apiBase;
@@ -42,42 +42,49 @@ export class Tab1Page implements OnInit {
   private langService = inject(LanguageService);
   private translateService = inject(TranslateService);
 
+  // --- 原有功能变量 ---
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
   eventData: CardItem[] = [];
+  currentLang = '中文';
   showLangConfirmModal = false;
   t = this.langService.getTranslations('zh').tab1;
 
-  dynamicSourceText = '你好，这是测试翻译的文本';
-  translatedText = '';
-  sourceLang = 'zh';
-  targetLang = 'en';
+  // --- 翻译功能变量 ---
+  public dynamicSourceText: string = '你好，这是测试翻译的文本'; // 直接写死测试文本，避免空值
+  public translatedText: string = '';
+  public sourceLang: string = 'zh';
+  public targetLang: string = 'en';
 
   get currentLangBtnText() {
     return this.t.btnText;
   }
 
   ngOnInit() {
-    this.loadCardLists();
-
+    // 语言监听
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
       this.t = this.langService.getTranslations(lang).tab1;
     });
+
+    this.loadCardLists();
   }
 
   ionViewWillEnter() {
     this.loadCardLists();
   }
 
-  private loadCardLists() {
-    this.getCardData('request').subscribe(data => {
-      this.requestList = data;
-      this.updateEventData();
-    });
-    this.getCardData('help').subscribe(data => {
-      this.helpList = data;
-      this.updateEventData();
-    });
+  private async loadCardLists() {
+    // 并发加载两种类型
+    const [reqList, helpList] = await Promise.all([
+      firstValueFrom(this.getCardData('request')),
+      firstValueFrom(this.getCardData('help')),
+    ]);
+    this.requestList = reqList || [];
+    this.helpList = helpList || [];
+    this.eventData = [...this.requestList, ...this.helpList];
+
+    // 计算真实距离
+    await this.updateCardDistances();
   }
 
   private updateEventData() {
@@ -85,39 +92,85 @@ export class Tab1Page implements OnInit {
   }
 
   private getCardData(type: 'request' | 'help') {
-    const lang = this.langService.getCurrentLang();
-    return this.http.get<any[]>(`${this.API_BASE}/api/cards?type=${type}&lang=${lang}`).pipe(
-      map(rawData => {
-        const processed = rawData.map(item => ({
-          ...item,
+    return this.http.get<any[]>(`${this.API_BASE}/api/cards?type=${type}`).pipe(
+      map((rawData) => {
+        const processedData = rawData.map((item: any) => ({
+          id: String(item.id),
+          creatorId: Number(item.creatorId),
+          cardImage: item.cardImage,
           icon: 'navigate-outline',
-          distance: '距500m',
+          distance: this.t.unknownDistance,
+          name: item.name,
+          address: item.address,
+          demand: item.demand,
           price: item.price ? item.price.toString() : '0.00元',
+          avatar: item.avatar,
+          createTime: item.createTime,
+          title: item.title,
+          lng: item.lng != null ? Number(item.lng) : null,
+          lat: item.lat != null ? Number(item.lat) : null,
         }));
-        let final = processed;
-        if (processed.length > 4) {
-          final = this.shuffleArray(processed).slice(0, 4);
+        let finalData = processedData;
+        if (processedData.length > 4) {
+          finalData = this.shuffleArray(processedData).slice(0, 4);
         }
-        return final;
-      })
+        return finalData;
+      }),
     );
   }
 
-  shuffleArray(array: any[]): any[] {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+  // 所有卡片加载完后统一计算真实距离
+  private async updateCardDistances() {
+    const userPos = await getUserPosition();
+    if (!userPos) return;
+
+    for (const card of this.eventData) {
+      // 线上服务不显示距离
+      if (isOnlineService(card.address)) {
+        card.distance = '';
+        continue;
+      }
+
+      if (card.lng != null && card.lat != null) {
+        const meters = calculateDistance(userPos.lng, userPos.lat, card.lng, card.lat);
+        card.distance = formatDistance(meters);
+      } else if (card.address) {
+        const coords = await resolveAddress(card.address);
+        if (coords) {
+          card.lng = coords.lng;
+          card.lat = coords.lat;
+          const meters = calculateDistance(userPos.lng, userPos.lat, coords.lng, coords.lat);
+          card.distance = formatDistance(meters);
+        }
+      }
     }
-    return arr;
+  }
+
+  shuffleArray(array: any[]): any[] {
+    let currentIndex = array.length;
+    let randomIndex;
+    const newArray = [...array];
+    while (currentIndex != 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      [newArray[currentIndex], newArray[randomIndex]] = [
+        newArray[randomIndex],
+        newArray[currentIndex],
+      ];
+    }
+    return newArray;
   }
 
   goToSearchPage() {
-    this.router.navigate(['/search'], { queryParams: { returnTo: 'tabs/tab2' } });
+    this.router.navigate(['/search'], {
+      queryParams: { returnTo: 'tabs/tab2' },
+    });
   }
 
   goToTab2Search(type?: 'request' | 'help') {
-    this.router.navigate(['/tabs/tab2'], { queryParams: { type } });
+    this.router.navigate(['/tabs/tab2'], {
+      queryParams: { type: type },
+    });
   }
 
   toggleLanguage() {
@@ -127,7 +180,6 @@ export class Tab1Page implements OnInit {
   confirmSwitchLanguage() {
     this.langService.toggleLanguage();
     this.showLangConfirmModal = false;
-    this.loadCardLists();
   }
 
   cancelSwitchLanguage() {
@@ -135,24 +187,38 @@ export class Tab1Page implements OnInit {
   }
 
   cardClickFeedback(item: CardItem) {
+    (document.activeElement as HTMLElement)?.blur();
     this.router.navigate(['/particular'], {
-      queryParams: { eventId: item.id, returnTo: '/tabs/tab1' },
+      queryParams: {
+        eventId: item.id,
+        returnTo: '/tabs/tab1',
+      },
     });
   }
 
-  trackById(index: number, item: CardItem): string {
+  onBigCardMoreClick(type: 'request' | 'help') {
+    console.log(
+      `点击了【${type === 'request' ? '求助' : '帮助'}】大卡片的更多按钮`,
+    );
+  }
+
+  trackById(_index: number, item: CardItem): string {
     return item.id;
   }
 
+  // 绑定你原有的翻译按钮
   public onTranslateBtnClick(): void {
     this.handleStaticTranslate();
     this.handleDynamicTranslate();
   }
 
+  // 你的静态翻译逻辑
   private handleStaticTranslate(): void {
     console.log('静态文本翻译已执行');
+    // 在此处粘贴你已完成的静态翻译代码
   }
 
+  // 动态文本翻译 - 调用后端接口
   private handleDynamicTranslate(): void {
     if (!this.dynamicSourceText.trim()) {
       console.warn('无待翻译的动态文本');
@@ -169,12 +235,12 @@ export class Tab1Page implements OnInit {
         next: (res) => {
           if (res.success) {
             this.translatedText = res.targetText;
-            console.log('翻译成功，结果：', this.translatedText);
-            alert('翻译成功：' + this.translatedText);
+            console.log('✅ 翻译成功，结果：', this.translatedText);
+            alert('翻译成功：' + this.translatedText); // 弹窗提示，方便测试
           }
         },
         error: (err) => {
-          console.error('翻译失败', err);
+          console.error('❌ 翻译失败', err);
           alert('翻译失败，请检查后端服务是否启动');
         },
       });
