@@ -6,6 +6,7 @@ import { ListVerifyPostComponent } from './Components/list-verify-post/list-veri
 import { StaffManagementComponent } from './Components/staff-management/staff-management.component';
 import { OrderManagementComponent } from './Components/order-management/order-management.component';
 import { EventManagementComponent } from './Components/event-management/event-management.component';
+import { ReviewManagementComponent } from './Components/review-management/review-management.component';
 
 export const routes: Routes = [
   {
@@ -38,6 +39,12 @@ export const routes: Routes = [
   {
     path: 'events',
     component: EventManagementComponent,
+    runGuardsAndResolvers: 'always',
+    canActivate: [authGuard],
+  },
+  {
+    path: 'reviews',
+    component: ReviewManagementComponent,
     runGuardsAndResolvers: 'always',
     canActivate: [authGuard],
   },

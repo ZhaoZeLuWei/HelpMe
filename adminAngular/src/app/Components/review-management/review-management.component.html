@@ -1,0 +1,145 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>评价管理</h1>
+    <span class="count">共 {{ filteredReviews.length }} 条评价</span>
+  </div>
+
+  <!-- 搜索和筛选 -->
+  <div class="filter-bar">
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        #searchInput
+        (input)="onSearchChange()"
+        placeholder="搜索评价人、被评价人、事件或评价内容..."
+      />
+    </div>
+    <select #scoreSelect (change)="onFilterChange()">
+      <option value="all">全部评分</option>
+      <option value="5">5星</option>
+      <option value="4">4星</option>
+      <option value="3">3星</option>
+      <option value="2">2星</option>
+      <option value="1">1星</option>
+    </select>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>评价ID</th>
+          <th>事件</th>
+          <th>评价人</th>
+          <th>被评价人</th>
+          <th>评分</th>
+          <th>评价内容</th>
+          <th>评价时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let review of filteredReviews">
+          <td class="id-cell">#{{ review.ReviewId }}</td>
+          <td class="title-cell">{{ review.EventTitle }}</td>
+          <td>{{ review.AuthorName }}</td>
+          <td>{{ review.TargetName }}</td>
+          <td class="score-cell">
+            <div class="star-display">
+              <span
+                *ngFor="let star of getScoreArray(review.Score)"
+                class="star"
+                [class.filled]="isStarFilled(star, review.Score)"
+                [class.half]="isStarHalf(star, review.Score)"
+                >&#9733;</span
+              >
+            </div>
+            <span class="score-text">{{ review.Score | number: "1.1-1" }}</span>
+          </td>
+          <td class="text-cell">{{ truncateText(review.Text) }}</td>
+          <td class="time-cell">
+            {{ review.Time | date: "yyyy-MM-dd HH:mm" }}
+          </td>
+          <td class="actions-cell">
+            <button class="btn-view" (click)="viewDetail(review)">详情</button>
+            <button class="btn-delete" (click)="confirmDelete(review)">
+              删除
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredReviews.length === 0">
+          <td colspan="8" class="empty-cell">暂无评价数据</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<app-confirm-dialog
+  [visible]="showDeleteDialog"
+  title="删除评价"
+  [message]="
+    '确定要删除评价 #' +
+    (reviewToDelete?.ReviewId || '') +
+    ' 吗？此操作不可撤销。'
+  "
+  confirmText="确定删除"
+  type="danger"
+  (confirmed)="onDeleteConfirmed()"
+  (cancelled)="onDeleteCancelled()"
+></app-confirm-dialog>
+
+<!-- 详情弹窗 -->
+<app-detail-modal
+  [visible]="showDetailModal"
+  title="评价详情"
+  (closed)="closeDetail()"
+>
+  <div class="detail-grid" *ngIf="selectedReview">
+    <div class="detail-item">
+      <label>评价ID</label>
+      <span>#{{ selectedReview.ReviewId }}</span>
+    </div>
+    <div class="detail-item">
+      <label>订单ID</label>
+      <span>#{{ selectedReview.OrderId }}</span>
+    </div>
+    <div class="detail-item full-width">
+      <label>事件</label>
+      <span>{{ selectedReview.EventTitle }}</span>
+    </div>
+    <div class="detail-item">
+      <label>评价人</label>
+      <span>{{ selectedReview.AuthorName }}</span>
+    </div>
+    <div class="detail-item">
+      <label>被评价人</label>
+      <span>{{ selectedReview.TargetName }}</span>
+    </div>
+    <div class="detail-item full-width">
+      <label>评分</label>
+      <div class="star-display detail-stars">
+        <span
+          *ngFor="let star of getScoreArray(selectedReview.Score)"
+          class="star"
+          [class.filled]="isStarFilled(star, selectedReview.Score)"
+          [class.half]="isStarHalf(star, selectedReview.Score)"
+          >&#9733;</span
+        >
+        <span class="score-text"
+          >{{ selectedReview.Score | number: "1.1-1" }} 分</span
+        >
+      </div>
+    </div>
+    <div class="detail-item full-width">
+      <label>评价内容</label>
+      <span class="review-text">{{ selectedReview.Text || "无文字评价" }}</span>
+    </div>
+    <div class="detail-item">
+      <label>评价时间</label>
+      <span>{{ selectedReview.Time | date: "yyyy-MM-dd HH:mm:ss" }}</span>
+    </div>
+  </div>
+</app-detail-modal>
