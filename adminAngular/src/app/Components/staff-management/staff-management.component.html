@@ -78,11 +78,7 @@
     <!-- 用户头部 -->
     <div class="user-header">
       <img
-        [src]="
-          currentUser.UserAvatar
-            ? baseUrl + currentUser.UserAvatar
-            : 'assets/default-avatar.png'
-        "
+        [src]="getAvatarUrl(currentUser.UserAvatar)"
         alt="用户头像"
         class="user-avatar"
       />

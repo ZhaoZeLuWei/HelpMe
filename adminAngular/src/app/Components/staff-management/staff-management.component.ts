@@ -93,7 +93,11 @@ export class StaffManagementComponent implements OnInit {
 
   getProviderRoleText(role: number | null | undefined): string {
     if (role === undefined || role === null) return '普通用户';
-    const map: Record<number, string> = { 1: '热心群众', 2: '专业人士', 3: '商家' };
+    const map: Record<number, string> = {
+      1: '热心群众',
+      2: '专业人士',
+      3: '商家',
+    };
     return map[Number(role)] || '普通用户';
   }
 
@@ -137,6 +141,13 @@ export class StaffManagementComponent implements OnInit {
   closeDetail() {
     this.showDetailModal = false;
     this.currentUser = null;
+  }
+
+  getAvatarUrl(avatar: string | null | undefined): string {
+    if (!avatar) return 'assets/default-avatar.png';
+    if (avatar.startsWith('http://') || avatar.startsWith('https://'))
+      return avatar;
+    return this.baseUrl + avatar;
   }
 
   confirmDelete() {

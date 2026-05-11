@@ -275,11 +275,12 @@ router.get("/orders", authRequired, async (req, res) => {
         o.OrderId, o.EventId, o.ProviderId, o.ConsumerId, o.OrderStatus,
         o.TransactionPrice, o.DetailLocation, o.OrderCreateTime, o.PaymentTime,
         o.ServiceTime, o.CompletionTime,
-        o.RefundTime, o.EventSnapshot,
+        o.RefundTime, o.CancelledBy, o.EventSnapshot,
         IFNULL(o.EventSnapshot->>'$.EventTitle', e.EventTitle) AS EventTitle,
         IFNULL(o.EventSnapshot->>'$.EventDetails', e.EventDetails) AS EventDetails,
         buyer.UserName AS ConsumerName,
         provider.UserName AS ProviderName,
+        cancelledByUser.UserName AS CancelledByName,
         (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId) AS ReviewCount,
         (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId = ?) AS HasReviewed,
         (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId != ?) AS OtherHasReviewed
@@ -287,6 +288,7 @@ router.get("/orders", authRequired, async (req, res) => {
        JOIN Events e ON o.EventId = e.EventId
        JOIN Users buyer ON o.ConsumerId = buyer.UserId
        JOIN Users provider ON o.ProviderId = provider.UserId
+       LEFT JOIN Users cancelledByUser ON o.CancelledBy = cancelledByUser.UserId
        WHERE ${where.join(" AND ")}
        ORDER BY o.OrderCreateTime DESC`,
       [...params, userId, userId],
@@ -509,10 +511,10 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
         .json({ success: false, error: "当前订单状态无法取消" });
     }
 
-    // 将订单状态设为已取消（4）
+    // 将订单状态设为已取消（4），记录取消人
     await conn.query(
-      "UPDATE Orders SET OrderStatus = 4, RefundTime = NOW() WHERE OrderId = ?",
-      [orderId],
+      "UPDATE Orders SET OrderStatus = 4, RefundTime = NOW(), CancelledBy = ? WHERE OrderId = ?",
+      [userId, orderId],
     );
 
     await conn.commit();
@@ -568,13 +570,17 @@ router.get("/admin/orders", authRequired, async (req, res) => {
       `SELECT
         o.OrderId, o.EventId, o.ProviderId, o.ConsumerId, o.OrderStatus,
         o.TransactionPrice, o.DetailLocation, o.OrderCreateTime,
+        o.PaymentTime, o.ServiceTime, o.CompletionTime, o.RefundTime,
+        o.CancelledBy, o.EventSnapshot,
         e.EventTitle,
         buyer.UserName AS ConsumerName,
-        provider.UserName AS ProviderName
+        provider.UserName AS ProviderName,
+        cancelledByUser.UserName AS CancelledByName
        FROM Orders o
        JOIN Events e ON o.EventId = e.EventId
        JOIN Users buyer ON o.ConsumerId = buyer.UserId
        JOIN Users provider ON o.ProviderId = provider.UserId
+       LEFT JOIN Users cancelledByUser ON o.CancelledBy = cancelledByUser.UserId
        ORDER BY o.OrderCreateTime DESC`,
     );
 

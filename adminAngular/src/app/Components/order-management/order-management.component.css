@@ -250,3 +250,172 @@ tr:last-child td {
   font-size: 14px;
   color: #1f2937;
 }
+
+/* 详情内容分区 */
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.detail-section {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.section-title {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 时间线 */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-left: 8px;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 12px;
+  bottom: -12px;
+  width: 2px;
+  background: #e5e7eb;
+}
+
+.timeline-item:last-child::before {
+  display: none;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.timeline-dot.active {
+  background: #3b82f6;
+}
+
+.timeline-dot.cancelled {
+  background: #ef4444;
+}
+
+.timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.timeline-value {
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.cancelled-by {
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* 快照卡片 */
+.snapshot-card {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.detail-text {
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: #374151 !important;
+}
+
+/* 评价列表 */
+.loading-text,
+.empty-text {
+  color: #9ca3af;
+  font-size: 14px;
+  text-align: center;
+  padding: 16px;
+}
+
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-card {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.review-author {
+  font-weight: 500;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.review-time {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-left: auto;
+}
+
+.star-display {
+  display: flex;
+  gap: 1px;
+}
+
+.star {
+  color: #d1d5db;
+  font-size: 14px;
+}
+
+.star.filled {
+  color: #f59e0b;
+}
+
+.review-content {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}

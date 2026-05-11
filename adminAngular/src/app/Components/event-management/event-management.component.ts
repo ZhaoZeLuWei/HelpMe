@@ -28,6 +28,7 @@ export class EventManagementComponent implements OnInit {
   @ViewChild('typeSelect') typeSelect!: ElementRef<HTMLSelectElement>;
 
   private api = inject(ServeAPIService);
+  public baseUrl: string = this.api.getBaseUrl();
   events: any[] = [];
   filteredEvents: any[] = [];
 
@@ -36,6 +37,12 @@ export class EventManagementComponent implements OnInit {
   showDetailModal = false;
   selectedEvent: any = null;
   eventToDelete: any = null;
+
+  // 图片预览
+  eventPhotos: string[] = [];
+  showImageOverlay = false;
+  selectedImage = '';
+  currentImageIndex = 0;
 
   // 删除确认弹窗配置
   deleteDialogTitle = '';
@@ -99,12 +106,58 @@ export class EventManagementComponent implements OnInit {
 
   viewDetail(event: any) {
     this.selectedEvent = event;
+    this.eventPhotos = this.parsePhotos(event.Photos);
     this.showDetailModal = true;
   }
 
   closeDetail() {
     this.showDetailModal = false;
     this.selectedEvent = null;
+    this.eventPhotos = [];
+  }
+
+  parsePhotos(photos: any): string[] {
+    if (!photos) return [];
+    try {
+      const parsed = typeof photos === 'string' ? JSON.parse(photos) : photos;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  getPhotoUrl(path: string): string {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `${this.baseUrl}${path}`;
+  }
+
+  openImageOverlay(index: number) {
+    this.currentImageIndex = index;
+    this.selectedImage = this.getPhotoUrl(this.eventPhotos[index]);
+    this.showImageOverlay = true;
+  }
+
+  closeImageOverlay() {
+    this.showImageOverlay = false;
+    this.selectedImage = '';
+  }
+
+  prevImage() {
+    if (this.currentImageIndex > 0) {
+      this.currentImageIndex--;
+      this.selectedImage = this.getPhotoUrl(
+        this.eventPhotos[this.currentImageIndex],
+      );
+    }
+  }
+
+  nextImage() {
+    if (this.currentImageIndex < this.eventPhotos.length - 1) {
+      this.currentImageIndex++;
+      this.selectedImage = this.getPhotoUrl(
+        this.eventPhotos[this.currentImageIndex],
+      );
+    }
   }
 
   confirmDelete(event: any) {

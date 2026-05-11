@@ -96,4 +96,21 @@ export class ServeAPIService {
   getAdminStats(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/admin/stats`);
   }
+
+  // ========== 评价管理相关 ==========
+
+  // 获取管理端评价列表
+  getAdminReviewsList(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/admin/reviews`);
+  }
+
+  // 删除管理端评价
+  deleteAdminReview(reviewId: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/admin/reviews/${reviewId}`);
+  }
+
+  // 获取订单的评价列表（用于订单详情）
+  getReviewsByOrderId(orderId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/reviews?orderId=${orderId}`);
+  }
 }

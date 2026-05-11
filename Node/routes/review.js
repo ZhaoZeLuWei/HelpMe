@@ -256,4 +256,78 @@ router.get("/admin/reviews", authRequired, async (_req, res) => {
   }
 });
 
+// 管理端删除评价
+router.delete("/admin/reviews/:id", authRequired, async (req, res) => {
+  const reviewId = Number(req.params.id);
+  if (!Number.isInteger(reviewId) || reviewId <= 0) {
+    return res.status(400).json({ success: false, error: "评价ID无效" });
+  }
+
+  try {
+    // 检查评价是否存在
+    const [existing] = await pool.query(
+      "SELECT ReviewId, OrderId, AuthorId, TargetUserId FROM Comments WHERE ReviewId = ? LIMIT 1",
+      [reviewId],
+    );
+
+    if (!existing.length) {
+      return res.status(404).json({ success: false, error: "评价不存在" });
+    }
+
+    const review = existing[0];
+
+    // 删除评价
+    await pool.query("DELETE FROM Comments WHERE ReviewId = ?", [reviewId]);
+
+    // 更新用户评分（重新计算平均分）
+    const { OrderId, AuthorId, TargetUserId } = review;
+
+    // 查询订单获取买家和卖家ID
+    const [orderRows] = await pool.query(
+      "SELECT ConsumerId, ProviderId FROM Orders WHERE OrderId = ? LIMIT 1",
+      [OrderId],
+    );
+
+    if (orderRows.length) {
+      const order = orderRows[0];
+
+      // 判断被评价者是买家还是卖家
+      if (order.ProviderId === TargetUserId) {
+        // 被评价者是卖家，重新计算服务评分
+        const [avgRows] = await pool.query(
+          `SELECT ROUND(AVG(c.Score), 1) AS avgScore
+           FROM Comments c
+           JOIN Orders o ON c.OrderId = o.OrderId
+           WHERE c.TargetUserId = ? AND o.ProviderId = ? AND o.ConsumerId = c.AuthorId`,
+          [TargetUserId, TargetUserId],
+        );
+        const avgScore = Number(avgRows?.[0]?.avgScore || 0);
+        await pool.query(
+          "UPDATE Providers SET ServiceRanking = ? WHERE ProviderId = ?",
+          [avgScore, TargetUserId],
+        );
+      } else if (order.ConsumerId === TargetUserId) {
+        // 被评价者是买家，重新计算买家评分
+        const [avgRows] = await pool.query(
+          `SELECT ROUND(AVG(c.Score), 1) AS avgScore
+           FROM Comments c
+           JOIN Orders o ON c.OrderId = o.OrderId
+           WHERE c.TargetUserId = ? AND o.ConsumerId = ? AND o.ProviderId = c.AuthorId`,
+          [TargetUserId, TargetUserId],
+        );
+        const avgScore = Number(avgRows?.[0]?.avgScore || 0);
+        await pool.query(
+          "UPDATE Consumers SET BuyerRanking = ? WHERE ConsumerId = ?",
+          [avgScore, TargetUserId],
+        );
+      }
+    }
+
+    return res.json({ success: true, deleted: 1 });
+  } catch (err) {
+    console.error("删除评价失败:", err);
+    return res.status(500).json({ success: false, error: "删除评价失败" });
+  }
+});
+
 module.exports = router;
