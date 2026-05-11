@@ -321,6 +321,14 @@ export class ParticularPage implements OnInit {
 
   openOrderModal() {
     if (!this.event) return;
+    const currentUserId = this.authService.currentUserId;
+    if (!currentUserId) {
+      this.showToast('请先登录后使用');
+      this.router.navigate(['/tabs/tab4'], {
+        queryParams: { returnEventId: this.event?.id },
+      });
+      return;
+    }
     if (!this.canCreateOrder) {
       this.showToast('该事件当前存在未完结订单，暂不可下单');
       return;
@@ -363,13 +371,6 @@ export class ParticularPage implements OnInit {
       this.showToast('请填写完整信息');
       return;
     }
-    const currentUserId = this.authService.currentUserId;
-    if (!currentUserId) {
-      const { LoginPage } = await import('../login/login.page');
-      const modal = await this.modalCtrl.create({ component: LoginPage });
-      await modal.present();
-      return;
-    }
 
     this.isSubmittingOrder = true;
     const formValue = this.orderForm.value;
@@ -407,18 +408,10 @@ export class ParticularPage implements OnInit {
   async onFollow() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录');
-      const { LoginPage } = await import('../login/login.page');
-      const modal = await this.modalCtrl.create({
-        component: LoginPage,
+      this.showToast('请先登录后使用');
+      this.router.navigate(['/tabs/tab4'], {
+        queryParams: { returnEventId: this.event?.id },
       });
-      modal.onDidDismiss().then(() => {
-        const newUserId = this.authService.currentUserId;
-        if (newUserId) {
-          window.location.reload();
-        }
-      });
-      await modal.present();
       return;
     }
     if (!this.event?.creatorId) return;
@@ -432,18 +425,10 @@ export class ParticularPage implements OnInit {
   async onCollect() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录');
-      const { LoginPage } = await import('../login/login.page');
-      const modal = await this.modalCtrl.create({
-        component: LoginPage,
+      this.showToast('请先登录后使用');
+      this.router.navigate(['/tabs/tab4'], {
+        queryParams: { returnEventId: this.event?.id },
       });
-      modal.onDidDismiss().then(() => {
-        const newUserId = this.authService.currentUserId;
-        if (newUserId) {
-          window.location.reload();
-        }
-      });
-      await modal.present();
       return;
     }
     if (!this.event?.id) return;

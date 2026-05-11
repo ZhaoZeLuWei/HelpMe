@@ -341,22 +341,13 @@ export class UserParticularPage implements OnInit {
   async onChat() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      console.log('请先登录');
-      const { LoginPage } = await import('../login/login.page');
-      const modal = await this.modalCtrl.create({
-        component: LoginPage,
+      const toast = await this.toastController.create({
+        message: '请先登录后使用',
+        duration: 2000,
+        position: 'bottom',
       });
-      modal.onDidDismiss().then(() => {
-        const newUserId = this.authService.currentUserId;
-        if (newUserId) {
-          // 可以直接刷新数据而不是 reload
-          this.loadUserFromStorage(newUserId);
-          this.loadActiveEvents(newUserId);
-          this.loadUserComments(newUserId);
-          this.loadActivityFeed(newUserId);
-        }
-      });
-      await modal.present();
+      await toast.present();
+      this.router.navigate(['/tabs/tab4']);
       return;
     }
 
@@ -379,17 +370,13 @@ export class UserParticularPage implements OnInit {
   async onFollow() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      const { LoginPage } = await import('../login/login.page');
-      const modal = await this.modalCtrl.create({
-        component: LoginPage,
+      const toast = await this.toastController.create({
+        message: '请先登录后使用',
+        duration: 2000,
+        position: 'bottom',
       });
-      modal.onDidDismiss().then(() => {
-        const newUserId = this.authService.currentUserId;
-        if (newUserId) {
-          window.location.reload();
-        }
-      });
-      await modal.present();
+      await toast.present();
+      this.router.navigate(['/tabs/tab4']);
       return;
     }
     if (!this.userId) return;
