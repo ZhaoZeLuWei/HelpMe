@@ -146,6 +146,7 @@ export class Tab4Page implements OnDestroy {
   isLoggedIn = false;
   private readonly _sub: Subscription;
   private socket: any = null;
+  returnEventId: number | null = null;
 
   // 翻译对象
   t = this.langService.getTranslations('zh').tab4;
@@ -322,6 +323,14 @@ export class Tab4Page implements OnDestroy {
       if (v) {
         void this.loadUserFromStorage();
         this.connectSocket();
+        // 登录后如果有待返回的事件ID，自动跳回事件详情
+        if (this.returnEventId) {
+          const eventId = this.returnEventId;
+          this.returnEventId = null;
+          this.router.navigate(['/particular'], {
+            queryParams: { eventId },
+          });
+        }
       } else {
         this.resetUserInfo();
       }
@@ -403,6 +412,10 @@ export class Tab4Page implements OnDestroy {
         if (!isNaN(eventId)) {
           this.openEditModal(eventId);
         }
+      }
+      // 处理事件详情页跳转过来的返回参数
+      if (params['returnEventId']) {
+        this.returnEventId = Number(params['returnEventId']);
       }
     });
 

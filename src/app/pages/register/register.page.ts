@@ -321,7 +321,7 @@ export class RegisterPage {
     }
 
     const t = await this.toastCtrl.create({
-      message: `注册成功，欢迎 ${userName}！`,
+      message: `注册成功，欢迎您，${userName}！`,
       duration: 2000,
       position: 'bottom',
       positionAnchor: 'main-tab-bar',

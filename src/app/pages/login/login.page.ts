@@ -158,4 +158,12 @@ export class LoginPage {
   async closeModal() {
     await this.modalCtrl.dismiss();
   }
+
+  async goToRegister() {
+    await this.modalCtrl.dismiss();
+    const modal = await this.modalCtrl.create({
+      component: (await import('../register/register.page')).RegisterPage,
+    });
+    await modal.present();
+  }
 }

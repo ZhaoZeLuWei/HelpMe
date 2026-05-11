@@ -412,6 +412,7 @@ export class LanguageService {
         sendCode: '发送验证码',
         submit: '登录',
         hint: '提示：测试手机号为 1380000000X，验证码 1234',
+        goToRegister: '去注册',
       },
       // 注册页
       register: {
@@ -854,6 +855,7 @@ export class LanguageService {
         sendCode: 'Send Code',
         submit: 'Login',
         hint: 'Hint: Test phone 1380000000X, code 1234',
+        goToRegister: 'Go to Register',
       },
       // Register Page
       register: {

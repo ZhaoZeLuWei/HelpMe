@@ -477,18 +477,10 @@ export class ParticularPage implements OnInit {
   async onChat() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录');
-      const { LoginPage } = await import('../login/login.page');
-      const modal = await this.modalCtrl.create({
-        component: LoginPage,
+      this.showToast('请先登录后使用');
+      this.router.navigate(['/tabs/tab4'], {
+        queryParams: { returnEventId: this.event?.id },
       });
-      modal.onDidDismiss().then(() => {
-        const newUserId = this.authService.currentUserId;
-        if (newUserId) {
-          window.location.reload();
-        }
-      });
-      await modal.present();
       return;
     }
 
