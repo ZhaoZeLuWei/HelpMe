@@ -1,3 +1,6 @@
+// 加载环境变量
+require("dotenv").config();
+
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const corsMiddleware = require("./routes/cors.js");

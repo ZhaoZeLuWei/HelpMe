@@ -7,6 +7,7 @@ const {
 } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
 const Room = require("../models/Room.js");
+const { moderateContent } = require("../services/contentModeration.js");
 
 const router = express.Router();
 
@@ -64,6 +65,28 @@ router.post("/orders", authRequired, async (req, res) => {
   }
   if (!DetailLocation || !String(DetailLocation).trim()) {
     return res.status(400).json({ success: false, error: "请填写下单信息" });
+  }
+
+  // 内容安全审核
+  try {
+    if (AdditionalInfo && String(AdditionalInfo).trim()) {
+      const infoCheck = await moderateContent(String(AdditionalInfo).trim(), 'AdditionalInfo', consumerId.toString());
+      if (!infoCheck.safe) {
+        return res.status(400).json({
+          success: false,
+          error: infoCheck.message,
+          code: 'CONTENT_MODERATION_FAILED'
+        });
+      }
+    }
+  } catch (moderationError) {
+    console.error('内容审核异常:', moderationError);
+    // 审核异常时也阻止下单，避免违规内容漏检
+    return res.status(500).json({
+      success: false,
+      error: '内容安全检测暂时不可用，请稍后重试',
+      code: 'CONTENT_MODERATION_ERROR'
+    });
   }
 
   let conn;

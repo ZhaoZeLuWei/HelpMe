@@ -4,6 +4,7 @@ const express = require("express");
 const pool = require("../help_me_db.js");
 const { signToken, authRequired } = require("./auth.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
+const { moderateContent, moderateContents } = require("../services/contentModeration.js");
 
 const router = express.Router();
 
@@ -130,6 +131,31 @@ router.post(
     // 验证码校验（固定为 '1234'）
     if (String(code) !== "1234") {
       return res.status(401).json({ error: "验证码错误" });
+    }
+
+    // 内容安全审核（批量检测，只调用一次API）
+    try {
+      const checkResult = await moderateContents({
+        UserName: userName,
+        RealName: realName,
+        Introduction: introduction || ''
+      });
+
+      if (!checkResult.safe) {
+        if (req.file) cleanupUploadedFiles([req.file]);
+        return res.status(400).json({
+          error: checkResult.message,
+          code: 'CONTENT_MODERATION_FAILED'
+        });
+      }
+    } catch (moderationError) {
+      console.error('内容审核异常:', moderationError);
+      // 审核异常时也阻止注册，避免违规内容漏检
+      if (req.file) cleanupUploadedFiles([req.file]);
+      return res.status(500).json({
+        error: '内容安全检测暂时不可用，请稍后重试',
+        code: 'CONTENT_MODERATION_ERROR'
+      });
     }
 
     try {
@@ -322,6 +348,29 @@ router.put("/users/:id/profile", authRequired, async (req, res) => {
   // 验证必填字段
   if (!UserName || !RealName || !IdCardNumber || !Location || !BirthDate) {
     return res.status(400).json({ error: "请填写所有必填项" });
+  }
+
+  // 内容安全审核（批量检测，只调用一次API）
+  try {
+    const checkResult = await moderateContents({
+      UserName: UserName,
+      RealName: RealName,
+      Introduction: Introduction || ''
+    }, userId.toString());
+
+    if (!checkResult.safe) {
+      return res.status(400).json({
+        error: checkResult.message,
+        code: 'CONTENT_MODERATION_FAILED'
+      });
+    }
+  } catch (moderationError) {
+    console.error('内容审核异常:', moderationError);
+    // 审核异常时也阻止更新，避免违规内容漏检
+    return res.status(500).json({
+      error: '内容安全检测暂时不可用，请稍后重试',
+      code: 'CONTENT_MODERATION_ERROR'
+    });
   }
 
   try {

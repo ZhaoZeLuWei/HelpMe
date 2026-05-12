@@ -12,6 +12,8 @@
     "nodemon": "nodemon"
   },
   "dependencies": {
+    "@alicloud/green20220302": "^3.2.3",
+    "@alicloud/openapi-client": "^0.4.15",
     "axios": "^1.13.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

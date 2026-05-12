@@ -3,6 +3,7 @@ const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
 const { sendOrderSystemMessage } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
+const { moderateContent } = require("../services/contentModeration.js");
 
 const router = express.Router();
 
@@ -24,6 +25,28 @@ router.post("/reviews", authRequired, async (req, res) => {
     return res
       .status(400)
       .json({ success: false, error: "评分必须在1到5之间" });
+  }
+
+  // 内容安全审核
+  try {
+    if (Text && String(Text).trim()) {
+      const textCheck = await moderateContent(String(Text).trim(), 'ReviewText', authorId.toString());
+      if (!textCheck.safe) {
+        return res.status(400).json({
+          success: false,
+          error: textCheck.message,
+          code: 'CONTENT_MODERATION_FAILED'
+        });
+      }
+    }
+  } catch (moderationError) {
+    console.error('内容审核异常:', moderationError);
+    // 审核异常时也阻止评价，避免违规内容漏检
+    return res.status(500).json({
+      success: false,
+      error: '内容安全检测暂时不可用，请稍后重试',
+      code: 'CONTENT_MODERATION_ERROR'
+    });
   }
 
   let conn;
