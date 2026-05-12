@@ -7,7 +7,10 @@ const {
 } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
 const Room = require("../models/Room.js");
-const { moderateContent } = require("../services/contentModeration.js");
+const {
+  moderateContent,
+  moderateContents,
+} = require("../services/contentModeration.js");
 
 const router = express.Router();
 
@@ -67,25 +70,30 @@ router.post("/orders", authRequired, async (req, res) => {
     return res.status(400).json({ success: false, error: "请填写下单信息" });
   }
 
-  // 内容安全审核
+  // 内容安全审核（批量检测，只调用一次API）
   try {
-    if (AdditionalInfo && String(AdditionalInfo).trim()) {
-      const infoCheck = await moderateContent(String(AdditionalInfo).trim(), 'AdditionalInfo', consumerId.toString());
-      if (!infoCheck.safe) {
-        return res.status(400).json({
-          success: false,
-          error: infoCheck.message,
-          code: 'CONTENT_MODERATION_FAILED'
-        });
-      }
+    const checkResult = await moderateContents(
+      {
+        DetailLocation: DetailLocation,
+        SpecificLocation: SpecificLocation || "",
+        AdditionalInfo: AdditionalInfo || "",
+      },
+      consumerId.toString(),
+    );
+
+    if (!checkResult.safe) {
+      return res.status(400).json({
+        success: false,
+        error: checkResult.message,
+        code: "CONTENT_MODERATION_FAILED",
+      });
     }
   } catch (moderationError) {
-    console.error('内容审核异常:', moderationError);
-    // 审核异常时也阻止下单，避免违规内容漏检
+    console.error("内容审核异常:", moderationError);
     return res.status(500).json({
       success: false,
-      error: '内容安全检测暂时不可用，请稍后重试',
-      code: 'CONTENT_MODERATION_ERROR'
+      error: "内容安全检测暂时不可用，请稍后重试",
+      code: "CONTENT_MODERATION_ERROR",
     });
   }
 

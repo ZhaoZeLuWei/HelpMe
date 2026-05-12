@@ -4,7 +4,10 @@ const express = require("express");
 const pool = require("../help_me_db.js");
 const { signToken, authRequired } = require("./auth.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
-const { moderateContent, moderateContents } = require("../services/contentModeration.js");
+const {
+  moderateContent,
+  moderateContents,
+} = require("../services/contentModeration.js");
 
 const router = express.Router();
 
@@ -138,23 +141,22 @@ router.post(
       const checkResult = await moderateContents({
         UserName: userName,
         RealName: realName,
-        Introduction: introduction || ''
+        Introduction: introduction || "",
       });
 
       if (!checkResult.safe) {
         if (req.file) cleanupUploadedFiles([req.file]);
         return res.status(400).json({
           error: checkResult.message,
-          code: 'CONTENT_MODERATION_FAILED'
+          code: "CONTENT_MODERATION_FAILED",
         });
       }
     } catch (moderationError) {
-      console.error('内容审核异常:', moderationError);
-      // 审核异常时也阻止注册，避免违规内容漏检
+      console.error("内容审核异常:", moderationError);
       if (req.file) cleanupUploadedFiles([req.file]);
       return res.status(500).json({
-        error: '内容安全检测暂时不可用，请稍后重试',
-        code: 'CONTENT_MODERATION_ERROR'
+        error: "内容安全检测暂时不可用，请稍后重试",
+        code: "CONTENT_MODERATION_ERROR",
       });
     }
 
@@ -352,24 +354,26 @@ router.put("/users/:id/profile", authRequired, async (req, res) => {
 
   // 内容安全审核（批量检测，只调用一次API）
   try {
-    const checkResult = await moderateContents({
-      UserName: UserName,
-      RealName: RealName,
-      Introduction: Introduction || ''
-    }, userId.toString());
+    const checkResult = await moderateContents(
+      {
+        UserName: UserName,
+        RealName: RealName,
+        Introduction: Introduction || "",
+      },
+      userId.toString(),
+    );
 
     if (!checkResult.safe) {
       return res.status(400).json({
         error: checkResult.message,
-        code: 'CONTENT_MODERATION_FAILED'
+        code: "CONTENT_MODERATION_FAILED",
       });
     }
   } catch (moderationError) {
-    console.error('内容审核异常:', moderationError);
-    // 审核异常时也阻止更新，避免违规内容漏检
+    console.error("内容审核异常:", moderationError);
     return res.status(500).json({
-      error: '内容安全检测暂时不可用，请稍后重试',
-      code: 'CONTENT_MODERATION_ERROR'
+      error: "内容安全检测暂时不可用，请稍后重试",
+      code: "CONTENT_MODERATION_ERROR",
     });
   }
 
@@ -504,7 +508,7 @@ router.get("/users/:id/comments", async (req, res) => {
 router.get("/admin/users", async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT 
+      SELECT
         u.UserId,
         u.UserName,
         u.RealName,
@@ -514,7 +518,7 @@ router.get("/admin/users", async (req, res) => {
         p.ProviderRole,
         IFNULL(p.ServiceRanking, 0) AS ServiceRanking,
         IFNULL(p.OrderCount, 0) AS OrderCount,
-        CASE 
+        CASE
           WHEN p.ProviderId IS NOT NULL THEN 1
           ELSE 0
         END AS IsProvider
@@ -544,28 +548,28 @@ router.get("/admin/users/:id", async (req, res) => {
   try {
     const [rows] = await pool.query(
       `
-      SELECT 
-        u.UserId, 
-        u.UserName, 
-        u.RealName, 
-        u.IdCardNumber, 
-        u.PhoneNumber, 
-        u.UserAvatar, 
-        u.Location, 
-        u.BirthDate, 
-        u.Introduction, 
+      SELECT
+        u.UserId,
+        u.UserName,
+        u.RealName,
+        u.IdCardNumber,
+        u.PhoneNumber,
+        u.UserAvatar,
+        u.Location,
+        u.BirthDate,
+        u.Introduction,
         u.CreateTime,
-        (SELECT VerificationStatus FROM Verifications v 
-         WHERE v.ProviderId = u.UserId 
+        (SELECT VerificationStatus FROM Verifications v
+         WHERE v.ProviderId = u.UserId
          ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
-        c.BuyerRanking, 
-        p.ProviderRole, 
-        p.OrderCount, 
+        c.BuyerRanking,
+        p.ProviderRole,
+        p.OrderCount,
         p.ServiceRanking
       FROM Users u
       LEFT JOIN Consumers c ON u.UserId = c.ConsumerId
       LEFT JOIN Providers p ON u.UserId = p.ProviderId
-      WHERE u.UserId = ? 
+      WHERE u.UserId = ?
       LIMIT 1
     `,
       [userId],

@@ -69,9 +69,9 @@ const getChatHistory = async (queryParams) => {
       id: msg._id.toString(),
       roomId: msg.roomId,
       senderId: msg.senderId,
-      messageType: msg.messageType || 'text',
-      text: msg.text || '',
-      imageUrl: msg.imageUrl || '',
+      messageType: msg.messageType || "text",
+      text: msg.text || "",
+      imageUrl: msg.imageUrl || "",
       location: msg.location || null,
       sendTime: new Date(msg.sendTime).toLocaleString(),
       userName: msg.userName,
@@ -405,24 +405,25 @@ module.exports.registerChatHandler = (io, socket) => {
       }
 
       // 内容安全审核（仅审核文本消息）
-      if (msg.messageType === 'text' && msg.text && msg.text.trim()) {
+      let finalText = msg.text || "";
+      if (msg.messageType === "text" && msg.text && msg.text.trim()) {
         try {
-          const moderationResult = await moderateContent(msg.text, 'chatText', socket.user.id.toString());
+          const moderationResult = await moderateContent(
+            msg.text,
+            "chatText",
+            socket.user.id.toString(),
+          );
           if (!moderationResult.safe) {
-            // 发送错误提示给发送者
-            socket.emit('moderationFailed', {
-              message: moderationResult.message,
-              code: 'CONTENT_MODERATION_FAILED'
-            });
-            console.log(`聊天内容审核未通过: ${moderationResult.message}`);
-            return;
+            // 使用打码后的内容
+            finalText = moderationResult.maskedContent || msg.text;
+            console.log(`聊天内容已打码处理: ${moderationResult.message}`);
           }
         } catch (moderationError) {
-          console.error('聊天内容审核异常:', moderationError);
+          console.error("聊天内容审核异常:", moderationError);
           // 审核异常时也阻止发送，避免违规内容漏检
-          socket.emit('moderationFailed', {
-            message: '内容安全检测暂时不可用，请稍后重试',
-            code: 'CONTENT_MODERATION_ERROR'
+          socket.emit("moderationFailed", {
+            message: "内容安全检测暂时不可用，请稍后重试",
+            code: "CONTENT_MODERATION_ERROR",
           });
           return;
         }
@@ -430,9 +431,9 @@ module.exports.registerChatHandler = (io, socket) => {
 
       const messageData = {
         roomId: roomId,
-        messageType: msg.messageType || 'text',
-        text: msg.text || '',
-        imageUrl: msg.imageUrl || '',
+        messageType: msg.messageType || "text",
+        text: finalText,
+        imageUrl: msg.imageUrl || "",
         location: msg.location || null,
         senderId: socket.user.id,
         userName: socket.user.name,

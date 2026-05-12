@@ -114,12 +114,12 @@ async function checkContent(content, fieldName = "text", accountId = null) {
     const hasHighRisk = riskLevel === "high";
     const hasMediumRisk = riskLevel === "medium";
 
-    // 提取违规详情
+    // 提取违规详情（注意：API返回的字段名是 riskWords，不是 riskwords）
     const details = riskResults.map((item) => ({
       label: item.label,
       description: item.description,
       confidence: item.confidence,
-      riskWords: item.riskwords ? item.riskwords.split(",") : [],
+      riskWords: item.riskWords ? item.riskWords.split(",") : [],
     }));
 
     return {
@@ -182,22 +182,65 @@ function localSensitiveCheck(content) {
 }
 
 /**
+ * 本地敏感词打码
+ * @param {string} content - 待打码内容
+ * @returns {string} 打码后的内容
+ */
+function localSensitiveMask(content) {
+  if (!content) return content;
+
+  let masked = content;
+  for (const pattern of SENSITIVE_PATTERNS) {
+    // 创建一个新的正则，避免修改原正则的lastIndex
+    const newPattern = new RegExp(pattern.source, pattern.flags);
+    masked = masked.replace(newPattern, "***");
+  }
+  return masked;
+}
+
+/**
+ * 云端API敏感词打码
+ * @param {string} content - 原始内容
+ * @param {Array} riskWords - 云端检测到的敏感词列表
+ * @returns {string} 打码后的内容
+ */
+function cloudSensitiveMask(content, riskWords) {
+  if (!content || !riskWords || riskWords.length === 0) return content;
+
+  let masked = content;
+  for (const word of riskWords) {
+    if (word && word.trim()) {
+      // 使用正则替换，忽略大小写
+      const regex = new RegExp(
+        word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "gi",
+      );
+      masked = masked.replace(regex, "***");
+    }
+  }
+  return masked;
+}
+
+/**
  * 综合内容审核（本地 + API）
  * @param {string} content - 待审核内容
  * @param {string} fieldName - 字段名称
  * @param {string} accountId - 用户ID
- * @returns {Object} 审核结果
+ * @returns {Object} 审核结果，包含打码后的内容 maskedContent
  */
 async function moderateContent(content, fieldName = "text", accountId = null) {
   // 1. 先进行本地快速检测
   const localResult = localSensitiveCheck(content);
   if (localResult.hasSensitive) {
+    // 本地检测到敏感词，直接打码
+    const maskedContent = localSensitiveMask(content);
     return {
       safe: false,
       riskLevel: "high",
       source: "local",
       message: `内容包含敏感词: ${localResult.matches.join(", ")}`,
       details: localResult.matches,
+      maskedContent, // 打码后的内容
     };
   }
 
@@ -210,6 +253,9 @@ async function moderateContent(content, fieldName = "text", accountId = null) {
       .flatMap((d) => d.riskWords)
       .filter(Boolean);
 
+    // 云端检测到违规，进行打码
+    const maskedContent = cloudSensitiveMask(content, riskWords);
+
     return {
       safe: false,
       riskLevel: apiResult.riskLevel,
@@ -217,6 +263,7 @@ async function moderateContent(content, fieldName = "text", accountId = null) {
       message: `内容包含违规信息，请修改后重试`,
       details: apiResult.details,
       riskWords,
+      maskedContent, // 打码后的内容
     };
   }
 
@@ -225,6 +272,7 @@ async function moderateContent(content, fieldName = "text", accountId = null) {
     riskLevel: "none",
     source: "passed",
     details: [],
+    maskedContent: content, // 内容安全，原样返回
   };
 }
 
@@ -264,14 +312,17 @@ function createModerationMiddleware(fieldName, source = "body") {
  * 批量内容审核（多个字段合并为一次API调用）
  * @param {Object} fields - 要审核的字段 { fieldName: content, ... }
  * @param {string} accountId - 用户ID
- * @returns {Object} 审核结果 { safe: boolean, failedField: string, message: string }
+ * @returns {Object} 审核结果，包含打码后的字段 maskedFields
  */
 async function moderateContents(fields, accountId = null) {
-  // 1. 先进行本地快速检测（逐个字段检测）
+  // 1. 先进行本地快速检测（逐个字段检测），同时打码
+  const maskedFields = { ...fields };
   for (const [fieldName, content] of Object.entries(fields)) {
     if (!content || !String(content).trim()) continue;
     const localResult = localSensitiveCheck(String(content));
     if (localResult.hasSensitive) {
+      // 本地检测到敏感词，打码后返回
+      maskedFields[fieldName] = localSensitiveMask(String(content));
       return {
         safe: false,
         riskLevel: "high",
@@ -279,6 +330,7 @@ async function moderateContents(fields, accountId = null) {
         failedField: fieldName,
         message: `字段"${fieldName}"包含敏感词: ${localResult.matches.join(", ")}`,
         details: localResult.matches,
+        maskedFields,
       };
     }
   }
@@ -295,7 +347,13 @@ async function moderateContents(fields, accountId = null) {
 
   // 没有需要检测的内容
   if (contents.length === 0) {
-    return { safe: true, riskLevel: "none", source: "passed", details: [] };
+    return {
+      safe: true,
+      riskLevel: "none",
+      source: "passed",
+      details: [],
+      maskedFields,
+    };
   }
 
   // 用特殊分隔符拼接，便于定位是哪个字段的问题
@@ -305,12 +363,39 @@ async function moderateContents(fields, accountId = null) {
   const apiResult = await checkContent(combinedContent, "batch", accountId);
 
   if (!apiResult.safe) {
+    // 提取所有敏感词
+    const riskWords = apiResult.details
+      .flatMap((d) => d.riskWords)
+      .filter(Boolean);
+
+    // 对拼接后的内容进行打码
+    const maskedCombined = cloudSensitiveMask(combinedContent, riskWords);
+
+    // 拆分回各个字段
+    const maskedParts = maskedCombined.split("\n---\n");
+    fieldNames.forEach((name, index) => {
+      if (maskedParts[index] !== undefined) {
+        maskedFields[name] = maskedParts[index];
+      }
+    });
+
+    // 构建违规内容提示（去重，去除有包含关系的重复词）
+    const uniqueRiskWords = [...new Set(riskWords)];
+    const filteredRiskWords = uniqueRiskWords.filter((word, index) => {
+      // 如果当前词被其他更长的词包含，则过滤掉
+      return !uniqueRiskWords.some(
+        (other, otherIndex) => otherIndex !== index && other.includes(word),
+      );
+    });
+    const riskWordsStr =
+      filteredRiskWords.length > 0 ? filteredRiskWords.join("、") : "违规内容";
     return {
       safe: false,
       riskLevel: apiResult.riskLevel,
       source: "aliyun",
-      message: "内容包含违规信息，请修改后重试",
+      message: `内容包含违规信息（违规内容：${riskWordsStr}），请检查处理`,
       details: apiResult.details,
+      maskedFields,
     };
   }
 
@@ -319,6 +404,7 @@ async function moderateContents(fields, accountId = null) {
     riskLevel: "none",
     source: "passed",
     details: [],
+    maskedFields,
   };
 }
 

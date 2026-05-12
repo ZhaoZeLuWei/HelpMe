@@ -4,7 +4,10 @@ const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 const { authRequired } = require("./auth.js");
 const { sendSystemMessage } = require("../chatHandler.js");
-const { moderateContent, moderateContents } = require("../services/contentModeration.js");
+const {
+  moderateContent,
+  moderateContents,
+} = require("../services/contentModeration.js");
 const router = express.Router();
 
 function normalizeLocationPlaceId(value) {
@@ -158,28 +161,30 @@ router.post(
 
     // 内容安全审核（批量检测，只调用一次API）
     try {
-      const checkResult = await moderateContents({
-        EventTitle: EventTitle,
-        EventCategory: EventCategory,
-        EventDetails: EventDetails
-      }, creatorId.toString());
+      const checkResult = await moderateContents(
+        {
+          EventTitle: EventTitle,
+          EventCategory: EventCategory,
+          EventDetails: EventDetails,
+        },
+        creatorId.toString(),
+      );
 
       if (!checkResult.safe) {
         cleanupUploadedFiles(req.files);
         return res.status(400).json({
           success: false,
           error: checkResult.message,
-          code: 'CONTENT_MODERATION_FAILED'
+          code: "CONTENT_MODERATION_FAILED",
         });
       }
     } catch (moderationError) {
-      console.error('内容审核异常:', moderationError);
-      // 审核异常时也阻止发布，避免违规内容漏检
+      console.error("内容审核异常:", moderationError);
       cleanupUploadedFiles(req.files);
       return res.status(500).json({
         success: false,
-        error: '内容安全检测暂时不可用，请稍后重试',
-        code: 'CONTENT_MODERATION_ERROR'
+        error: "内容安全检测暂时不可用，请稍后重试",
+        code: "CONTENT_MODERATION_ERROR",
       });
     }
 
@@ -351,26 +356,28 @@ router.put("/events/:id", authRequired, async (req, res) => {
 
   // 内容安全审核（批量检测，只调用一次API）
   try {
-    const checkResult = await moderateContents({
-      EventTitle: EventTitle,
-      EventCategory: EventCategory,
-      EventDetails: EventDetails
-    }, creatorId.toString());
+    const checkResult = await moderateContents(
+      {
+        EventTitle: EventTitle,
+        EventCategory: EventCategory,
+        EventDetails: EventDetails,
+      },
+      creatorId.toString(),
+    );
 
     if (!checkResult.safe) {
       return res.status(400).json({
         success: false,
         error: checkResult.message,
-        code: 'CONTENT_MODERATION_FAILED'
+        code: "CONTENT_MODERATION_FAILED",
       });
     }
   } catch (moderationError) {
-    console.error('内容审核异常:', moderationError);
-    // 审核异常时也阻止更新，避免违规内容漏检
+    console.error("内容审核异常:", moderationError);
     return res.status(500).json({
       success: false,
-      error: '内容安全检测暂时不可用，请稍后重试',
-      code: 'CONTENT_MODERATION_ERROR'
+      error: "内容安全检测暂时不可用，请稍后重试",
+      code: "CONTENT_MODERATION_ERROR",
     });
   }
 
