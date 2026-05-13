@@ -37,6 +37,12 @@ export class OrderManagementComponent implements OnInit {
   selectedOrder: any = null;
   orderToDelete: any = null;
 
+  // 订单详情数据
+  orderReviews: any[] = [];
+  loadingReviews = false;
+  parsedLocation = { address: '', specific: '', additional: '' };
+  eventSnapshot: any = null;
+
   ngOnInit(): void {
     this.loadOrders();
   }
@@ -108,12 +114,69 @@ export class OrderManagementComponent implements OnInit {
 
   viewDetail(order: any) {
     this.selectedOrder = order;
+    this.parsedLocation = this.parseDetailLocation(order.DetailLocation);
+    this.eventSnapshot = this.parseEventSnapshot(order.EventSnapshot);
     this.showDetailModal = true;
+
+    // 加载评价数据
+    this.loadOrderReviews(order.OrderId);
   }
 
   closeDetail() {
     this.showDetailModal = false;
     this.selectedOrder = null;
+    this.orderReviews = [];
+    this.eventSnapshot = null;
+    this.parsedLocation = { address: '', specific: '', additional: '' };
+  }
+
+  parseDetailLocation(loc: string): {
+    address: string;
+    specific: string;
+    additional: string;
+  } {
+    if (!loc) return { address: '', specific: '', additional: '' };
+    const parts = loc.split('｜').map((p) => p.trim());
+    return {
+      address: parts[0] || '',
+      specific: parts[1] || '',
+      additional: parts[2] || '',
+    };
+  }
+
+  parseEventSnapshot(snapshot: any): any {
+    if (!snapshot) return null;
+    try {
+      return typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
+    } catch {
+      return null;
+    }
+  }
+
+  loadOrderReviews(orderId: number) {
+    this.loadingReviews = true;
+    this.orderReviews = [];
+    this.api.getReviewsByOrderId(orderId).subscribe({
+      next: (res) => {
+        if (res?.success && Array.isArray(res.reviews)) {
+          this.orderReviews = res.reviews;
+        }
+      },
+      error: () => {
+        console.error('加载评价失败');
+      },
+      complete: () => {
+        this.loadingReviews = false;
+      },
+    });
+  }
+
+  getScoreArray(score: number): number[] {
+    return [1, 2, 3, 4, 5];
+  }
+
+  isStarFilled(star: number, score: number): boolean {
+    return star <= Math.floor(score);
   }
 
   confirmDelete(order: any) {

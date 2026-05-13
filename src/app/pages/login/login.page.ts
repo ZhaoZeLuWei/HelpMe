@@ -9,6 +9,7 @@ import {
 import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
+import { AliyunCaptchaService } from '../../services/aliyun-captcha.service';
 
 @Component({
   selector: 'app-login',
@@ -22,6 +23,7 @@ export class LoginPage {
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
   private languageService = inject(LanguageService);
+  private captchaService = inject(AliyunCaptchaService);
 
   t: any;
 
@@ -92,9 +94,37 @@ export class LoginPage {
       return;
     }
 
-    // 手机号已注册，发送验证码
+    // 手机号已注册，生产环境先通过阿里云 H5 SDK 获取验证结果
+    let captchaData = null;
+    try {
+      captchaData = await this.captchaService.getValidate();
+    } catch (err) {
+      this.sending.set(false);
+      const toast = await this.toastCtrl.create({
+        message: err instanceof Error ? err.message : '图形验证码加载失败',
+        duration: 1500,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await toast.present();
+      return;
+    }
+
+    const sendResult = await this.auth.sendVerificationCode(phone, captchaData);
+    if (!sendResult?.success) {
+      this.sending.set(false);
+      const toast = await this.toastCtrl.create({
+        message: sendResult?.error || '验证码发送失败',
+        duration: 1500,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await toast.present();
+      return;
+    }
+
     const toast = await this.toastCtrl.create({
-      message: '验证码已发送，验证码为1234',
+      message: sendResult.message || '验证码已发送',
       duration: 750,
       position: 'bottom',
       positionAnchor: 'main-tab-bar',

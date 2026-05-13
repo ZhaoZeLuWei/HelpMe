@@ -127,4 +127,51 @@
       <span>{{ selectedEvent.CreateTime | date: "yyyy-MM-dd HH:mm:ss" }}</span>
     </div>
   </div>
+
+  <!-- 图片画廊 -->
+  <div class="photo-section" *ngIf="eventPhotos.length > 0">
+    <h4 class="section-title">事件图片</h4>
+    <div class="photo-grid">
+      <div
+        class="photo-item"
+        *ngFor="let photo of eventPhotos; let i = index"
+        (click)="openImageOverlay(i)"
+      >
+        <img [src]="getPhotoUrl(photo)" alt="事件图片" />
+      </div>
+    </div>
+  </div>
 </app-detail-modal>
+
+<!-- 图片预览遮罩层 -->
+<div
+  class="image-overlay"
+  *ngIf="showImageOverlay"
+  (click)="closeImageOverlay()"
+>
+  <div class="image-overlay-content" (click)="$event.stopPropagation()">
+    <button class="close-overlay-btn" (click)="closeImageOverlay()">
+      <mat-icon>close</mat-icon>
+    </button>
+    <img [src]="selectedImage" alt="预览图片" class="preview-image" />
+    <div class="image-nav" *ngIf="eventPhotos.length > 1">
+      <button
+        class="nav-btn prev"
+        (click)="prevImage()"
+        [disabled]="currentImageIndex === 0"
+      >
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <span class="image-counter"
+        >{{ currentImageIndex + 1 }} / {{ eventPhotos.length }}</span
+      >
+      <button
+        class="nav-btn next"
+        (click)="nextImage()"
+        [disabled]="currentImageIndex === eventPhotos.length - 1"
+      >
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

@@ -2,8 +2,12 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
-const { authRequired } = require("./auth.js");
+const { authRequired, adminRequired } = require("./auth.js");
 const { sendSystemMessage } = require("../chatHandler.js");
+const {
+  moderateContent,
+  moderateContents,
+} = require("../Services/contentModeration.js");
 const router = express.Router();
 
 function normalizeLocationPlaceId(value) {
@@ -12,9 +16,10 @@ function normalizeLocationPlaceId(value) {
   return text ? text : null;
 }
 
-// 图片上传接口（仅上传，不入库）
+// 图片上传接口（仅上传，不入库，需登录）
 router.post(
   "/upload/images",
+  authRequired,
   withMulter(upload.array("images", 10)),
   (req, res) => {
     const files = req.files || [];
@@ -159,6 +164,35 @@ router.post(
     if (!EventTitle || !EventCategory || !Location || !EventDetails) {
       cleanupUploadedFiles(req.files);
       return res.status(400).json({ success: false, error: "缺少必填字段" });
+    }
+
+    // 内容安全审核（批量检测，只调用一次API）
+    try {
+      const checkResult = await moderateContents(
+        {
+          EventTitle: EventTitle,
+          EventCategory: EventCategory,
+          EventDetails: EventDetails,
+        },
+        creatorId.toString(),
+      );
+
+      if (!checkResult.safe) {
+        cleanupUploadedFiles(req.files);
+        return res.status(400).json({
+          success: false,
+          error: checkResult.message,
+          code: "CONTENT_MODERATION_FAILED",
+        });
+      }
+    } catch (moderationError) {
+      console.error("内容审核异常:", moderationError);
+      cleanupUploadedFiles(req.files);
+      return res.status(500).json({
+        success: false,
+        error: "内容安全检测暂时不可用，请稍后重试",
+        code: "CONTENT_MODERATION_ERROR",
+      });
     }
 
     const eventTypeNum = Number(EventType);
@@ -342,6 +376,33 @@ router.put("/events/:id", authRequired, async (req, res) => {
 
   if (!EventTitle || !EventCategory || !Location || !EventDetails) {
     return res.status(400).json({ success: false, error: "缺少必填字段" });
+  }
+
+  // 内容安全审核（批量检测，只调用一次API）
+  try {
+    const checkResult = await moderateContents(
+      {
+        EventTitle: EventTitle,
+        EventCategory: EventCategory,
+        EventDetails: EventDetails,
+      },
+      creatorId.toString(),
+    );
+
+    if (!checkResult.safe) {
+      return res.status(400).json({
+        success: false,
+        error: checkResult.message,
+        code: "CONTENT_MODERATION_FAILED",
+      });
+    }
+  } catch (moderationError) {
+    console.error("内容审核异常:", moderationError);
+    return res.status(500).json({
+      success: false,
+      error: "内容安全检测暂时不可用，请稍后重试",
+      code: "CONTENT_MODERATION_ERROR",
+    });
   }
 
   const eventTypeNum = Number(EventType);
@@ -549,7 +610,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
 });
 
 // 管理端：获取事件列表
-router.get("/admin/events", authRequired, async (_req, res) => {
+router.get("/admin/events", adminRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -578,7 +639,7 @@ router.get("/admin/events", authRequired, async (_req, res) => {
 });
 
 // 管理端：删除事件（需登录，且检查未完结订单）
-router.delete("/admin/events/:id", authRequired, async (req, res) => {
+router.delete("/admin/events/:id", adminRequired, async (req, res) => {
   const eventId = Number(req.params.id);
   if (!Number.isInteger(eventId) || eventId <= 0) {
     return res.status(400).json({ success: false, error: "无效的事件ID" });
@@ -619,7 +680,7 @@ router.delete("/admin/events/:id", authRequired, async (req, res) => {
 });
 
 // 管理端：状态统计
-router.get("/admin/events/summary", authRequired, async (_req, res) => {
+router.get("/admin/events/summary", adminRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT

@@ -858,6 +858,8 @@ export class Tab4Page implements OnDestroy {
               snapshot?.DeliveryAddress || o.DetailLocation || '',
             deliverySpecific: snapshot?.DeliverySpecific || '',
             deliveryAdditionalInfo: snapshot?.DeliveryAdditionalInfo || '',
+            // 取消人信息
+            cancelledByName: o.CancelledByName || '',
           };
         });
 

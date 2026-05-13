@@ -1,12 +1,16 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
-const { authRequired } = require("./auth.js");
+const { authRequired, adminRequired } = require("./auth.js");
 const {
   sendSystemMessage,
   sendOrderSystemMessage,
 } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
 const Room = require("../models/Room.js");
+const {
+  moderateContent,
+  moderateContents,
+} = require("../Services/contentModeration.js");
 
 const router = express.Router();
 
@@ -64,6 +68,33 @@ router.post("/orders", authRequired, async (req, res) => {
   }
   if (!DetailLocation || !String(DetailLocation).trim()) {
     return res.status(400).json({ success: false, error: "请填写下单信息" });
+  }
+
+  // 内容安全审核（批量检测，只调用一次API）
+  try {
+    const checkResult = await moderateContents(
+      {
+        DetailLocation: DetailLocation,
+        SpecificLocation: SpecificLocation || "",
+        AdditionalInfo: AdditionalInfo || "",
+      },
+      consumerId.toString(),
+    );
+
+    if (!checkResult.safe) {
+      return res.status(400).json({
+        success: false,
+        error: checkResult.message,
+        code: "CONTENT_MODERATION_FAILED",
+      });
+    }
+  } catch (moderationError) {
+    console.error("内容审核异常:", moderationError);
+    return res.status(500).json({
+      success: false,
+      error: "内容安全检测暂时不可用，请稍后重试",
+      code: "CONTENT_MODERATION_ERROR",
+    });
   }
 
   let conn;
@@ -275,11 +306,12 @@ router.get("/orders", authRequired, async (req, res) => {
         o.OrderId, o.EventId, o.ProviderId, o.ConsumerId, o.OrderStatus,
         o.TransactionPrice, o.DetailLocation, o.OrderCreateTime, o.PaymentTime,
         o.ServiceTime, o.CompletionTime,
-        o.RefundTime, o.EventSnapshot,
+        o.RefundTime, o.CancelledBy, o.EventSnapshot,
         IFNULL(o.EventSnapshot->>'$.EventTitle', e.EventTitle) AS EventTitle,
         IFNULL(o.EventSnapshot->>'$.EventDetails', e.EventDetails) AS EventDetails,
         buyer.UserName AS ConsumerName,
         provider.UserName AS ProviderName,
+        cancelledByUser.UserName AS CancelledByName,
         (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId) AS ReviewCount,
         (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId = ?) AS HasReviewed,
         (SELECT COUNT(*) FROM Comments c WHERE c.OrderId = o.OrderId AND c.AuthorId != ?) AS OtherHasReviewed
@@ -287,6 +319,7 @@ router.get("/orders", authRequired, async (req, res) => {
        JOIN Events e ON o.EventId = e.EventId
        JOIN Users buyer ON o.ConsumerId = buyer.UserId
        JOIN Users provider ON o.ProviderId = provider.UserId
+       LEFT JOIN Users cancelledByUser ON o.CancelledBy = cancelledByUser.UserId
        WHERE ${where.join(" AND ")}
        ORDER BY o.OrderCreateTime DESC`,
       [...params, userId, userId],
@@ -509,10 +542,10 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
         .json({ success: false, error: "当前订单状态无法取消" });
     }
 
-    // 将订单状态设为已取消（4）
+    // 将订单状态设为已取消（4），记录取消人
     await conn.query(
-      "UPDATE Orders SET OrderStatus = 4, RefundTime = NOW() WHERE OrderId = ?",
-      [orderId],
+      "UPDATE Orders SET OrderStatus = 4, RefundTime = NOW(), CancelledBy = ? WHERE OrderId = ?",
+      [userId, orderId],
     );
 
     await conn.commit();
@@ -562,19 +595,23 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
 });
 
 // 管理端订单列表
-router.get("/admin/orders", authRequired, async (req, res) => {
+router.get("/admin/orders", adminRequired, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
         o.OrderId, o.EventId, o.ProviderId, o.ConsumerId, o.OrderStatus,
         o.TransactionPrice, o.DetailLocation, o.OrderCreateTime,
+        o.PaymentTime, o.ServiceTime, o.CompletionTime, o.RefundTime,
+        o.CancelledBy, o.EventSnapshot,
         e.EventTitle,
         buyer.UserName AS ConsumerName,
-        provider.UserName AS ProviderName
+        provider.UserName AS ProviderName,
+        cancelledByUser.UserName AS CancelledByName
        FROM Orders o
        JOIN Events e ON o.EventId = e.EventId
        JOIN Users buyer ON o.ConsumerId = buyer.UserId
        JOIN Users provider ON o.ProviderId = provider.UserId
+       LEFT JOIN Users cancelledByUser ON o.CancelledBy = cancelledByUser.UserId
        ORDER BY o.OrderCreateTime DESC`,
     );
 
@@ -586,7 +623,7 @@ router.get("/admin/orders", authRequired, async (req, res) => {
 });
 
 // 管理端删除订单
-router.delete("/admin/orders/:id", authRequired, async (req, res) => {
+router.delete("/admin/orders/:id", adminRequired, async (req, res) => {
   const orderId = Number(req.params.id);
   if (!Number.isInteger(orderId) || orderId <= 0) {
     return res.status(400).json({ success: false, error: "订单ID无效" });

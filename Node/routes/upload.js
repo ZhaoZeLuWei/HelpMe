@@ -5,9 +5,13 @@ const path = require("node:path");
 const { join } = require("node:path");
 const multer = require("multer");
 
-// 上传目录 + 文件格式（名称 + 格式限制）
+// 普通图片上传目录（公开访问）
 const uploadDir = join(__dirname, "..", "..", "upload", "img");
 fs.mkdirSync(uploadDir, { recursive: true });
+
+// 敏感文件上传目录（身份证、证书等，不公开访问）
+const sensitiveDir = join(__dirname, "..", "..", "upload", "sensitive");
+fs.mkdirSync(sensitiveDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
@@ -19,8 +23,56 @@ const storage = multer.diskStorage({
   },
 });
 
+// 文件头魔数校验（验证真实文件类型）
+const IMAGE_SIGNATURES = {
+  // PNG: 89 50 4E 47
+  png: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+  // JPEG: FF D8 FF
+  jpeg: Buffer.from([0xff, 0xd8, 0xff]),
+  // GIF: 47 49 46 38
+  gif: Buffer.from([0x47, 0x49, 0x46, 0x38]),
+  // WebP: 52 49 46 46 ... 57 45 42 50
+  webp: Buffer.from([0x52, 0x49, 0x46, 0x46]),
+};
+
+function validateImageMagicNumber(buffer) {
+  if (!buffer || buffer.length < 4) return false;
+
+  for (const [type, signature] of Object.entries(IMAGE_SIGNATURES)) {
+    if (buffer.subarray(0, signature.length).equals(signature)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 const upload = multer({
   storage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 10 },
+  fileFilter: (req, file, cb) => {
+    // 这里只做不会消费上传流的轻量校验，避免影响后续 storage 正常写盘
+    if (!file.mimetype || !file.mimetype.startsWith("image/")) {
+      return cb(new Error("只允许上传图片文件，请检查后重试"));
+    }
+
+    cb(null, true);
+  },
+});
+
+// 敏感文件上传配置（身份证、证书等）
+const sensitiveStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, sensitiveDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const safeExt = ext && ext.length <= 10 ? ext : "";
+    const name = `${Date.now()}-${Math.random().toString(16).slice(2)}${safeExt}`;
+    cb(null, name);
+  },
+});
+
+const sensitiveUpload = multer({
+  storage: sensitiveStorage,
   limits: { fileSize: 10 * 1024 * 1024, files: 10 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype && file.mimetype.startsWith("image/")) cb(null, true);
@@ -70,7 +122,9 @@ function withMulter(mw) {
 
 module.exports = {
   uploadDir,
+  sensitiveDir,
   upload,
+  sensitiveUpload,
   withMulter,
   cleanupUploadedFiles,
 };

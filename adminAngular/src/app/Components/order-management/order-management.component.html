@@ -93,45 +93,178 @@
   title="订单详情"
   (closed)="closeDetail()"
 >
-  <div class="detail-grid" *ngIf="selectedOrder">
-    <div class="detail-item">
-      <label>订单号</label>
-      <span>#{{ selectedOrder.OrderId }}</span>
+  <div class="detail-content" *ngIf="selectedOrder">
+    <!-- 基础信息 -->
+    <div class="detail-section">
+      <h4 class="section-title">基础信息</h4>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <label>订单号</label>
+          <span>#{{ selectedOrder.OrderId }}</span>
+        </div>
+        <div class="detail-item">
+          <label>状态</label>
+          <span
+            class="status-tag"
+            [class]="getStatusClass(selectedOrder.OrderStatus)"
+          >
+            {{ getStatusText(selectedOrder.OrderStatus) }}
+          </span>
+        </div>
+        <div class="detail-item">
+          <label>事件</label>
+          <span>{{ selectedOrder.EventTitle }}</span>
+        </div>
+        <div class="detail-item">
+          <label>金额</label>
+          <span class="price-cell">¥{{ selectedOrder.TransactionPrice }}</span>
+        </div>
+      </div>
     </div>
-    <div class="detail-item">
-      <label>状态</label>
-      <span
-        class="status-tag"
-        [class]="getStatusClass(selectedOrder.OrderStatus)"
+
+    <!-- 参与者信息 -->
+    <div class="detail-section">
+      <h4 class="section-title">参与者</h4>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <label>买家</label>
+          <span>{{ selectedOrder.ConsumerName }}</span>
+        </div>
+        <div class="detail-item">
+          <label>卖家</label>
+          <span>{{ selectedOrder.ProviderName }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 交付地址 -->
+    <div class="detail-section">
+      <h4 class="section-title">交付地址</h4>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <label>详细地址</label>
+          <span>{{ parsedLocation.address || "未填写" }}</span>
+        </div>
+        <div class="detail-item">
+          <label>具体位置</label>
+          <span>{{ parsedLocation.specific || "未填写" }}</span>
+        </div>
+        <div class="detail-item full-width">
+          <label>补充信息</label>
+          <span>{{ parsedLocation.additional || "无" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 时间线 -->
+    <div class="detail-section">
+      <h4 class="section-title">时间线</h4>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot active"></div>
+          <div class="timeline-content">
+            <span class="timeline-label">创建时间</span>
+            <span class="timeline-value">{{
+              selectedOrder.OrderCreateTime | date: "yyyy-MM-dd HH:mm:ss"
+            }}</span>
+          </div>
+        </div>
+        <div class="timeline-item" *ngIf="selectedOrder.PaymentTime">
+          <div class="timeline-dot active"></div>
+          <div class="timeline-content">
+            <span class="timeline-label">确认时间</span>
+            <span class="timeline-value">{{
+              selectedOrder.PaymentTime | date: "yyyy-MM-dd HH:mm:ss"
+            }}</span>
+          </div>
+        </div>
+        <div class="timeline-item" *ngIf="selectedOrder.CompletionTime">
+          <div class="timeline-dot active"></div>
+          <div class="timeline-content">
+            <span class="timeline-label">完成时间</span>
+            <span class="timeline-value">{{
+              selectedOrder.CompletionTime | date: "yyyy-MM-dd HH:mm:ss"
+            }}</span>
+          </div>
+        </div>
+        <div class="timeline-item" *ngIf="selectedOrder.RefundTime">
+          <div class="timeline-dot cancelled"></div>
+          <div class="timeline-content">
+            <span class="timeline-label">取消时间</span>
+            <span class="timeline-value">{{
+              selectedOrder.RefundTime | date: "yyyy-MM-dd HH:mm:ss"
+            }}<span class="cancelled-by" *ngIf="selectedOrder.CancelledByName"> - 被{{ selectedOrder.CancelledByName }}取消</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 事件快照 -->
+    <div class="detail-section" *ngIf="eventSnapshot">
+      <h4 class="section-title">下单时事件快照</h4>
+      <div class="snapshot-card">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>事件标题</label>
+            <span>{{
+              eventSnapshot.EventTitle || selectedOrder.EventTitle
+            }}</span>
+          </div>
+          <div class="detail-item">
+            <label>事件价格</label>
+            <span class="price-cell"
+              >¥{{
+                eventSnapshot.Price || selectedOrder.TransactionPrice
+              }}</span
+            >
+          </div>
+          <div class="detail-item full-width">
+            <label>事件位置</label>
+            <span>{{ eventSnapshot.Location || "未记录" }}</span>
+          </div>
+          <div
+            class="detail-item full-width"
+            *ngIf="eventSnapshot.EventDetails"
+          >
+            <label>事件详情</label>
+            <span class="detail-text">{{ eventSnapshot.EventDetails }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 评价信息 -->
+    <div class="detail-section">
+      <h4 class="section-title">评价信息</h4>
+      <div *ngIf="loadingReviews" class="loading-text">加载中...</div>
+      <div
+        *ngIf="!loadingReviews && orderReviews.length === 0"
+        class="empty-text"
       >
-        {{ getStatusText(selectedOrder.OrderStatus) }}
-      </span>
-    </div>
-    <div class="detail-item">
-      <label>事件</label>
-      <span>{{ selectedOrder.EventTitle }}</span>
-    </div>
-    <div class="detail-item">
-      <label>金额</label>
-      <span class="price-cell">¥{{ selectedOrder.TransactionPrice }}</span>
-    </div>
-    <div class="detail-item">
-      <label>买家</label>
-      <span>{{ selectedOrder.ConsumerName }}</span>
-    </div>
-    <div class="detail-item">
-      <label>卖家</label>
-      <span>{{ selectedOrder.ProviderName }}</span>
-    </div>
-    <div class="detail-item full-width">
-      <label>地址</label>
-      <span>{{ selectedOrder.DetailLocation || "未填写" }}</span>
-    </div>
-    <div class="detail-item">
-      <label>创建时间</label>
-      <span>{{
-        selectedOrder.OrderCreateTime | date: "yyyy-MM-dd HH:mm:ss"
-      }}</span>
+        暂无评价
+      </div>
+      <div
+        *ngIf="!loadingReviews && orderReviews.length > 0"
+        class="reviews-list"
+      >
+        <div class="review-card" *ngFor="let review of orderReviews">
+          <div class="review-header">
+            <span class="review-author">{{ review.authorName }}</span>
+            <div class="star-display">
+              <span
+                *ngFor="let star of getScoreArray(review.rating)"
+                class="star"
+                [class.filled]="isStarFilled(star, review.rating)"
+                >&#9733;</span
+              >
+            </div>
+            <span class="review-time">{{
+              review.createTime | date: "yyyy-MM-dd HH:mm"
+            }}</span>
+          </div>
+          <div class="review-content">{{ review.content || "无文字评价" }}</div>
+        </div>
+      </div>
     </div>
   </div>
 </app-detail-modal>

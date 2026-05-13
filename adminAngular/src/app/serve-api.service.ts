@@ -2,13 +2,14 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ServeAPIService {
   // 基础URL
-  private baseUrl = 'http://localhost:3000';
+  private baseUrl = environment.apiBase;
 
   // 认证审核相关URL
   private adminVerifyUrl = `${this.baseUrl}/adminVerify`;
@@ -95,5 +96,22 @@ export class ServeAPIService {
 
   getAdminStats(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/admin/stats`);
+  }
+
+  // ========== 评价管理相关 ==========
+
+  // 获取管理端评价列表
+  getAdminReviewsList(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/admin/reviews`);
+  }
+
+  // 删除管理端评价
+  deleteAdminReview(reviewId: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/admin/reviews/${reviewId}`);
+  }
+
+  // 获取订单的评价列表（用于订单详情）
+  getReviewsByOrderId(orderId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/reviews?orderId=${orderId}`);
   }
 }

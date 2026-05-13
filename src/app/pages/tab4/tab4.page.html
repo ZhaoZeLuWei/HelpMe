@@ -393,6 +393,12 @@
             <p>
               <strong>{{ t.dealPrice }}</strong>¥{{ currentOrderDetail.price }}
             </p>
+            @if (currentOrderDetail.cancelledByName) {
+            <p class="cancelled-info">
+              <strong>{{ t.cancelledBy || '取消人' }}</strong>{{
+              currentOrderDetail.cancelledByName }}
+            </p>
+            }
           </div>
 
           <!-- 交付地址信息 -->
