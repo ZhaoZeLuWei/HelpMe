@@ -51,25 +51,12 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024, files: 10 },
   fileFilter: (req, file, cb) => {
-    // 先检查 MIME 类型
+    // 这里只做不会消费上传流的轻量校验，避免影响后续 storage 正常写盘
     if (!file.mimetype || !file.mimetype.startsWith("image/")) {
       return cb(new Error("只允许上传图片文件，请检查后重试"));
     }
 
-    // 读取文件头进行魔数校验
-    const chunks = [];
-    file.stream.on("data", (chunk) => chunks.push(chunk));
-    file.stream.on("end", () => {
-      const buffer = Buffer.concat(chunks);
-      if (validateImageMagicNumber(buffer)) {
-        cb(null, true);
-      } else {
-        cb(new Error("文件内容与图片类型不匹配，请检查后重试"));
-      }
-    });
-    file.stream.on("error", () => {
-      cb(new Error("文件读取失败"));
-    });
+    cb(null, true);
   },
 });
 
