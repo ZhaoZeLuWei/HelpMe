@@ -1,6 +1,26 @@
 // 加载环境变量
 require("dotenv").config();
 
+// 启动时校验必需环境变量
+const requiredEnvVars = ["JWT_SECRET", "ADMIN_USERNAME", "ADMIN_PASSWORD"];
+
+const missingEnvVars = requiredEnvVars.filter(
+  (varName) => !process.env[varName],
+);
+
+if (missingEnvVars.length > 0) {
+  console.error("错误: 缺少以下必需环境变量:");
+  missingEnvVars.forEach((varName) => {
+    console.error(`  - ${varName}`);
+  });
+  console.error("请在 .env 文件中配置这些变量，服务无法启动。");
+  process.exit(1);
+}
+
+// 启动时生成前端配置文件
+const { generateFrontendConfig } = require("./generateFrontendConfig");
+generateFrontendConfig();
+
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const corsMiddleware = require("./routes/cors.js");
@@ -24,6 +44,7 @@ const favoriteRoutes = require("./routes/favorite.js");
 const chatRoutes = require("./routes/chat.js");
 const locationRoutes = require("./routes/location.js");
 const translationRoutes = require("./routes/translation.js");
+const configRoutes = require("./routes/config.js");
 
 //use all routes here 这里使用路由，定义URL路径
 const app = express();
@@ -40,6 +61,7 @@ app.use(favoriteRoutes);
 app.use(chatRoutes);
 app.use(locationRoutes);
 app.use(translationRoutes);
+app.use(configRoutes);
 
 // JWT secret（必须从环境变量读取）
 const JWT_SECRET = process.env.JWT_SECRET;

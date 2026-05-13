@@ -16,9 +16,10 @@ function normalizeLocationPlaceId(value) {
   return text ? text : null;
 }
 
-// 图片上传接口（仅上传，不入库）
+// 图片上传接口（仅上传，不入库，需登录）
 router.post(
   "/upload/images",
+  authRequired,
   withMulter(upload.array("images", 10)),
   (req, res) => {
     const files = req.files || [];

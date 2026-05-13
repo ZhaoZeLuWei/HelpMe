@@ -184,8 +184,8 @@ router.get("/locations/nearby", async (req, res) => {
   }
 });
 
-// 保存地点（从高德地图获取后存入数据库）
-router.post("/locations/save", async (req, res) => {
+// 保存地点（从高德地图获取后存入数据库，仅管理员可操作）
+router.post("/locations/save", adminRequired, async (req, res) => {
   const db = await getLocationDb();
   const places = db.collection(COLLECTION_NAME);
 

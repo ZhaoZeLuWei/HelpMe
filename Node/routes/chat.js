@@ -16,7 +16,7 @@ router.get("/api/messages/history", authRequired, async (req, res) => {
 
     // 使用 token 中的 userId，忽略客户端传入的 userId
     const query = { ...req.query, userId: userId.toString() };
-    const result = await getChatHistory(query);
+    const result = await getChatHistory(query, userId);
     if (result.success) {
       res.status(200).json(result);
     } else {
@@ -37,7 +37,11 @@ router.get("/api/rooms/list", authRequired, async (req, res) => {
     }
 
     // 使用 token 中的 userId，忽略客户端传入的 userId
-    const query = { ...req.query, userId: userId.toString() };
+    const query = {
+      ...req.query,
+      userId: userId.toString(),
+      currentUserId: userId,
+    };
     const result = await getRoomList(query);
     if (result.success) {
       res.status(200).json(result);

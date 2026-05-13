@@ -1,49 +1,24 @@
 // 用户认证提交接口（含身份证+证书上传）
 
 const express = require("express");
+const path = require("node:path");
+const fs = require("node:fs");
 const pool = require("../help_me_db.js");
-const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
+const {
+  sensitiveDir,
+  sensitiveUpload,
+  withMulter,
+  cleanupUploadedFiles,
+} = require("./upload.js");
 const { authRequired, adminRequired } = require("./auth.js");
 
 const { sendSystemMessage } = require("../chatHandler.js");
 const router = express.Router();
 
-let usersGeoColumnsState = {
-  checked: false,
-  supported: false,
-};
-
-async function supportsUserGeoColumns(conn) {
-  if (usersGeoColumnsState.checked) {
-    return usersGeoColumnsState.supported;
-  }
-
-  const [rows] = await conn.query(
-    `SELECT COUNT(*) AS cnt
-     FROM information_schema.COLUMNS
-     WHERE TABLE_SCHEMA = DATABASE()
-       AND TABLE_NAME = 'Users'
-       AND COLUMN_NAME IN ('LocationPlaceId', 'LocationLng', 'LocationLat')`,
-  );
-
-  usersGeoColumnsState = {
-    checked: true,
-    supported: Number(rows?.[0]?.cnt || 0) === 3,
-  };
-
-  return usersGeoColumnsState.supported;
-}
-
 function normalizeLocationPlaceId(value) {
   if (value === undefined || value === null) return null;
   const text = String(value).trim();
   return text ? text : null;
-}
-
-function normalizeCoordinate(value) {
-  if (value === undefined || value === null || value === "") return null;
-  const num = Number(value);
-  return Number.isFinite(num) ? num : null;
 }
 
 //GET 获取所有申请记录（仅包含通过和待审核) by Zewei 2-3
@@ -122,7 +97,7 @@ router.post(
   },
 
   withMulter(
-    upload.fields([
+    sensitiveUpload.fields([
       { name: "idCard", maxCount: 2 },
       { name: "cert", maxCount: 5 },
     ]),
@@ -135,8 +110,6 @@ router.post(
       IdCardNumber,
       Location,
       LocationPlaceId,
-      LocationLng,
-      LocationLat,
       Introduction,
     } = req.body || {};
 
@@ -164,12 +137,12 @@ router.post(
         .json({ success: false, error: "身份类型应该填写数字 1、2 、3" });
     }
 
-    // 提取上传的文件路径
+    // 提取上传的文件路径（敏感文件使用 /sensitive/ 路径，不公开访问）
 
     const idCardFiles = req.files?.idCard || [];
     const certFiles = req.files?.cert || [];
-    const idCardPaths = idCardFiles.map((f) => `/img/${f.filename}`);
-    const certPaths = certFiles.map((f) => `/img/${f.filename}`);
+    const idCardPaths = idCardFiles.map((f) => `/sensitive/${f.filename}`);
+    const certPaths = certFiles.map((f) => `/sensitive/${f.filename}`);
 
     // 判断字段是否有有效值
     const hasValue = (v) =>
@@ -179,7 +152,6 @@ router.post(
     try {
       conn = await pool.getConnection();
       await conn.beginTransaction();
-      const hasGeoColumns = await supportsUserGeoColumns(conn);
 
       // 0) 确保 Providers 记录存在（仅在首次时创建，不更新 ProviderRole）
       await conn.query(
@@ -224,16 +196,8 @@ router.post(
         uParams.push(String(Location).trim());
       }
 
-      if (hasGeoColumns) {
-        uSets.push("LocationPlaceId = ?");
-        uParams.push(normalizeLocationPlaceId(LocationPlaceId));
-
-        uSets.push("LocationLng = ?");
-        uParams.push(normalizeCoordinate(LocationLng));
-
-        uSets.push("LocationLat = ?");
-        uParams.push(normalizeCoordinate(LocationLat));
-      }
+      uSets.push("LocationPlaceId = ?");
+      uParams.push(normalizeLocationPlaceId(LocationPlaceId));
 
       if (hasValue(Introduction)) {
         uSets.push("Introduction = ?");
@@ -577,6 +541,73 @@ router.post("/adminVerify/reject", adminRequired, async (req, res) => {
   } finally {
     if (conn) conn.release();
   }
+});
+
+// 受鉴权保护的敏感文件下载接口（用户只能访问自己的文件，管理员可访问所有）
+router.get("/sensitive/:filename", authRequired, async (req, res) => {
+  const { filename } = req.params;
+  const userId = Number(req.user?.id);
+  const isAdmin = req.user?.role === "admin";
+
+  // 安全校验：防止路径遍历攻击
+  if (
+    filename.includes("..") ||
+    filename.includes("/") ||
+    filename.includes("\\")
+  ) {
+    return res.status(400).json({ success: false, error: "无效的文件名" });
+  }
+
+  const filePath = path.join(sensitiveDir, filename);
+
+  // 检查文件是否存在
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ success: false, error: "文件不存在" });
+  }
+
+  // 非管理员用户只能访问自己的文件（通过数据库查询验证）
+  if (!isAdmin) {
+    let conn;
+    try {
+      conn = await pool.getConnection();
+      const [rows] = await conn.query(
+        `SELECT IdCardPhoto, ProfessionPhoto
+         FROM Verifications
+         WHERE ProviderId = ?
+         ORDER BY SubmissionTime DESC
+         LIMIT 1`,
+        [userId],
+      );
+
+      if (rows.length === 0) {
+        return res
+          .status(403)
+          .json({ success: false, error: "无权访问此文件" });
+      }
+
+      const verification = rows[0];
+      const allowedFiles = [
+        ...JSON.parse(verification.IdCardPhoto || "[]"),
+        ...JSON.parse(verification.ProfessionPhoto || "[]"),
+      ];
+
+      const requestedPath = `/sensitive/${filename}`;
+      if (!allowedFiles.includes(requestedPath)) {
+        return res
+          .status(403)
+          .json({ success: false, error: "无权访问此文件" });
+      }
+    } catch (err) {
+      console.error("文件权限验证失败:", err);
+      return res.status(500).json({ success: false, error: "服务器内部错误" });
+    } finally {
+      if (conn) conn.release();
+    }
+  }
+
+  // 设置安全响应头
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.sendFile(filePath);
 });
 
 module.exports = router;

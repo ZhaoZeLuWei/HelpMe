@@ -2,13 +2,14 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ServeAPIService {
   // 基础URL
-  private baseUrl = 'http://localhost:3000';
+  private baseUrl = environment.apiBase;
 
   // 认证审核相关URL
   private adminVerifyUrl = `${this.baseUrl}/adminVerify`;

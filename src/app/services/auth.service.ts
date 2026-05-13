@@ -380,6 +380,105 @@ export class AuthService {
     }
   }
 
+  async sendVerificationCode(
+    phone: string,
+    captchaData?: {
+      lot_number: string;
+      captcha_output: string;
+      pass_token: string;
+      gen_time: string;
+    } | null,
+  ): Promise<{ success: boolean; message?: string; error?: string } | null> {
+    if (!phone) return null;
+
+    try {
+      const body: any = { phone };
+      if (captchaData) {
+        body.lot_number = captchaData.lot_number;
+        body.captcha_output = captchaData.captcha_output;
+        body.pass_token = captchaData.pass_token;
+        body.gen_time = captchaData.gen_time;
+      }
+
+      const resp = await fetch(`${this.API_BASE}/send-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await resp.json().catch(() => null);
+
+      if (!resp.ok) {
+        return {
+          success: false,
+          error:
+            data?.error || data?.msg || resp.statusText || '发送验证码失败',
+        };
+      }
+
+      if (data?.success) {
+        return {
+          success: true,
+          message: data?.message || '验证码已发送',
+        };
+      }
+
+      return {
+        success: false,
+        error: data?.error || '发送验证码失败',
+      };
+    } catch (err) {
+      console.error('sendVerificationCode error:', err);
+      return {
+        success: false,
+        error: '无法连接到服务器（请确认后端已启动）',
+      };
+    }
+  }
+
+  async verifyVerificationCode(
+    phone: string,
+    code: string,
+  ): Promise<{ success: boolean; message?: string; error?: string } | null> {
+    if (!phone || !code) return null;
+
+    try {
+      const resp = await fetch(`${this.API_BASE}/verify-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code }),
+      });
+
+      const data = await resp.json().catch(() => null);
+
+      if (!resp.ok) {
+        return {
+          success: false,
+          error:
+            data?.error || data?.msg || resp.statusText || '验证码校验失败',
+        };
+      }
+
+      if (data?.success) {
+        return {
+          success: true,
+          message: data?.message || '验证码校验通过',
+        };
+      }
+
+      return {
+        success: false,
+        error: data?.error || '验证码校验失败',
+      };
+    } catch (err) {
+      console.error('verifyVerificationCode error:', err);
+      return {
+        success: false,
+        error: '无法连接到服务器（请确认后端已启动）',
+      };
+    }
+  }
+
   async getProviderProfile(userId: number): Promise<ProviderProfile | null> {
     try {
       const res = await fetch(

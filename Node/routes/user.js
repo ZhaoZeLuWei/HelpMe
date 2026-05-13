@@ -1,6 +1,7 @@
 //用户相关内容
 
 const express = require("express");
+const bcrypt = require("bcrypt");
 const pool = require("../help_me_db.js");
 const { signToken, authRequired, adminRequired } = require("./auth.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
@@ -8,6 +9,11 @@ const {
   moderateContent,
   moderateContents,
 } = require("../services/contentModeration.js");
+const {
+  sendVerifyCode,
+  verifyCode: verifySmsCode,
+} = require("../services/smsService.js");
+const { verifyCaptcha } = require("../services/captchaService.js");
 
 const router = express.Router();
 
@@ -15,16 +21,247 @@ const router = express.Router();
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
+// 环境变量
+const NODE_ENV = process.env.NODE_ENV || "development";
+const DEV_VERIFY_CODE = process.env.DEV_VERIFY_CODE || "1234";
+
 // 检查必要环境变量是否配置
 if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
   console.error("错误: 缺少管理员凭据环境变量 ADMIN_USERNAME / ADMIN_PASSWORD");
 }
 
-router.post("/admin/login", (req, res) => {
+// 简单的验证码发送频率限制（内存级，生产环境应使用 Redis）
+const smsRateLimit = new Map(); // phone -> { count, lastSendTime }
+
+function checkSmsRateLimit(phone) {
+  const now = Date.now();
+  const record = smsRateLimit.get(phone);
+
+  if (!record) {
+    smsRateLimit.set(phone, { count: 1, lastSendTime: now });
+    return true;
+  }
+
+  // 60 秒内只能发送一次
+  if (now - record.lastSendTime < 60000) {
+    return false;
+  }
+
+  smsRateLimit.set(phone, { count: 1, lastSendTime: now });
+  return true;
+}
+
+// 发送验证码（集成阿里云号码认证服务）
+async function sendCode(phone) {
+  // 检查发送频率
+  if (!checkSmsRateLimit(phone)) {
+    return { success: false, error: "发送过于频繁，请 60 秒后再试" };
+  }
+
+  // 是否启用真实短信服务（开发环境也可开启）
+  const USE_REAL_SMS = process.env.USE_REAL_SMS === "true";
+  console.log("[验证码] 环境:", NODE_ENV, "USE_REAL_SMS:", USE_REAL_SMS);
+
+  // 开发环境且未启用真实短信：使用固定验证码
+  if (NODE_ENV !== "production" && !USE_REAL_SMS) {
+    console.log(`[开发模式] 使用固定验证码: ${DEV_VERIFY_CODE}`);
+    return { success: true, message: "验证码已发送（开发模式）" };
+  }
+
+  // 调用阿里云号码认证服务
+  console.log("[验证码] 调用阿里云发送短信...");
+  const result = await sendVerifyCode(phone);
+  console.log("[验证码] 阿里云返回结果:", result);
+  return result;
+}
+
+// 校验验证码
+async function verifyCode(phone, code) {
+  // 是否启用真实短信服务（开发环境也可开启）
+  const USE_REAL_SMS = process.env.USE_REAL_SMS === "true";
+
+  // 开发环境且未启用真实短信：使用固定验证码
+  if (NODE_ENV !== "production" && !USE_REAL_SMS) {
+    console.log(`[开发模式] 校验验证码: 输入=${code}, 期望=${DEV_VERIFY_CODE}`);
+    return String(code) === String(DEV_VERIFY_CODE);
+  }
+
+  // 调用阿里云校验接口
+  console.log("[验证码] 调用阿里云校验接口...");
+  const result = await verifySmsCode(phone, code);
+  console.log("[验证码] 校验结果:", result);
+  return result.success;
+}
+
+// 发送验证码接口
+router.post("/send-code", async (req, res) => {
+  const { phone } = req.body || {};
+
+  if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+    return res.status(400).json({ success: false, error: "手机号格式不正确" });
+  }
+
+  try {
+    // 如果启用了图形验证码（防机器人），先校验前端 H5 SDK 返回的验证结果
+    const USE_CAPTCHA = process.env.USE_CAPTCHA === "true";
+    if (USE_CAPTCHA) {
+      const captchaPayload = {
+        lot_number: req.body?.lot_number,
+        captcha_output: req.body?.captcha_output,
+        pass_token: req.body?.pass_token,
+        gen_time: req.body?.gen_time,
+      };
+
+      if (
+        !captchaPayload.lot_number ||
+        !captchaPayload.captcha_output ||
+        !captchaPayload.pass_token ||
+        !captchaPayload.gen_time
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, error: "请完成图形验证码" });
+      }
+
+      const cv = await verifyCaptcha(captchaPayload);
+      if (!cv.success) {
+        return res.status(400).json({
+          success: false,
+          error: `图形验证码校验失败: ${cv.error || "unknown"}`,
+        });
+      }
+    }
+
+    const result = await sendCode(phone);
+    if (result.success) {
+      return res.json({
+        success: true,
+        message: result.message || "验证码已发送",
+      });
+    } else {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+  } catch (err) {
+    console.error("发送验证码失败:", err);
+    return res.status(500).json({ success: false, error: "发送验证码失败" });
+  }
+});
+
+// 校验验证码接口
+router.post("/verify-code", async (req, res) => {
+  const { phone, code } = req.body || {};
+
+  if (!phone || !code) {
+    return res
+      .status(400)
+      .json({ success: false, error: "请填写手机号和验证码" });
+  }
+
+  try {
+    const result = await verifyCode(phone, code);
+    if (result) {
+      return res.json({ success: true, message: "验证码校验通过" });
+    }
+
+    return res.status(401).json({ success: false, error: "验证码错误" });
+  } catch (err) {
+    console.error("验证码校验失败:", err);
+    return res.status(500).json({ success: false, error: "验证码校验失败" });
+  }
+});
+
+// 管理员登录失败次数限制
+const adminLoginAttempts = new Map(); // IP -> { count, lockedUntil }
+
+function checkAdminLoginLimit(ip) {
+  const now = Date.now();
+  const record = adminLoginAttempts.get(ip);
+
+  if (!record) {
+    return { allowed: true };
+  }
+
+  // 检查是否在锁定期内
+  if (record.lockedUntil && now < record.lockedUntil) {
+    const remainingSeconds = Math.ceil((record.lockedUntil - now) / 1000);
+    return {
+      allowed: false,
+      error: `账号已被锁定，请 ${remainingSeconds} 秒后再试`,
+    };
+  }
+
+  // 锁定期已过，重置计数
+  if (record.lockedUntil && now >= record.lockedUntil) {
+    adminLoginAttempts.delete(ip);
+    return { allowed: true };
+  }
+
+  return { allowed: true };
+}
+
+function recordAdminLoginFailure(ip) {
+  const now = Date.now();
+  const record = adminLoginAttempts.get(ip) || { count: 0 };
+
+  record.count++;
+
+  // 5 次失败后锁定 15 分钟
+  if (record.count >= 5) {
+    record.lockedUntil = now + 15 * 60 * 1000;
+    console.warn(
+      `管理员登录 IP ${ip} 已被锁定 15 分钟（失败次数: ${record.count}）`,
+    );
+  }
+
+  adminLoginAttempts.set(ip, record);
+}
+
+function resetAdminLoginAttempts(ip) {
+  adminLoginAttempts.delete(ip);
+}
+
+router.post("/admin/login", async (req, res) => {
   const { username, password } = req.body || {};
-  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+  const clientIp = req.ip || req.connection?.remoteAddress || "unknown";
+
+  // 检查登录限制
+  const limitCheck = checkAdminLoginLimit(clientIp);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({ error: limitCheck.error });
+  }
+
+  // 验证用户名
+  if (username !== ADMIN_USERNAME) {
+    recordAdminLoginFailure(clientIp);
+    console.warn(`管理员登录失败: 用户名错误 (IP: ${clientIp})`);
     return res.status(401).json({ error: "账号或密码错误" });
   }
+
+  // 验证密码（使用 bcrypt 比较）
+  // 注意：生产环境应使用 bcrypt.hashSync(ADMIN_PASSWORD, 10) 生成哈希后存储
+  // 目前为了兼容性，先尝试直接比较，再尝试 bcrypt 比较
+  let passwordValid = false;
+
+  // 如果 ADMIN_PASSWORD 已经是 bcrypt 哈希，使用 bcrypt 比较
+  if (ADMIN_PASSWORD && ADMIN_PASSWORD.startsWith("$2")) {
+    passwordValid = await bcrypt
+      .compare(password, ADMIN_PASSWORD)
+      .catch(() => false);
+  } else {
+    // 明文密码直接比较（开发环境）
+    passwordValid = password === ADMIN_PASSWORD;
+  }
+
+  if (!passwordValid) {
+    recordAdminLoginFailure(clientIp);
+    console.warn(`管理员登录失败: 密码错误 (IP: ${clientIp})`);
+    return res.status(401).json({ error: "账号或密码错误" });
+  }
+
+  // 登录成功，重置失败计数
+  resetAdminLoginAttempts(clientIp);
+  console.log(`管理员登录成功 (IP: ${clientIp})`);
+
   // 生成带 admin 角色的 token
   const token = signToken({ UserId: 0, UserName: username }, "admin");
   return res.json({
@@ -141,8 +378,9 @@ router.post(
       return res.status(400).json({ error: "请填写所有必填项" });
     }
 
-    // 验证码校验（固定为 '1234'）
-    if (String(code) !== "1234") {
+    // 验证码校验（开发环境使用 DEV_VERIFY_CODE，生产环境调用阿里云短信服务）
+    const codeValid = await verifyCode(phone, code);
+    if (!codeValid) {
       return res.status(401).json({ error: "验证码错误" });
     }
 
@@ -262,13 +500,16 @@ router.post(
   },
 );
 
-// 登录：接收 { phone, code }，验证码固定为 '1234'
+// 登录：接收 { phone, code }
 router.post("/login", async (req, res) => {
   const { phone, code } = req.body || {};
   if (!phone || !code) {
     return res.status(400).json({ error: "请填写手机号和验证码" });
   }
-  if (String(code) !== "1234") {
+
+  // 验证码校验（开发环境使用 DEV_VERIFY_CODE，生产环境调用阿里云短信服务）
+  const codeValid = await verifyCode(phone, code);
+  if (!codeValid) {
     return res.status(401).json({ error: "验证码错误" });
   }
 

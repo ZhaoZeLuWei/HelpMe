@@ -412,7 +412,7 @@ export class LanguageService {
         codePlaceholder: '请输入验证码',
         sendCode: '发送验证码',
         submit: '登录',
-        hint: '提示：测试手机号为 1380000000X，验证码 1234',
+        hint: '提示：测试手机号为 1380000000X，开发环境默认验证码为 1234',
         goToRegister: '去注册',
       },
       // 注册页
@@ -427,7 +427,7 @@ export class LanguageService {
         codePlaceholder: '请输入验证码',
         sendCode: '发送验证码',
         nextStep: '下一步',
-        verifyHint: '提示：测试验证码为 1234',
+        verifyHint: '提示：开发环境默认验证码为 1234，生产环境请查看短信',
         infoTitle: '完善个人信息',
         infoDesc: '请填写您的基本信息',
         avatarHint: '未上传将使用默认头像，支持jpg/png，最大5MB',
@@ -856,7 +856,7 @@ export class LanguageService {
         codePlaceholder: 'Enter code',
         sendCode: 'Send Code',
         submit: 'Login',
-        hint: 'Hint: Test phone 1380000000X, code 1234',
+        hint: 'Hint: Test phone 1380000000X, development code is 1234',
         goToRegister: 'Go to Register',
       },
       // Register Page
@@ -871,7 +871,8 @@ export class LanguageService {
         codePlaceholder: 'Enter code',
         sendCode: 'Send Code',
         nextStep: 'Next',
-        verifyHint: 'Hint: Test code 1234',
+        verifyHint:
+          'Hint: Development code is 1234; check your SMS in production',
         infoTitle: 'Complete Profile',
         infoDesc: 'Fill in your basic information',
         avatarHint: 'Default avatar if not uploaded, JPG/PNG, max 5MB',

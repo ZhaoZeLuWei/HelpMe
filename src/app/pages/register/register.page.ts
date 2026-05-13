@@ -17,6 +17,7 @@ import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
 import { environment } from '../../../environments/environment';
 import { LocationPickerComponent } from '../../components/location-picker/location-picker.component';
+import { AliyunCaptchaService } from '../../services/aliyun-captcha.service';
 
 @Component({
   selector: 'app-register',
@@ -30,6 +31,7 @@ export class RegisterPage {
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
   private languageService = inject(LanguageService);
+  private captchaService = inject(AliyunCaptchaService);
 
   t: any;
 
@@ -108,6 +110,7 @@ export class RegisterPage {
 
     // 先检查手机号是否已注册
     const phone = this.verifyForm.controls.phone.value || '';
+    this.sending.set(true);
     try {
       const resp = await fetch(`${this.auth['API_BASE']}/check-phone`, {
         method: 'POST',
@@ -118,6 +121,7 @@ export class RegisterPage {
       const data = await resp.json().catch(() => null);
 
       if (!resp.ok || !data?.success) {
+        this.sending.set(false);
         const t = await this.toastCtrl.create({
           message: data?.error || '检查手机号失败，请稍后重试',
           duration: 2000,
@@ -129,6 +133,7 @@ export class RegisterPage {
       }
 
       if (data.exists) {
+        this.sending.set(false);
         const t = await this.toastCtrl.create({
           message: '该手机号已注册，请直接登录',
           duration: 2000,
@@ -140,6 +145,7 @@ export class RegisterPage {
       }
     } catch (err) {
       console.error('Check phone error:', err);
+      this.sending.set(false);
       const t = await this.toastCtrl.create({
         message: '无法连接到服务器',
         duration: 2000,
@@ -150,9 +156,36 @@ export class RegisterPage {
       return;
     }
 
-    // 模拟发送验证码
+    let captchaData = null;
+    try {
+      captchaData = await this.captchaService.getValidate();
+    } catch (err) {
+      this.sending.set(false);
+      const toast = await this.toastCtrl.create({
+        message: err instanceof Error ? err.message : '图形验证码加载失败',
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await toast.present();
+      return;
+    }
+
+    const sendResult = await this.auth.sendVerificationCode(phone, captchaData);
+    if (!sendResult?.success) {
+      this.sending.set(false);
+      const toast = await this.toastCtrl.create({
+        message: sendResult?.error || '验证码发送失败',
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await toast.present();
+      return;
+    }
+
     const toast = await this.toastCtrl.create({
-      message: '验证码已发送，验证码为1234',
+      message: sendResult.message || '验证码已发送',
       duration: 2000,
       position: 'bottom',
       positionAnchor: 'main-tab-bar',
@@ -160,7 +193,6 @@ export class RegisterPage {
     await toast.present();
 
     this.sendCooldown.set(60);
-    this.sending.set(true);
     const timer = setInterval(() => {
       const next = this.sendCooldown() - 1;
       this.sendCooldown.set(next);
@@ -183,11 +215,12 @@ export class RegisterPage {
       return;
     }
 
-    // 验证验证码是否正确（简单验证）
+    const phone = this.verifyForm.controls.phone.value || '';
     const code = this.verifyForm.controls.code.value || '';
-    if (code !== '1234') {
+    const verifyResult = await this.auth.verifyVerificationCode(phone, code);
+    if (!verifyResult?.success) {
       const t = await this.toastCtrl.create({
-        message: '验证码错误',
+        message: verifyResult?.error || '验证码错误',
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',

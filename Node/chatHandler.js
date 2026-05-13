@@ -9,8 +9,22 @@ const { moderateContent } = require("./services/contentModeration.js");
 //socket.io(roon).emit “谁加入了房间”，这个东西自己看不到
 //io.emit  系统公告，全站广播
 
+// 校验用户是否有权限访问该房间
+const validateRoomAccess = async (roomId, userId) => {
+  // 系统房间校验：system_{userId} 格式，且 userId 必须与当前用户一致
+  if (String(roomId).startsWith("system_")) {
+    const roomUserId = String(roomId).replace("system_", "");
+    return Number(roomUserId) === Number(userId);
+  }
+
+  // 普通房间校验：用户必须是房间的 creatorId 或 partnerId
+  const room = await Room.findById(roomId);
+  if (!room) return false;
+  return room.creatorId === Number(userId) || room.partnerId === Number(userId);
+};
+
 //根据roomId， 读取mongodb中所有符合条件的消息
-const getChatHistory = async (queryParams) => {
+const getChatHistory = async (queryParams, currentUserId) => {
   try {
     const {
       roomId,
@@ -21,10 +35,20 @@ const getChatHistory = async (queryParams) => {
       sortOrder,
     } = queryParams;
 
-    const query = {}; // 默认为空对象，表示查询所有文档
-    if (roomId) {
-      query.roomId = roomId; // 如果传了 roomId，才加上筛选条件
+    // 必须提供 roomId 且必须校验用户权限
+    if (!roomId) {
+      return { success: false, message: "缺少 roomId 参数" };
     }
+
+    // 校验用户是否有权限访问该房间
+    if (currentUserId) {
+      const hasAccess = await validateRoomAccess(roomId, currentUserId);
+      if (!hasAccess) {
+        return { success: false, message: "无权访问此聊天房间", code: 403 };
+      }
+    }
+
+    const query = { roomId };
 
     const pageNum = parseInt(page, 10);
     const size = parseInt(pageSize, 10);
@@ -106,6 +130,15 @@ const getRoomList = async (queryParams) => {
     const query = {};
 
     if (roomId) {
+      // 如果指定了 roomId，必须校验当前用户是否为房间成员
+      const currentUserId = queryParams.currentUserId;
+      if (!currentUserId) {
+        return { success: false, message: "缺少用户身份信息" };
+      }
+      const hasAccess = await validateRoomAccess(roomId, currentUserId);
+      if (!hasAccess) {
+        return { success: false, message: "无权访问此房间", code: 403 };
+      }
       query._id = roomId;
     } else if (eventId) {
       query.eventId = eventId;
@@ -344,24 +377,56 @@ module.exports.registerChatHandler = (io, socket) => {
     }
 
     if (!roomId) return;
+
+    // 校验 roomId 格式（白名单）
+    const isValidRoomId =
+      String(roomId).startsWith("system_") ||
+      /^\d+_\d+_\d+$/.test(String(roomId)); // eventId_creatorId_partnerId 格式
+
+    if (!isValidRoomId) {
+      socket.emit("joinRoomError", { message: "无效的房间 ID 格式" });
+      return;
+    }
+
     try {
       let room = await Room.findById(roomId);
-      if (!room) {
-        const parts = roomId.split("_");
 
-        const eventId = parseInt(parts[0], 10);
-        const creatorId = parseInt(parts[1], 10);
-        const partnerId = parseInt(parts[2], 10);
+      // 系统房间：必须校验 userId 与当前用户一致
+      if (String(roomId).startsWith("system_")) {
+        const roomUserId = String(roomId).replace("system_", "");
+        if (Number(roomUserId) !== socket.user.id) {
+          socket.emit("joinRoomError", { message: "无权加入此系统房间" });
+          return;
+        }
+      }
 
+      // 如果房间不存在，禁止客户端自行创建（只有系统房间允许自动创建）
+      if (!room && !String(roomId).startsWith("system_")) {
+        socket.emit("joinRoomError", { message: "房间不存在，无法加入" });
+        return;
+      }
+
+      // 普通房间：校验用户是否为房间成员
+      if (room) {
+        const isMember =
+          room.creatorId === socket.user.id ||
+          room.partnerId === socket.user.id;
+        if (!isMember) {
+          socket.emit("joinRoomError", { message: "无权加入此聊天房间" });
+          return;
+        }
+      }
+
+      // 系统房间自动创建（已校验 userId）
+      if (!room && String(roomId).startsWith("system_")) {
         room = await Room.create({
           _id: roomId,
-          eventId,
-          creatorId,
-          partnerId,
+          creatorId: socket.user.id,
+          partnerId: socket.user.id,
         });
-
-        console.log(`Room created in MongoDB: ${roomId}`);
+        console.log(`系统房间已创建: ${roomId}`);
       }
+
       socket.join(roomId);
 
       //share the room id to all socket functions!
@@ -401,6 +466,20 @@ module.exports.registerChatHandler = (io, socket) => {
       //an easy check for room id
       if (!roomId) {
         console.log("User didn't joined any room!");
+        return;
+      }
+
+      // 校验用户是否有权限在该房间发送消息
+      const room = await Room.findById(roomId);
+      if (!room) {
+        socket.emit("messageError", { message: "房间不存在" });
+        return;
+      }
+
+      const isMember =
+        room.creatorId === socket.user.id || room.partnerId === socket.user.id;
+      if (!isMember) {
+        socket.emit("messageError", { message: "无权在此房间发送消息" });
         return;
       }
 
@@ -451,8 +530,6 @@ module.exports.registerChatHandler = (io, socket) => {
 
       //update room last Msg
       const senderId = socket.user.id;
-
-      const room = await Room.findById(roomId);
 
       const receiverId =
         senderId === room.creatorId ? room.partnerId : room.creatorId;
