@@ -2,13 +2,14 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonButton, IonContent, IonHeader, IonSearchbar, IonIcon } from '@ionic/angular/standalone';
-import { ToastController } from '@ionic/angular';
+import { ToastController, AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import { SearchStateService } from '../../services/search-state.service';
 import { AiService } from '../../services/ai.service';
+import { environment } from '../../../environments/environment';
 import { HttpClientModule } from '@angular/common/http';
 import { addIcons } from 'ionicons';
 import { searchOutline, sparklesOutline, chevronBackOutline } from 'ionicons/icons';
@@ -37,6 +38,7 @@ export class SearchPage implements OnInit {
   private location = inject(Location);
   private route = inject(ActivatedRoute);
   private toastCtrl = inject(ToastController);
+  private alertCtrl = inject(AlertController);
 
   keyword = '';
   returnTo = '';
@@ -50,11 +52,45 @@ export class SearchPage implements OnInit {
     this.returnTo = this.route.snapshot.queryParams['returnTo'] || 'tabs/tab2';
   }
 
-  onSearch() {
+  async onSearch() {
     const kw = this.keyword.trim();
-    this.router.navigate(['/tabs/tab2'], {
-      queryParams: { search: kw }
-    });
+    if (!kw) return;
+
+    this.aiSearching = true;
+    try {
+      const res = await fetch(`${environment.apiBase}/api/cards?search=${encodeURIComponent(kw)}`);
+      const list = await res.json();
+
+      if (list && list.length > 0) {
+        // 有结果，正常跳转
+        this.router.navigate(['/tabs/tab2'], {
+          queryParams: { search: kw },
+        });
+      } else {
+        // 无结果，弹出确认框询问是否使用 AI 搜索
+        const alert = await this.alertCtrl.create({
+          header: '没有找到相关结果',
+          message: `未找到与"${kw}"相关的内容，是否使用AI辅助搜索？`,
+          buttons: [
+            { text: '取消', role: 'cancel' },
+            {
+              text: 'AI 辅助搜索',
+              handler: () => {
+                this.executeAiSearch(kw);
+              },
+            },
+          ],
+        });
+        await alert.present();
+      }
+    } catch {
+      // API 请求失败，直接跳转
+      this.router.navigate(['/tabs/tab2'], {
+        queryParams: { search: kw },
+      });
+    } finally {
+      this.aiSearching = false;
+    }
   }
 
   goBack() {
@@ -76,7 +112,11 @@ export class SearchPage implements OnInit {
       await toast.present();
       return;
     }
+    await this.executeAiSearch(kw);
+  }
 
+  /** AI 搜索核心逻辑（提取出来，供普通搜索无结果后跳转复用） */
+  private async executeAiSearch(kw: string) {
     this.aiSearching = true;
     try {
       const result = await this.aiService.enhanceSearch(kw);
@@ -93,14 +133,15 @@ export class SearchPage implements OnInit {
           queryParams: { ai: '1' },
         });
       } else {
-        // AI 失败，回退到普通搜索
         const toast = await this.toastCtrl.create({
           message: 'AI 搜索暂不可用，使用普通搜索结果',
           duration: 1500,
           position: 'bottom',
         });
         await toast.present();
-        this.onSearch();
+        this.router.navigate(['/tabs/tab2'], {
+          queryParams: { search: kw },
+        });
       }
     } catch {
       const toast = await this.toastCtrl.create({
@@ -109,7 +150,9 @@ export class SearchPage implements OnInit {
         position: 'bottom',
       });
       await toast.present();
-      this.onSearch();
+      this.router.navigate(['/tabs/tab2'], {
+        queryParams: { search: kw },
+      });
     } finally {
       this.aiSearching = false;
     }
