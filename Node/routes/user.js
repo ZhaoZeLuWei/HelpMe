@@ -8,12 +8,12 @@ const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 const {
   moderateContent,
   moderateContents,
-} = require("../services/contentModeration.js");
+} = require("../Services/contentModeration.js");
 const {
   sendVerifyCode,
   verifyCode: verifySmsCode,
-} = require("../services/smsService.js");
-const { verifyCaptcha } = require("../services/captchaService.js");
+} = require("../Services/smsService.js");
+const { verifyCaptcha } = require("../Services/captchaService.js");
 
 const router = express.Router();
 

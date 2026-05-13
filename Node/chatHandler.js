@@ -3,7 +3,7 @@ const pool = require("./help_me_db.js");
 const Room = require("./models/Room");
 const Message = require("./models/Message");
 const { getIO } = require("./socketInstance.js");
-const { moderateContent } = require("./services/contentModeration.js");
+const { moderateContent } = require("./Services/contentModeration.js");
 //socket.emit 个人错误提示
 //io.to(room).emit 指定房间包含自己，对话转发
 //socket.io(roon).emit “谁加入了房间”，这个东西自己看不到

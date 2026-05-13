@@ -7,7 +7,7 @@ const { sendSystemMessage } = require("../chatHandler.js");
 const {
   moderateContent,
   moderateContents,
-} = require("../services/contentModeration.js");
+} = require("../Services/contentModeration.js");
 const router = express.Router();
 
 function normalizeLocationPlaceId(value) {

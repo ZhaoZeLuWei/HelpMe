@@ -585,10 +585,41 @@ router.get("/sensitive/:filename", authRequired, async (req, res) => {
           .json({ success: false, error: "无权访问此文件" });
       }
 
+      const parseSensitivePhotoPaths = (value) => {
+        if (!value) {
+          return [];
+        }
+
+        if (Array.isArray(value)) {
+          return value.filter((item) => typeof item === "string");
+        }
+
+        if (typeof value === "string") {
+          const trimmedValue = value.trim();
+          if (!trimmedValue) {
+            return [];
+          }
+
+          try {
+            const parsed = JSON.parse(trimmedValue);
+            if (Array.isArray(parsed)) {
+              return parsed.filter((item) => typeof item === "string");
+            }
+            if (typeof parsed === "string") {
+              return [parsed];
+            }
+          } catch (err) {
+            return [trimmedValue];
+          }
+        }
+
+        return [];
+      };
+
       const verification = rows[0];
       const allowedFiles = [
-        ...JSON.parse(verification.IdCardPhoto || "[]"),
-        ...JSON.parse(verification.ProfessionPhoto || "[]"),
+        ...parseSensitivePhotoPaths(verification.IdCardPhoto),
+        ...parseSensitivePhotoPaths(verification.ProfessionPhoto),
       ];
 
       const requestedPath = `/sensitive/${filename}`;

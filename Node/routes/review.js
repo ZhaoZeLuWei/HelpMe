@@ -3,7 +3,7 @@ const pool = require("../help_me_db.js");
 const { authRequired, adminRequired } = require("./auth.js");
 const { sendOrderSystemMessage } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
-const { moderateContent } = require("../services/contentModeration.js");
+const { moderateContent } = require("../Services/contentModeration.js");
 
 const router = express.Router();
 

@@ -10,7 +10,7 @@ const Room = require("../models/Room.js");
 const {
   moderateContent,
   moderateContents,
-} = require("../services/contentModeration.js");
+} = require("../Services/contentModeration.js");
 
 const router = express.Router();
 
