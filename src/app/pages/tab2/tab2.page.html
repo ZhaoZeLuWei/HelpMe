@@ -18,6 +18,19 @@
 
 
 
+  <!-- AI 推荐区域（仅 AI 搜索时显示） -->
+  @if (aiResults()) {
+    <div class="ai-recommendation">
+      <div class="ai-header">
+        <ion-icon name="sparkles-outline" color="primary"></ion-icon>
+        <span>AI 智能推荐</span>
+      </div>
+      <div class="ai-content">
+        <p>{{ aiResults()?.recommendation }}</p>
+      </div>
+    </div>
+  }
+
   <!-- 调用搜索组件，用于显示搜索结果 -->
   <app-universal-search [dataSource]="eventsData()" [detailRoute]="'/tabs/tab2/detail'" (typeChange)="onTypeChange($event)">
 

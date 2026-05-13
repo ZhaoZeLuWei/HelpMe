@@ -12,6 +12,7 @@ import {
   IonToolbar,
   IonContent,
   IonSearchbar,
+  IonIcon,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -24,8 +25,10 @@ import {
 
 // 引入展示组件
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
-import { SearchStateService } from '../../services/search-state.service';
+import { SearchStateService, AiSearchResults } from '../../services/search-state.service';
 import { LanguageService } from '../../services/language.service';
+import { addIcons } from 'ionicons';
+import { sparklesOutline } from 'ionicons/icons';
 import { getUserPosition, calculateDistance, formatDistance, resolveAddress, isOnlineService } from '../../components/show-event/show-event.component';
 
 @Component({
@@ -39,6 +42,7 @@ import { getUserPosition, calculateDistance, formatDistance, resolveAddress, isO
     IonToolbar,
     IonContent,
     IonSearchbar,
+    IonIcon,
     UniversalSearchComponent,
     ShowEventComponent,
   ],
@@ -59,8 +63,15 @@ export class Tab2Page implements OnInit, AfterViewInit {
   // 分类参数
   currentType: string | null = null;
 
+  // AI 搜索结果
+  aiResults = this.searchState.aiResults;
+
   // 拿到搜索框实例
   @ViewChild('searchBar') searchBar!: IonSearchbar;
+
+  constructor() {
+    addIcons({ sparklesOutline });
+  }
 
   ngOnInit() {
     // 监听语言变化

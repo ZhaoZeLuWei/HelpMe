@@ -6,8 +6,9 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';  // 添加这行
-import { SearchStateService } from '../../services/search-state.service'; // 根据实际路径调整
-import { HttpClientModule } from '@angular/common/http'; // ← 新增
+import { SearchStateService } from '../../services/search-state.service';
+import { AiService } from '../../services/ai.service';
+import { HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-search',
@@ -27,6 +28,7 @@ import { HttpClientModule } from '@angular/common/http'; // ← 新增
 })
 export class SearchPage implements OnInit {
   private searchState = inject(SearchStateService);
+  private aiService = inject(AiService);
   private router = inject(Router);
   private http = inject(HttpClient);
   private location = inject(Location);
@@ -56,8 +58,31 @@ export class SearchPage implements OnInit {
     }
   }
 
-  aiSearch() {
-    console.log('AI辅助搜索功能暂未开发');
-    // 为后续功能开发预留接口
+  async aiSearch() {
+    const kw = this.keyword.trim();
+    if (!kw) {
+      return;
+    }
+
+    // 调用 AI 增强搜索
+    const result = await this.aiService.enhanceSearch(kw);
+
+    if (result) {
+      // 存储 AI 结果到共享状态
+      this.searchState.setAiResults({
+        keyword: kw,
+        recommendation: result.recommendation,
+        matchedEvents: result.matchedEvents,
+        matchedProviders: result.matchedProviders,
+      });
+
+      // 导航到 Tab2，带 AI 标记
+      this.router.navigate(['/tabs/tab2'], {
+        queryParams: { search: kw, ai: '1' },
+      });
+    } else {
+      // AI 搜索失败，回退到普通搜索
+      this.onSearch();
+    }
   }
 }
