@@ -119,7 +119,6 @@
   border-radius: 12px;
   margin: 12px 16px;
   border: 1px solid rgba(15, 118, 110, 0.15);
-  overflow: hidden;
 }
 
 .ai-header {
@@ -148,6 +147,7 @@
   background: rgba(15, 118, 110, 0.08);
   padding: 2px 10px;
   border-radius: 20px;
+  flex-shrink: 0;
 }
 
 .ai-keyword {
@@ -171,6 +171,8 @@
   line-height: 1.7;
   color: var(--ion-text-color);
   white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .category-row {
@@ -180,9 +182,6 @@
   ion-col {
     padding: 0 5px;
   }
-}
-:host ::ng-deep app-universal-search {
-  margin-top: -16px;
 }
 /* 复用 tab1 搜索条外观 */
 .header-search-wrapper {
