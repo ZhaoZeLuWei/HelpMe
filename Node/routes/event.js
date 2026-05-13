@@ -53,9 +53,9 @@ router.get("/api/cards", async (req, res) => {
     const { search } = req.query;
     if (search) {
       sqlWhere += sqlWhere ? " AND" : " WHERE";
-      sqlWhere += " (e.EventDetails LIKE ? OR e.EventTitle LIKE ?)";
+      sqlWhere += " (e.EventDetails LIKE ? OR e.EventTitle LIKE ? OR e.EventId IN (SELECT EventId FROM EventTags WHERE Tag LIKE ?))";
       const searchPattern = `%${search}%`;
-      sqlParams.push(searchPattern, searchPattern);
+      sqlParams.push(searchPattern, searchPattern, searchPattern);
     }
 
     const [rows] = await pool.query(
@@ -70,12 +70,17 @@ router.get("/api/cards", async (req, res) => {
         e.EventTitle AS title,
         e.EventDetails AS demand,
         e.Price AS price,
-        e.CreateTime   AS createTime,   -- 新增
+        e.CreateTime   AS createTime,
         u.UserName AS name,
         u.UserAvatar AS avatar,
-        e.CreatorId AS creatorId   -- 新增
+        e.CreatorId AS creatorId,
+        et.TagList AS tags
       FROM Events e
       JOIN Users u ON e.CreatorId = u.UserId
+      LEFT JOIN (
+        SELECT EventId, GROUP_CONCAT(Tag SEPARATOR ',') AS TagList
+        FROM EventTags GROUP BY EventId
+      ) et ON e.EventId = et.EventId
       ${sqlWhere}
       `,
       sqlParams,
@@ -107,6 +112,7 @@ router.get("/api/cards", async (req, res) => {
         avatar: item.avatar,
         creatorId: item.creatorId,
         title: item.title,
+        tags: item.tags || "",
         icon: "navigate-outline",
         distance: "距500m",
       };
@@ -217,6 +223,16 @@ router.post(
     const photosJson =
       photoPaths.length > 0 ? JSON.stringify(photoPaths) : null;
 
+    // 解析 Tags（来自 AI 辅助功能）
+    let tagsArray = [];
+    if (req.body.Tags) {
+      try {
+        tagsArray = JSON.parse(req.body.Tags);
+      } catch {
+        tagsArray = String(req.body.Tags).split(",").map((t) => t.trim()).filter(Boolean);
+      }
+    }
+
     // 数据库操作（带事务）
 
     let conn;
@@ -265,6 +281,13 @@ router.post(
       );
 
       await conn.commit();
+
+      // 存储 AI 标签
+      if (tagsArray.length > 0) {
+        const tagSql = "INSERT INTO EventTags (EventId, Tag) VALUES ?";
+        const tagValues = tagsArray.map((tag) => [result.insertId, tag]);
+        await conn.query(tagSql, [tagValues]);
+      }
 
       await sendSystemMessage({
         roomId: `system_${creatorId}`,

@@ -66,9 +66,8 @@ export class Tab2Page implements OnInit, AfterViewInit {
   // AI 搜索模式标记
   isAiMode = false;
 
-  // AI 推荐数据（快照，不依赖信号响应）
-  aiRecommendation: string | null = null;
-  aiKeyword: string | null = null;
+  // AI 搜索结果
+  aiResults = this.searchState.aiResults;
 
   // 拿到搜索框实例
   @ViewChild('searchBar') searchBar!: IonSearchbar;
@@ -83,35 +82,27 @@ export class Tab2Page implements OnInit, AfterViewInit {
       this.t = this.langService.getTranslations(lang).tab2;
     });
 
+    // 统一订阅：关键词变化 or 聚焦标志变化都走这里
+    // 接收路由参数
     this.route.queryParams.subscribe((params) => {
       this.currentType = params['type'] || null;
+      const keyword = params['search'] || '';
 
-      if (params['ai'] === '1') {
-        // AI 模式：从服务快照数据
-        this.isAiMode = true;
-        const aiData = this.searchState.aiResults();
-        if (aiData) {
-          this.aiRecommendation = aiData.recommendation;
-          this.aiKeyword = aiData.keyword;
-        }
-        this.loadEvents();
-      } else {
-        // 非 AI 模式：普通搜索
-        this.isAiMode = false;
-        this.aiRecommendation = null;
-        this.aiKeyword = null;
-        const keyword = params['search'] || '';
-        const currentKeyword = this.route.snapshot.queryParams['search'] || '';
-        if (keyword !== currentKeyword || !this.eventsData().length) {
-          this.loadEvents(keyword);
-        }
+      // 只在第一次或者关键词变化时加载数据
+      const currentKeyword = this.route.snapshot.queryParams['search'] || '';
+      if (keyword !== currentKeyword || !this.eventsData().length) {
+        this.loadEvents(keyword);
       }
 
+      // 聚焦逻辑（可选）
       if (params['focusSearch']) {
         setTimeout(() => this.searchBar?.setFocus(), 300);
       }
     });
 
+    // 🔽 页⾯初始化后清除 URL 中的 search 参数，使刷新后从头开始
+    // ngOnInit 只会在组件创建时执⾏⼀次（即刷新⻚⾯），
+    // 从搜索⻚导航回来时组件已存在，不会执⾏这⾥
     if (this.route.snapshot.queryParams['search']) {
       this.router.navigate([], {
         relativeTo: this.route,
@@ -122,11 +113,9 @@ export class Tab2Page implements OnInit, AfterViewInit {
     }
   }
 
-  // 每次重新进入页面时刷新数据
+  // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
   ionViewWillEnter() {
-    if (!this.isAiMode) {
-      this.loadEvents();
-    }
+    this.loadEvents();
   }
   filterByType(type: 'request' | 'help' | null) {
     if (this.currentType === type) {
@@ -160,11 +149,12 @@ export class Tab2Page implements OnInit, AfterViewInit {
   /* 统一加载：根据关键词和分类决定接口 */
   private async loadEvents(keyword?: string) {
     const currentParams = this.route.snapshot.queryParams;
+    const isAiSearch = currentParams['ai'] === '1';
     const realType = this.currentType || currentParams['type'] || null;
 
     // AI 搜索模式：使用 AI 匹配到的事件
-    if (this.isAiMode) {
-      const aiData = this.searchState.aiResults();
+    if (isAiSearch) {
+      const aiData = this.aiResults();
       if (aiData?.matchedEvents?.length) {
         let matched = aiData.matchedEvents;
         // 按类型过滤（如果 URL 指定了 type）

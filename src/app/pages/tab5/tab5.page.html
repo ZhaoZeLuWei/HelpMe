@@ -32,10 +32,7 @@
       </div>
     </div>
 
-    <div
-      class="action-card identity-card"
-      (click)="navigateToIdentitySelection()"
-    >
+    <div class="action-card identity-card" (click)="navigateToIdentitySelection()">
       <div class="icon-bubble">
         <ion-icon name="shield-checkmark-outline"></ion-icon>
       </div>
@@ -49,10 +46,7 @@
   </div>
 
   <!-- 求助发布弹窗 -->
-  <ion-modal
-    [isOpen]="showRequestModal"
-    (didDismiss)="showRequestModal = false"
-  >
+  <ion-modal [isOpen]="showRequestModal" (didDismiss)="showRequestModal = false">
     <ng-template>
       <ion-header [translucent]="true">
         <ion-toolbar>
@@ -66,108 +60,152 @@
       </ion-header>
       <ion-content class="modal-content">
         <form [formGroup]="requestForm">
-          <ion-list lines="full">
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.title }} *</ion-label>
-              <ion-input
-                formControlName="EventTitle"
-                [placeholder]="t.placeholder.reqTitle"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.category }} *</ion-label>
-              <ion-input
-                formControlName="EventCategory"
-                [placeholder]="t.placeholder.reqCat"
-              ></ion-input>
-            </ion-item>
-            <ion-item
-              button
-              detail="true"
-              (click)="openLocationPicker('request')"
-            >
-              <ion-label position="stacked">{{ t.form.location }} *</ion-label>
-              <ion-text
-                [color]="requestForm.value.Location ? 'primary' : 'medium'"
-              >
-                {{ requestForm.value.Location || t.placeholder.reqLoc }}
-              </ion-text>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.price }} (¥)</ion-label>
-              <ion-input
-                type="number"
-                step="0.01"
-                formControlName="Price"
-                [placeholder]="t.placeholder.reqPrice"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.details }} *</ion-label>
-              <ion-textarea
+          <!-- 基本信息 -->
+          <div class="form-section">
+            <p class="form-section-title">基本信息</p>
+
+            <div class="form-row">
+              <label class="form-row-label">标题 <span class="required">*</span></label>
+              <div class="form-row-content">
+                <input
+                  class="form-input"
+                  formControlName="EventTitle"
+                  [placeholder]="t.placeholder.reqTitle"
+                />
+                <button
+                  class="ai-btn"
+                  [class.generating]="isAiGenerating"
+                  (click)="aiFillForm('request')"
+                  [disabled]="isAiGenerating"
+                  type="button"
+                >
+                  <ion-icon name="sparkles-outline"></ion-icon>
+                  {{ isAiGenerating ? '填表中…' : '智能填表' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-row-label">标签 <span class="required">*</span></label>
+              <div class="form-row-content" style="flex-wrap: wrap;">
+                @if (aiTags.length > 0) {
+                  @for (tag of aiTags; track $index; let i = $index) {
+                  <span class="tag-chip" (click)="removeAiTag('request', i)">
+                    #{{ tag }}
+                    <span class="chip-close">
+                      <ion-icon name="close-circle"></ion-icon>
+                    </span>
+                  </span>
+                  }
+                } @else {
+                  <span class="tags-hint">点击「智能填表」自动生成</span>
+                }
+                <button class="add-tag-btn" type="button" (click)="addManualTag('request')">
+                  <ion-icon name="add"></ion-icon>
+                  添加
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 位置与价格 -->
+          <div class="form-section">
+            <p class="form-section-title">位置与价格</p>
+
+            <div class="form-row">
+              <label class="form-row-label">位置 <span class="required">*</span></label>
+              <div class="form-row-content">
+                <button
+                  type="button"
+                  class="location-btn"
+                  [class.has-value]="requestForm.value.Location"
+                  (click)="openLocationPicker('request')"
+                >
+                  <ion-icon name="location-outline"></ion-icon>
+                  {{ requestForm.value.Location || t.placeholder.reqLoc }}
+                </button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-row-label">价格</label>
+              <div class="form-row-content">
+                <span style="font-size:15px;color:var(--ion-color-medium);">¥</span>
+                <input
+                  class="form-input form-input-number"
+                  type="number"
+                  step="0.01"
+                  formControlName="Price"
+                  [placeholder]="t.placeholder.reqPrice"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 详细描述 -->
+          <div class="form-section">
+            <p class="form-section-title">详细描述 <span class="required" style="text-transform:none;">*</span></p>
+
+            <div style="padding: 0 16px 12px;">
+              <textarea
+                class="textarea-input"
                 formControlName="EventDetails"
-                [autoGrow]="true"
                 [placeholder]="t.placeholder.reqDetail"
-              ></ion-textarea>
-            </ion-item>
+                rows="4"
+              ></textarea>
+            </div>
+          </div>
 
-            <ion-item lines="none">
-              <ion-label position="stacked">{{ t.form.uploadPhoto }}</ion-label>
-            </ion-item>
-
-            <div
-              class="photo-upload-area"
-              (click)="triggerFileInput('request')"
-            >
-              <input
-                #requestFileInput
-                type="file"
-                accept="image/*"
-                multiple
-                (change)="onFileSelected($event, 'request')"
-                style="display: none"
-              />
-              <div class="photo-preview-container">
+          <!-- 图片 -->
+          <div class="form-section">
+            <p class="form-section-title">{{ t.form.uploadPhoto }}</p>
+            <div class="photo-section">
+              <div class="photo-grid">
                 @for (photo of requestPhotos; track $index; let i = $index) {
-                <div class="photo-preview">
+                <div class="photo-item">
                   <img [src]="photo" alt="预览" />
-                  <ion-icon
-                    name="close-circle"
-                    class="remove-photo"
-                    (click)="removePhoto(i, 'request'); $event.stopPropagation()"
-                  ></ion-icon>
-                </div>
-                } @if (requestPhotos.length === 0) {
-                <div class="upload-placeholder">
-                  <ion-icon name="image-outline"></ion-icon>
-                  <p>Click to upload</p>
-                </div>
-                } @else if (requestPhotos.length < 5) {
-                <div class="upload-placeholder">
-                  <ion-icon name="add-circle-outline"></ion-icon>
+                  <span class="photo-remove" (click)="removePhoto(i, 'request'); $event.stopPropagation()">
+                    <ion-icon name="close-circle"></ion-icon>
+                  </span>
                 </div>
                 }
+                <div class="upload-btn" (click)="triggerFileInput('request')">
+                  @if (requestPhotos.length === 0) {
+                  <ion-icon name="image-outline"></ion-icon>
+                  <span>上传图片</span>
+                  } @else if (requestPhotos.length < 5) {
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                  <span>继续添加</span>
+                  }
+                </div>
               </div>
               <ion-text color="medium" class="upload-hint">
                 <p>{{ t.form.uploadHint }}</p>
               </ion-text>
             </div>
-          </ion-list>
+          </div>
+
+          <input
+            #requestFileInput
+            type="file"
+            accept="image/*"
+            multiple
+            (change)="onFileSelected($event, 'request')"
+            style="display: none"
+          />
 
           <div class="modal-actions">
-            <ion-button
+            <button type="button" class="modal-btn modal-btn-secondary" (click)="showRequestModal = false">
+              取消
+            </button>
+            <button
               type="button"
-              fill="outline"
-              color="medium"
-              (click)="showRequestModal = false"
-              >{{ t.form.cancel }}</ion-button
-            >
-            <ion-button
-              type="button"
+              class="modal-btn modal-btn-primary"
               (click)="submitRequest()"
               [disabled]="isSubmittingRequest"
-              >{{ t.form.submitReq }}</ion-button
             >
+              {{ t.form.submitReq }}
+            </button>
           </div>
         </form>
       </ion-content>
@@ -189,101 +227,151 @@
       </ion-header>
       <ion-content class="modal-content">
         <form [formGroup]="helpForm">
-          <ion-list lines="full">
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.title }} *</ion-label>
-              <ion-input
-                formControlName="EventTitle"
-                [placeholder]="t.placeholder.helpTitle"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.category }} *</ion-label>
-              <ion-input
-                formControlName="EventCategory"
-                [placeholder]="t.placeholder.helpCat"
-              ></ion-input>
-            </ion-item>
-            <ion-item button detail="true" (click)="openLocationPicker('help')">
-              <ion-label position="stacked">{{ t.form.location }} *</ion-label>
-              <ion-text
-                [color]="helpForm.value.Location ? 'primary' : 'medium'"
-              >
-                {{ helpForm.value.Location || t.placeholder.helpLoc }}
-              </ion-text>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.price }} (¥) *</ion-label>
-              <ion-input
-                type="number"
-                step="0.01"
-                formControlName="Price"
-                [placeholder]="t.placeholder.helpPrice"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.details }} *</ion-label>
-              <ion-textarea
+          <!-- 基本信息 -->
+          <div class="form-section">
+            <p class="form-section-title">基本信息</p>
+
+            <div class="form-row">
+              <label class="form-row-label">标题 <span class="required">*</span></label>
+              <div class="form-row-content">
+                <input
+                  class="form-input"
+                  formControlName="EventTitle"
+                  [placeholder]="t.placeholder.helpTitle"
+                />
+                <button
+                  class="ai-btn"
+                  [class.generating]="isAiGenerating"
+                  (click)="aiFillForm('help')"
+                  [disabled]="isAiGenerating"
+                  type="button"
+                >
+                  <ion-icon name="sparkles-outline"></ion-icon>
+                  {{ isAiGenerating ? '填表中…' : '智能填表' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-row-label">标签 <span class="required">*</span></label>
+              <div class="form-row-content" style="flex-wrap: wrap;">
+                @if (aiTags.length > 0) {
+                  @for (tag of aiTags; track $index; let i = $index) {
+                  <span class="tag-chip" (click)="removeAiTag('help', i)">
+                    #{{ tag }}
+                    <span class="chip-close">
+                      <ion-icon name="close-circle"></ion-icon>
+                    </span>
+                  </span>
+                  }
+                } @else {
+                  <span class="tags-hint">点击「智能填表」自动生成</span>
+                }
+                <button class="add-tag-btn" type="button" (click)="addManualTag('help')">
+                  <ion-icon name="add"></ion-icon>
+                  添加
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 位置与价格 -->
+          <div class="form-section">
+            <p class="form-section-title">位置与价格</p>
+
+            <div class="form-row">
+              <label class="form-row-label">位置 <span class="required">*</span></label>
+              <div class="form-row-content">
+                <button
+                  type="button"
+                  class="location-btn"
+                  [class.has-value]="helpForm.value.Location"
+                  (click)="openLocationPicker('help')"
+                >
+                  <ion-icon name="location-outline"></ion-icon>
+                  {{ helpForm.value.Location || t.placeholder.helpLoc }}
+                </button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-row-label">价格 <span class="required">*</span></label>
+              <div class="form-row-content">
+                <span style="font-size:15px;color:var(--ion-color-medium);">¥</span>
+                <input
+                  class="form-input form-input-number"
+                  type="number"
+                  step="0.01"
+                  formControlName="Price"
+                  [placeholder]="t.placeholder.helpPrice"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 详细描述 -->
+          <div class="form-section">
+            <p class="form-section-title">详细描述 <span class="required" style="text-transform:none;">*</span></p>
+            <div style="padding: 0 16px 12px;">
+              <textarea
+                class="textarea-input"
                 formControlName="EventDetails"
-                [autoGrow]="true"
                 [placeholder]="t.placeholder.helpDetail"
-              ></ion-textarea>
-            </ion-item>
+                rows="4"
+              ></textarea>
+            </div>
+          </div>
 
-            <ion-item lines="none">
-              <ion-label position="stacked">{{ t.form.uploadPhoto }}</ion-label>
-            </ion-item>
-
-            <div class="photo-upload-area" (click)="triggerFileInput('help')">
-              <input
-                #helpFileInput
-                type="file"
-                accept="image/*"
-                multiple
-                (change)="onFileSelected($event, 'help')"
-                style="display: none"
-              />
-              <div class="photo-preview-container">
+          <!-- 图片 -->
+          <div class="form-section">
+            <p class="form-section-title">{{ t.form.uploadPhoto }}</p>
+            <div class="photo-section">
+              <div class="photo-grid">
                 @for (photo of helpPhotos; track $index; let i = $index) {
-                <div class="photo-preview">
+                <div class="photo-item">
                   <img [src]="photo" alt="预览" />
-                  <ion-icon
-                    name="close-circle"
-                    class="remove-photo"
-                    (click)="removePhoto(i, 'help'); $event.stopPropagation()"
-                  ></ion-icon>
-                </div>
-                } @if (helpPhotos.length === 0) {
-                <div class="upload-placeholder">
-                  <ion-icon name="image-outline"></ion-icon>
-                  <p>Click to upload</p>
-                </div>
-                } @else if (helpPhotos.length < 5) {
-                <div class="upload-placeholder">
-                  <ion-icon name="add-circle-outline"></ion-icon>
+                  <span class="photo-remove" (click)="removePhoto(i, 'help'); $event.stopPropagation()">
+                    <ion-icon name="close-circle"></ion-icon>
+                  </span>
                 </div>
                 }
+                <div class="upload-btn" (click)="triggerFileInput('help')">
+                  @if (helpPhotos.length === 0) {
+                  <ion-icon name="image-outline"></ion-icon>
+                  <span>上传图片</span>
+                  } @else if (helpPhotos.length < 5) {
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                  <span>继续添加</span>
+                  }
+                </div>
               </div>
               <ion-text color="medium" class="upload-hint">
                 <p>{{ t.form.uploadHint }}</p>
               </ion-text>
             </div>
-          </ion-list>
+          </div>
+
+          <input
+            #helpFileInput
+            type="file"
+            accept="image/*"
+            multiple
+            (change)="onFileSelected($event, 'help')"
+            style="display: none"
+          />
 
           <div class="modal-actions">
-            <ion-button
+            <button type="button" class="modal-btn modal-btn-secondary" (click)="showHelpModal = false">
+              取消
+            </button>
+            <button
               type="button"
-              fill="outline"
-              color="medium"
-              (click)="showHelpModal = false"
-              >{{ t.form.cancel }}</ion-button
-            >
-            <ion-button
-              type="button"
+              class="modal-btn modal-btn-primary"
               (click)="submitHelp()"
               [disabled]="isSubmittingHelp"
-              >{{ t.form.submitHelp }}</ion-button
             >
+              {{ t.form.submitHelp }}
+            </button>
           </div>
         </form>
       </ion-content>
@@ -291,10 +379,7 @@
   </ion-modal>
 
   <!-- 认证资格弹窗 -->
-  <ion-modal
-    [isOpen]="showIdentityModal"
-    (didDismiss)="showIdentityModal = false"
-  >
+  <ion-modal [isOpen]="showIdentityModal" (didDismiss)="showIdentityModal = false">
     <ng-template>
       <ion-header [translucent]="true">
         <ion-toolbar>
@@ -306,177 +391,156 @@
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
-
       <ion-content class="modal-content">
         <form [formGroup]="identityForm">
-          <ion-list lines="full">
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.realName }} *</ion-label>
-              <ion-input
-                formControlName="RealName"
-                [placeholder]="t.placeholder.realName"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.phone }} *</ion-label>
-              <ion-input
-                formControlName="PhoneNumber"
-                type="tel"
-                [readonly]="true"
-                [maxlength]="11"
-                [placeholder]="t.placeholder.phone"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.idCard }} *</ion-label>
-              <ion-input
-                formControlName="IdCardNumber"
-                [maxlength]="18"
-                [placeholder]="t.placeholder.idCard"
-              ></ion-input>
-            </ion-item>
-            <ion-item
-              button
-              detail="true"
-              (click)="openLocationPicker('identity')"
-            >
-              <ion-label position="stacked">{{ t.form.area }} *</ion-label>
-              <ion-text
-                [color]="identityForm.value.Location ? 'primary' : 'medium'"
-              >
-                {{ identityForm.value.Location || t.placeholder.area }}
-              </ion-text>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.role }} *</ion-label>
-              <ion-select
-                formControlName="ProviderRole"
-                interface="popover"
-                [placeholder]="t.form.role"
-              >
-                <ion-select-option value="1"
-                  >{{ t.authDesc.split(' ')[0] }}</ion-select-option
-                >
-                <ion-select-option value="2"
-                  >{{ t.authDesc.split(' ')[1] }}</ion-select-option
-                >
-                <ion-select-option value="3"
-                  >{{ t.authDesc.split(' ')[2] }}</ion-select-option
-                >
-              </ion-select>
-            </ion-item>
-            <ion-item>
-              <ion-label position="stacked">{{ t.form.intro }}</ion-label>
-              <ion-textarea
-                formControlName="Introduction"
-                [autoGrow]="true"
-                [placeholder]="t.placeholder.intro"
-              ></ion-textarea>
-            </ion-item>
+          <div class="form-section">
+            <p class="form-section-title">身份信息</p>
 
-            <ion-item lines="none">
-              <ion-label position="stacked"
-                >{{ t.form.uploadIdCard }} *</ion-label
-              >
-            </ion-item>
+            <div class="form-row">
+              <label class="form-row-label">{{ t.form.realName }} <span class="required">*</span></label>
+              <div class="form-row-content">
+                <input
+                  class="form-input"
+                  formControlName="RealName"
+                  [placeholder]="t.placeholder.realName"
+                />
+              </div>
+            </div>
 
-            <div class="photo-upload-area" (click)="$event.stopPropagation()">
-              <input
-                #idCardFileInput
-                type="file"
-                accept="image/*"
-                multiple
-                (change)="onFileSelected($event, 'idcard')"
-                style="display: none"
-              />
-              <div class="photo-preview-container">
+            <div class="form-row">
+              <label class="form-row-label">{{ t.form.phone }} <span class="required">*</span></label>
+              <div class="form-row-content">
+                <input
+                  class="form-input"
+                  type="tel"
+                  formControlName="PhoneNumber"
+                  [placeholder]="t.placeholder.phone"
+                  readonly
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-row-label">{{ t.form.idCard }} <span class="required">*</span></label>
+              <div class="form-row-content">
+                <input
+                  class="form-input"
+                  formControlName="IdCardNumber"
+                  [placeholder]="t.placeholder.idCard"
+                  maxlength="18"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-row-label">{{ t.form.area }} <span class="required">*</span></label>
+              <div class="form-row-content">
+                <button
+                  type="button"
+                  class="location-btn"
+                  [class.has-value]="identityForm.value.Location"
+                  (click)="openLocationPicker('identity')"
+                >
+                  <ion-icon name="location-outline"></ion-icon>
+                  {{ identityForm.value.Location || t.placeholder.area }}
+                </button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-row-label">{{ t.form.role }} <span class="required">*</span></label>
+              <div class="form-row-content">
+                <select
+                  class="form-input"
+                  formControlName="ProviderRole"
+                  style="appearance: auto;"
+                >
+                  <option value="" disabled selected>{{ t.form.role }}</option>
+                  <option value="1">{{ t.authDesc.split(' ')[0] }}</option>
+                  <option value="2">{{ t.authDesc.split(' ')[1] }}</option>
+                  <option value="3">{{ t.authDesc.split(' ')[2] }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-row-label">{{ t.form.intro }}</label>
+              <div class="form-row-content">
+                <textarea
+                  class="textarea-input"
+                  formControlName="Introduction"
+                  [placeholder]="t.placeholder.intro"
+                  rows="3"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <p class="form-section-title">{{ t.form.uploadIdCard }} <span class="required" style="text-transform:none;">*</span></p>
+            <div class="photo-section">
+              <div class="photo-grid">
                 @for (photo of idCardPhotos; track $index; let i = $index) {
-                <div class="photo-preview">
-                  <img [src]="photo" alt="预览" />
-                  <ion-icon
-                    name="close-circle"
-                    class="remove-photo"
-                    (click)="removePhoto(i, 'idcard'); $event.stopPropagation()"
-                  ></ion-icon>
-                </div>
-                } @if (idCardPhotos.length === 0) {
-                <div
-                  class="upload-placeholder"
-                  (click)="triggerFileInput('idcard')"
-                >
-                  <ion-icon name="image-outline"></ion-icon>
-                  <p>Click to upload ID</p>
-                </div>
-                } @else if (idCardPhotos.length < IDCARD_MAX) {
-                <div
-                  class="upload-placeholder"
-                  (click)="triggerFileInput('idcard')"
-                >
-                  <ion-icon name="add-circle-outline"></ion-icon>
+                <div class="photo-item">
+                  <img [src]="photo" alt="身份证" />
+                  <span class="photo-remove" (click)="removePhoto(i, 'idcard'); $event.stopPropagation()">
+                    <ion-icon name="close-circle"></ion-icon>
+                  </span>
                 </div>
                 }
+                <div class="upload-btn" (click)="triggerFileInput('idcard')">
+                  @if (idCardPhotos.length === 0) {
+                  <ion-icon name="image-outline"></ion-icon>
+                  <span>上传</span>
+                  } @else if (idCardPhotos.length < IDCARD_MAX) {
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                  <span>添加</span>
+                  }
+                </div>
               </div>
             </div>
+          </div>
 
-            <ion-item lines="none">
-              <ion-label position="stacked"
-                >{{ t.form.uploadCert }} *</ion-label
-              >
-            </ion-item>
-
-            <div class="photo-upload-area" (click)="$event.stopPropagation()">
-              <input
-                #certFileInput
-                type="file"
-                accept="image/*"
-                multiple
-                (change)="onFileSelected($event, 'cert')"
-                style="display: none"
-              />
-              <div class="photo-preview-container">
+          <div class="form-section">
+            <p class="form-section-title">{{ t.form.uploadCert }} <span class="required" style="text-transform:none;">*</span></p>
+            <div class="photo-section">
+              <div class="photo-grid">
                 @for (photo of certPhotos; track $index; let i = $index) {
-                <div class="photo-preview">
-                  <img [src]="photo" alt="预览" />
-                  <ion-icon
-                    name="close-circle"
-                    class="remove-photo"
-                    (click)="removePhoto(i, 'cert'); $event.stopPropagation()"
-                  ></ion-icon>
-                </div>
-                } @if (certPhotos.length === 0) {
-                <div
-                  class="upload-placeholder"
-                  (click)="triggerFileInput('cert')"
-                >
-                  <ion-icon name="image-outline"></ion-icon>
-                  <p>Click to upload Cert</p>
-                </div>
-                } @else if (certPhotos.length < CERT_MAX) {
-                <div
-                  class="upload-placeholder"
-                  (click)="triggerFileInput('cert')"
-                >
-                  <ion-icon name="add-circle-outline"></ion-icon>
+                <div class="photo-item">
+                  <img [src]="photo" alt="证书" />
+                  <span class="photo-remove" (click)="removePhoto(i, 'cert'); $event.stopPropagation()">
+                    <ion-icon name="close-circle"></ion-icon>
+                  </span>
                 </div>
                 }
+                <div class="upload-btn" (click)="triggerFileInput('cert')">
+                  @if (certPhotos.length === 0) {
+                  <ion-icon name="image-outline"></ion-icon>
+                  <span>上传</span>
+                  } @else if (certPhotos.length < CERT_MAX) {
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                  <span>添加</span>
+                  }
+                </div>
               </div>
             </div>
-          </ion-list>
+          </div>
+
+          <input #idCardFileInput type="file" accept="image/*" multiple (change)="onFileSelected($event, 'idcard')" style="display: none" />
+          <input #certFileInput type="file" accept="image/*" multiple (change)="onFileSelected($event, 'cert')" style="display: none" />
 
           <div class="modal-actions">
-            <ion-button
+            <button type="button" class="modal-btn modal-btn-secondary" (click)="showIdentityModal = false">
+              取消
+            </button>
+            <button
               type="button"
-              fill="outline"
-              color="medium"
-              (click)="showIdentityModal = false"
-              >{{ t.form.cancel }}</ion-button
-            >
-            <ion-button
-              type="button"
+              class="modal-btn modal-btn-primary"
               (click)="submitIdentity()"
               [disabled]="isSubmittingIdentity"
-              >{{ t.form.submitAuth }}</ion-button
             >
+              {{ t.form.submitAuth }}
+            </button>
           </div>
         </form>
       </ion-content>

@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
+/* 替换内部的 ion-content（已移除嵌套的 ion-content，用普通容器替代） */
+.universal-search-wrapper {
+  display: block;
+}
+
 /* ===== 通用图标 ===== */
 .material-icons {
   display: inline-block;

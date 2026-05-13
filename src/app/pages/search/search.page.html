@@ -8,9 +8,8 @@
     (keyup.enter)="onSearch()"
   ></ion-searchbar>
 
-  <!-- 将按钮移动到搜索框下方 -->
   <div class="button-container">
-    <ion-button size="large" (click)="goBack()">
+    <ion-button size="large" fill="outline" (click)="goBack()">
       <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
       返回
     </ion-button>
@@ -18,10 +17,14 @@
       <ion-icon slot="start" name="search-outline"></ion-icon>
       搜索
     </ion-button>
-    <ion-button size="large" (click)="aiSearch()">
+    <ion-button
+      size="large"
+      color="tertiary"
+      (click)="aiSearch()"
+      [disabled]="aiSearching"
+    >
       <ion-icon slot="start" name="sparkles-outline"></ion-icon>
-      AI辅助
+      {{ aiSearching ? '搜索中...' : 'AI辅助' }}
     </ion-button>
   </div>
 </ion-content>
-

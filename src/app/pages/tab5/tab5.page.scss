@@ -3,19 +3,15 @@
   display: block;
 }
 
+/* ========================================
+   主页面：选择卡片
+   ======================================== */
 .hero {
   text-align: center;
   margin: 24px 0 20px;
   font-size: 30px;
   font-weight: 800;
-  color: var(--ion-color-text);
-}
-
-.headline {
-  margin: 4px 0;
-  font-size: 30px;
-  font-weight: 800;
-  color: var(--ion-color-text);
+  color: var(--ion-text-color);
 }
 
 .cards {
@@ -28,14 +24,12 @@
 .action-card {
   display: flex;
   align-items: center;
-  border-radius: var(--card-radius);
-  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08);
-  padding: 14px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  padding: 18px 16px;
   cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
-  position: relative;
+  transition: all 0.2s ease;
+  border: 1px solid var(--ion-background-color-step-150);
 }
 
 .action-card:hover {
@@ -44,55 +38,46 @@
 }
 
 .request-card {
-  background: var(--ion-color-step-50, #fff7ed);
-  --card-bg: var(--ion-card-background, var(--ion-background-color));
-  border: 1px solid rgba(var(--ion-color-primary-rgb, 59, 130, 246), 0.1);
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
 }
 
 .help-card {
-  background: var(--ion-color-step-50, #ecfeff);
-  --card-bg: var(--ion-card-background, var(--ion-background-color));
-  border: 1px solid rgba(var(--ion-color-primary-rgb, 59, 130, 246), 0.1);
+  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
 }
 
 .identity-card {
-  background: var(--ion-color-step-50, #f8fafc);
-  --card-bg: var(--ion-card-background, var(--ion-background-color));
-  border: 1px solid rgba(var(--ion-color-primary-rgb, 59, 130, 246), 0.1);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .icon-bubble {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 14px;
-  font-size: 28px;
+  font-size: 26px;
   flex-shrink: 0;
 }
 
 .request-card .icon-bubble {
-  background: rgba(234, 88, 12, 0.15);
-  color: var(--ion-color-warning, #ea580c);
+  background: rgba(234, 88, 12, 0.12);
+  color: #ea580c;
 }
 
 .help-card .icon-bubble {
-  background: rgba(2, 132, 199, 0.15);
-  color: var(--ion-color-primary, #0284c7);
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
 }
 
 .identity-card .icon-bubble {
-  background: rgba(29, 78, 216, 0.15);
-  color: var(--ion-color-primary, #1d4ed8);
+  background: rgba(29, 78, 216, 0.12);
+  color: #1d4ed8;
 }
 
 .card-copy {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
 .title-line {
@@ -104,26 +89,407 @@
 .tag {
   font-size: 18px;
   font-weight: 700;
-  color: var(--ion-color-text);
+  color: var(--ion-text-color);
 }
 
 .desc {
-  margin: 0;
+  margin: 4px 0 0;
   font-size: 14px;
+  color: var(--ion-color-medium);
+  line-height: 1.4;
+}
+
+/* ========================================
+   弹窗表单
+   ======================================== */
+.modal-content {
+  --background: var(--ion-background-color);
+  padding: 4px 16px 20px;
+}
+
+/* 表单分区卡片 */
+.form-section {
+  background: var(--ion-card-background, var(--ion-background-color));
+  border-radius: 12px;
+  border: 1px solid var(--ion-background-color-step-150);
+  margin: 12px 0;
+  padding: 4px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.form-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  padding: 12px 16px 4px;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 表单行 */
+.form-row {
+  display: flex;
+  align-items: center;
+  padding: 2px 16px;
+  min-height: 52px;
+  gap: 8px;
+}
+
+.form-row-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.form-row-label .required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.form-row-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+
+/* 输入框 */
+.form-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--ion-text-color);
+  outline: none;
+  padding: 8px 0;
+  font-family: inherit;
+  width: 100%;
+}
+
+.form-input::placeholder {
   color: var(--ion-color-medium);
 }
 
-ion-content.publish-guide {
-  --background: var(--ion-background-color);
+.form-input-number {
+  text-align: right;
+  max-width: 120px;
 }
 
+/* 位置选择器按钮 */
+.location-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  cursor: pointer;
+  flex: 1;
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-family: inherit;
+  text-align: left;
+  color: var(--ion-color-medium);
+}
+
+.location-btn.has-value {
+  color: var(--ion-text-color);
+}
+
+.location-btn ion-icon {
+  font-size: 18px;
+  color: var(--ion-color-medium);
+  flex-shrink: 0;
+}
+
+/* 描述输入框 */
+.textarea-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--ion-text-color);
+  outline: none;
+  padding: 8px 0;
+  font-family: inherit;
+  width: 100%;
+  resize: none;
+  min-height: 80px;
+  line-height: 1.5;
+}
+
+.textarea-input::placeholder {
+  color: var(--ion-color-medium);
+}
+
+/* AI 智能填表按钮 */
+.ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid #0f766e;
+  background: transparent;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.ai-btn:hover {
+  background: #0f766e;
+  color: #fff;
+}
+
+.ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-btn ion-icon {
+  font-size: 14px;
+}
+
+/* AI 生成中状态 */
+.ai-btn.generating {
+  background: #0f766e;
+  color: #fff;
+  opacity: 0.8;
+}
+
+/* 标签区域 */
+.tags-section {
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tags-hint {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #0f766e;
+  background: rgba(15, 118, 110, 0.06);
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tag-chip:hover {
+  background: rgba(15, 118, 110, 0.12);
+}
+
+.tag-chip .chip-close {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  color: #0f766e;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.tag-chip:hover .chip-close {
+  opacity: 1;
+}
+
+.add-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px dashed var(--ion-color-medium);
+  background: transparent;
+  color: var(--ion-color-medium);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.add-tag-btn:hover {
+  border-color: #0f766e;
+  color: #0f766e;
+}
+
+.add-tag-btn ion-icon {
+  font-size: 14px;
+}
+
+/* 图片上传区域 */
+.photo-section {
+  padding: 4px 16px 12px;
+}
+
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.photo-item {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--ion-background-color-step-200);
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.upload-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 8px;
+  border: 2px dashed var(--ion-background-color-step-300);
+  background: transparent;
+  color: var(--ion-color-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  gap: 4px;
+}
+
+.upload-btn:hover {
+  border-color: #0f766e;
+  color: #0f766e;
+  background: rgba(15, 118, 110, 0.04);
+}
+
+.upload-btn ion-icon {
+  font-size: 22px;
+}
+
+.upload-btn span {
+  font-size: 11px;
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin-top: 8px;
+  display: block;
+}
+
+/* 底部按钮 */
+.modal-actions {
+  display: flex;
+  padding: 8px 0 4px;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-family: inherit;
+  min-width: 100px;
+  text-align: center;
+}
+
+.modal-btn-secondary {
+  background: var(--ion-background-color-step-100);
+  color: var(--ion-text-color);
+}
+
+.modal-btn-secondary:hover {
+  background: var(--ion-background-color-step-200);
+}
+
+.modal-btn-primary {
+  background: #0f766e;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(15, 118, 110, 0.25);
+}
+
+.modal-btn-primary:hover {
+  background: #115e59;
+  transform: translateY(-1px);
+}
+
+.modal-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 520px) {
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+  .modal-btn {
+    width: 100%;
+  }
+}
+
+/* 暗色模式适配 */
 @media (prefers-color-scheme: dark) {
   .action-card,
   .request-card,
   .help-card,
   .identity-card {
-    background: var(--ion-color-step-80, #1e293b);
     border-color: rgba(96, 165, 250, 0.2);
+  }
+
+  .request-card {
+    background: linear-gradient(135deg, rgba(234, 88, 12, 0.1), rgba(234, 88, 12, 0.05));
+  }
+
+  .help-card {
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.1), rgba(2, 132, 199, 0.05));
+  }
+
+  .identity-card {
+    background: linear-gradient(135deg, rgba(29, 78, 216, 0.08), rgba(29, 78, 216, 0.03));
   }
 
   .tag {
@@ -134,187 +500,11 @@ ion-content.publish-guide {
     color: #94a3b8;
   }
 
-  .request-card .icon-bubble {
-    background: rgba(234, 88, 12, 0.25);
+  .form-section {
+    background: var(--ion-card-background, #1e293b);
   }
 
-  .help-card .icon-bubble {
-    background: rgba(2, 132, 199, 0.25);
+  .tag-chip {
+    border-color: rgba(15, 118, 110, 0.5);
   }
-
-  .identity-card .icon-bubble {
-    background: rgba(29, 78, 216, 0.25);
-  }
-}
-
-.close-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 24px;
-  gap: 10px;
-  padding: 0 12px;
-}
-
-.close-btn {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  border: none;
-  background: var(--ion-color-primary, #111827);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.16);
-  transition:
-    transform 0.35s ease,
-    background 0.2s ease;
-  cursor: pointer;
-}
-
-.close-btn:active {
-  transform: scale(0.95);
-}
-
-.close-hint {
-  font-size: 13px;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.modal-content {
-  --background: var(--ion-background-color);
-  padding: 12px 16px 24px;
-  display: block;
-}
-
-.modal-actions {
-  display: flex;
-  padding: 12px 16px 20px;
-  gap: 12px;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.modal-actions ion-button {
-  min-width: 110px;
-}
-
-@media (max-width: 520px) {
-  .modal-actions {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
-  .modal-actions ion-button {
-    width: 100%;
-  }
-}
-
-.photo-upload-area {
-  padding: 0 16px 16px;
-}
-
-.upload-hint {
-  font-size: 12px;
-  margin-top: 8px;
-  display: block;
-}
-
-.photo-preview-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.photo-preview {
-  position: relative;
-  width: 96px;
-  height: 96px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--ion-color-step-200, #e5e7eb);
-}
-
-.photo-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.remove-photo {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--ion-background-color, white);
-  border-radius: 50%;
-  font-size: 16px;
-  color: var(--ion-color-danger, #ef4444);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  cursor: pointer;
-}
-
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 80px;
-  height: 80px;
-  border: 2px dashed var(--ion-color-step-400, #9ca3af);
-  border-radius: 8px;
-  color: var(--ion-color-medium);
-}
-
-.upload-placeholder ion-icon {
-  font-size: 24px;
-  margin-bottom: 4px;
-}
-
-@media (max-width: 420px) {
-  .headline {
-    font-size: 26px;
-  }
-
-  .icon-bubble {
-    width: 56px;
-    height: 56px;
-    font-size: 24px;
-  }
-
-  .tag {
-    font-size: 16px;
-  }
-
-  .photo-preview,
-  .upload-placeholder {
-    width: 76px;
-    height: 76px;
-  }
-}
-
-/* Form input improvements */
-.modal-content ion-list {
-  padding: 0;
-}
-.modal-content ion-item {
-  --border-radius: 8px;
-  margin-bottom: 8px;
-  --padding-start: 12px;
-  --padding-end: 12px;
-}
-.modal-content ion-label[position="stacked"] {
-  margin-bottom: 6px;
-  font-weight: 600;
-}
-.upload-hint {
-  display: block;
-  margin-left: 4px;
 }

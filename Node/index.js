@@ -45,6 +45,7 @@ const chatRoutes = require("./routes/chat.js");
 const locationRoutes = require("./routes/location.js");
 const translationRoutes = require("./routes/translation.js");
 const configRoutes = require("./routes/config.js");
+const aiRoutes = require("./routes/ai.js");
 
 //use all routes here 这里使用路由，定义URL路径
 const app = express();
@@ -62,6 +63,7 @@ app.use(chatRoutes);
 app.use(locationRoutes);
 app.use(translationRoutes);
 app.use(configRoutes);
+app.use(aiRoutes);
 
 // JWT secret（必须从环境变量读取）
 const JWT_SECRET = process.env.JWT_SECRET;
