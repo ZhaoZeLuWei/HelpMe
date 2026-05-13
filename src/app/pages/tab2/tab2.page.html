@@ -1,6 +1,5 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <!-- 搜索条：在头部显示，点击跳转到搜索页面 -->
     <div class="header-search-wrapper" (click)="navigateToSearch()">
       <ion-searchbar
         class="header-search-bar"
@@ -15,20 +14,29 @@
 
 <ion-content [fullscreen]="true">
 
-
-
+  <!-- AI 智能推荐区域 -->
+  @if (aiRecommendation) {
+    <div class="ai-recommendation">
+      <div class="ai-header">
+        <div class="ai-header-left">
+          <ion-icon name="sparkles-outline" color="primary"></ion-icon>
+          <span>AI 智能推荐</span>
+        </div>
+        <span class="ai-header-count">共 {{ eventsData().length }} 条结果</span>
+      </div>
+      <div class="ai-keyword">
+        搜索分析：<span class="ai-keyword-tag">{{ aiKeyword }}</span>
+      </div>
+      <div class="ai-content">
+        {{ aiRecommendation }}
+      </div>
+    </div>
+  }
 
   <!-- 调用搜索组件，用于显示搜索结果 -->
   <app-universal-search [dataSource]="eventsData()" [detailRoute]="'/tabs/tab2/detail'" (typeChange)="onTypeChange($event)">
 
-    <!--
-      【关键点】必须把自定义的组件写在 <ng-template> 里面
-      #cardTemplate: 模板标识符
-      let-event="event": 定义变量 event，接收搜索组件传来的数据
-      let-onClick="onItemClick": 定义变量 onClick，接收搜索组件传来的点击方法
-    -->
     <ng-template #cardTemplate let-event="event" let-onClick="onItemClick">
-
 
       <app-show-event
         [event]="event"

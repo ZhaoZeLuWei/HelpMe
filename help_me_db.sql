@@ -66,7 +66,7 @@ CREATE TABLE Events (
   LocationLng    DECIMAL(10,7)  NULL,
   LocationLat    DECIMAL(10,7)  NULL,
   Price          DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
-  EventDetails   VARCHAR(255)   NOT NULL,
+  EventDetails   TEXT           NOT NULL,
   CreateTime     TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   KEY idx_events_creator (CreatorId),
@@ -74,6 +74,18 @@ CREATE TABLE Events (
   CONSTRAINT fk_events_creator
     FOREIGN KEY (CreatorId) REFERENCES Users(UserId)
     ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =========================
+-- 事件标签表（AI 辅助功能）
+-- =========================
+CREATE TABLE IF NOT EXISTS EventTags (
+  EventTagId  INT(10) AUTO_INCREMENT PRIMARY KEY,
+  EventId     INT(10)      NOT NULL,
+  Tag         VARCHAR(50)  NOT NULL,
+  KEY idx_eventtags_event (EventId),
+  KEY idx_eventtags_tag (Tag),
+  CONSTRAINT fk_eventtags_event FOREIGN KEY (EventId) REFERENCES Events(EventId) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE Verifications (

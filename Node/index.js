@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const corsMiddleware = require("./routes/cors.js");
@@ -21,6 +23,7 @@ const favoriteRoutes = require("./routes/favorite.js");
 const chatRoutes = require("./routes/chat.js");
 const locationRoutes = require("./routes/location.js");
 const translationRoutes = require("./routes/translation.js");
+const aiRoutes = require("./routes/ai.js");
 
 //use all routes here 这里使用路由，定义URL路径
 const app = express();
@@ -37,6 +40,7 @@ app.use(favoriteRoutes);
 app.use(chatRoutes);
 app.use(locationRoutes);
 app.use(translationRoutes);
+app.use(aiRoutes);
 
 // JWT secret (建议在生产环境通过 .env 配置)
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";

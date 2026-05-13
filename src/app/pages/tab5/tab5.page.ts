@@ -14,38 +14,35 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { NavController, ToastController } from '@ionic/angular';
+import { NavController, ToastController, AlertController } from '@ionic/angular';
 import {
   IonButton,
   IonButtons,
   IonContent,
   IonHeader,
   IonIcon,
-  IonInput,
-  IonItem,
-  IonLabel,
-  IonList,
   IonModal,
   IonText,
-  IonTextarea,
   IonTitle,
   IonToolbar,
-  IonSelect,
-  IonSelectOption,
   ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
+  add,
   addCircleOutline,
   close,
   closeCircle,
   handLeftOutline,
   heartOutline,
   imageOutline,
+  locationOutline,
   shieldCheckmarkOutline,
+  sparklesOutline,
 } from 'ionicons/icons';
 
 import { AuthService } from '../../services/auth.service';
+import { AiService } from '../../services/ai.service';
 import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
 import {
@@ -71,13 +68,6 @@ import type { Subscription } from 'rxjs';
     IonIcon,
     IonText,
     IonModal,
-    IonList,
-    IonItem,
-    IonLabel,
-    IonInput,
-    IonTextarea,
-    IonSelect,
-    IonSelectOption,
   ],
 })
 export class Tab5Page implements OnInit, OnDestroy {
@@ -108,6 +98,10 @@ export class Tab5Page implements OnInit, OnDestroy {
   isSubmittingHelp = false;
   isSubmittingIdentity = false;
 
+  // ---- AI 辅助状态 ----
+  isAiGenerating = false;
+  aiTags: string[] = [];
+
   @ViewChild('requestFileInput')
   requestFileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('helpFileInput') helpFileInput!: ElementRef<HTMLInputElement>;
@@ -124,7 +118,9 @@ export class Tab5Page implements OnInit, OnDestroy {
   private navCtrl = inject(NavController);
   private modalCtrl = inject(ModalController);
   private toastCtrl = inject(ToastController);
+  private alertCtrl = inject(AlertController);
   private auth = inject(AuthService);
+  private aiService = inject(AiService);
   private langService = inject(LanguageService);
   private langSub: Subscription | null = null;
 
@@ -133,13 +129,16 @@ export class Tab5Page implements OnInit, OnDestroy {
 
   constructor() {
     addIcons({
+      add,
       close,
+      locationOutline,
       handLeftOutline,
       heartOutline,
       shieldCheckmarkOutline,
       imageOutline,
       addCircleOutline,
       closeCircle,
+      sparklesOutline,
     });
 
     //监听语言变化
@@ -161,7 +160,7 @@ export class Tab5Page implements OnInit, OnDestroy {
     this.requestForm = this.fb.group({
       EventTitle: ['', Validators.required],
       EventType: [0],
-      EventCategory: ['', Validators.required],
+      EventCategory: [''],
       Location: ['', Validators.required],
       LocationPlaceId: [''],
       LocationLng: [null],
@@ -173,7 +172,7 @@ export class Tab5Page implements OnInit, OnDestroy {
     this.helpForm = this.fb.group({
       EventTitle: ['', Validators.required],
       EventType: [1],
-      EventCategory: ['', Validators.required],
+      EventCategory: [''],
       Location: ['', Validators.required],
       LocationPlaceId: [''],
       LocationLng: [null],
@@ -256,6 +255,93 @@ export class Tab5Page implements OnInit, OnDestroy {
     await t.present();
   }
 
+  // ==================== AI 智能填表 ====================
+
+  /** 用户输关键词 → AI 自动填标题、标签、详细描述 */
+  async aiFillForm(formType: 'request' | 'help') {
+    const form = formType === 'request' ? this.requestForm : this.helpForm;
+    const input = form.get('EventTitle')?.value?.trim();
+    const existingDetails = form.get('EventDetails')?.value?.trim();
+
+    if (!input || input.length < 2) {
+      await this.toast('请先在标题中输入需求关键词（至少2个字）');
+      return;
+    }
+
+    // 如果详细描述已有内容，确认是否覆盖
+    if (existingDetails) {
+      const alert = await this.alertCtrl.create({
+        header: '确认覆盖？',
+        message: 'AI 将重新生成详细描述，覆盖已填写的内容。',
+        buttons: [
+          { text: '取消', role: 'cancel' },
+          { text: '确认覆盖', role: 'destructive' },
+        ],
+      });
+      await alert.present();
+      const { role } = await alert.onWillDismiss();
+      if (role !== 'destructive') return;
+    }
+
+    this.isAiGenerating = true;
+    try {
+      const result = await this.aiService.fillForm(input, formType);
+      if (result) {
+        this.aiTags = result.tags || [];
+        form.patchValue({
+          EventTitle: result.title,
+          EventCategory: this.aiTags.join('、'),
+          EventDetails: result.details,
+        });
+      } else {
+        await this.toast('AI 填表失败，请稍后重试');
+      }
+    } catch {
+      await this.toast('AI 填表失败，请稍后重试');
+    } finally {
+      this.isAiGenerating = false;
+    }
+  }
+
+  /** 手动添加自定义标签 */
+  async addManualTag(formType: 'request' | 'help') {
+    const alert = await this.alertCtrl.create({
+      header: '添加标签',
+      inputs: [
+        { name: 'tag', type: 'text', placeholder: '输入标签名称，如：紧急' },
+      ],
+      buttons: [
+        { text: '取消', role: 'cancel' },
+        {
+          text: '添加',
+          handler: (data) => {
+            const tag = data.tag?.trim();
+            if (!tag || tag.length < 1) {
+              this.toast('请输入标签名称');
+              return false;
+            }
+            if (tag.length > 10) {
+              this.toast('标签最多10个字');
+              return false;
+            }
+            this.aiTags.push(tag);
+            const form = formType === 'request' ? this.requestForm : this.helpForm;
+            form.patchValue({ EventCategory: this.aiTags.join('、') });
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  /** 移除某个标签，同时更新类别栏 */
+  removeAiTag(formType: 'request' | 'help', index: number) {
+    this.aiTags.splice(index, 1);
+    const form = formType === 'request' ? this.requestForm : this.helpForm;
+    form.patchValue({ EventCategory: this.aiTags.join('、') });
+  }
+
   private collectInvalidMessages(
     formType: 'request' | 'help' | 'identity',
   ): string[] {
@@ -264,7 +350,7 @@ export class Tab5Page implements OnInit, OnDestroy {
     if (formType === 'request') {
       const f = this.requestForm;
       if (f.get('EventTitle')?.invalid) msgs.push('标题必填');
-      if (f.get('EventCategory')?.invalid) msgs.push('类别必填');
+      if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim()) msgs.push('标签必填，请使用智能填表生成');
       if (f.get('Location')?.invalid) msgs.push('位置必填');
       if (f.get('EventDetails')?.invalid) msgs.push('详细描述必填');
       if (f.get('Price')?.invalid)
@@ -274,7 +360,7 @@ export class Tab5Page implements OnInit, OnDestroy {
     if (formType === 'help') {
       const f = this.helpForm;
       if (f.get('EventTitle')?.invalid) msgs.push('标题必填');
-      if (f.get('EventCategory')?.invalid) msgs.push('类别必填');
+      if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim()) msgs.push('标签必填，请使用智能填表生成');
       if (f.get('Location')?.invalid) msgs.push('服务区域必填');
       if (f.get('EventDetails')?.invalid) msgs.push('服务详情必填');
       if (f.get('Price')?.invalid)
@@ -505,7 +591,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       // JWT 化后不再传 CreatorId（后端从 token 取）
       fd.append('EventTitle', String(v.EventTitle ?? ''));
       fd.append('EventType', String(v.EventType ?? 0));
-      fd.append('EventCategory', String(v.EventCategory ?? ''));
+      fd.append('EventCategory', this.aiTags.length > 0 ? this.aiTags.join('、') : String(v.EventCategory ?? ''));
       fd.append('Location', String(v.Location ?? ''));
       this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
@@ -521,6 +607,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       for (const u of this.requestPhotos) URL.revokeObjectURL(u);
       this.requestPhotos = [];
       this.requestFiles = [];
+      this.aiTags = [];
       this.requestForm.reset({
         EventTitle: '',
         EventType: 0,
@@ -557,7 +644,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       // JWT 化后不再传 CreatorId（后端从 token 取）
       fd.append('EventTitle', String(v.EventTitle ?? ''));
       fd.append('EventType', String(v.EventType ?? 1));
-      fd.append('EventCategory', String(v.EventCategory ?? ''));
+      fd.append('EventCategory', this.aiTags.length > 0 ? this.aiTags.join('、') : String(v.EventCategory ?? ''));
       fd.append('Location', String(v.Location ?? ''));
       this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
@@ -573,6 +660,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       for (const u of this.helpPhotos) URL.revokeObjectURL(u);
       this.helpPhotos = [];
       this.helpFiles = [];
+      this.aiTags = [];
       this.helpForm.reset({
         EventTitle: '',
         EventType: 1,
