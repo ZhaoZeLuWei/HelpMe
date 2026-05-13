@@ -1,6 +1,6 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
-const { authRequired } = require("./auth.js");
+const { authRequired, adminRequired } = require("./auth.js");
 const { sendOrderSystemMessage } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
 const { moderateContent } = require("../services/contentModeration.js");
@@ -30,22 +30,26 @@ router.post("/reviews", authRequired, async (req, res) => {
   // 内容安全审核
   try {
     if (Text && String(Text).trim()) {
-      const textCheck = await moderateContent(String(Text).trim(), 'ReviewText', authorId.toString());
+      const textCheck = await moderateContent(
+        String(Text).trim(),
+        "ReviewText",
+        authorId.toString(),
+      );
       if (!textCheck.safe) {
         return res.status(400).json({
           success: false,
           error: textCheck.message,
-          code: 'CONTENT_MODERATION_FAILED'
+          code: "CONTENT_MODERATION_FAILED",
         });
       }
     }
   } catch (moderationError) {
-    console.error('内容审核异常:', moderationError);
+    console.error("内容审核异常:", moderationError);
     // 审核异常时也阻止评价，避免违规内容漏检
     return res.status(500).json({
       success: false,
-      error: '内容安全检测暂时不可用，请稍后重试',
-      code: 'CONTENT_MODERATION_ERROR'
+      error: "内容安全检测暂时不可用，请稍后重试",
+      code: "CONTENT_MODERATION_ERROR",
     });
   }
 
@@ -249,7 +253,7 @@ router.get("/reviews", async (req, res) => {
 });
 
 // 管理端评论列表
-router.get("/admin/reviews", authRequired, async (_req, res) => {
+router.get("/admin/reviews", adminRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -280,7 +284,7 @@ router.get("/admin/reviews", authRequired, async (_req, res) => {
 });
 
 // 管理端删除评价
-router.delete("/admin/reviews/:id", authRequired, async (req, res) => {
+router.delete("/admin/reviews/:id", adminRequired, async (req, res) => {
   const reviewId = Number(req.params.id);
   if (!Number.isInteger(reviewId) || reviewId <= 0) {
     return res.status(400).json({ success: false, error: "评价ID无效" });

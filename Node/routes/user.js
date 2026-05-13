@@ -2,7 +2,7 @@
 
 const express = require("express");
 const pool = require("../help_me_db.js");
-const { signToken, authRequired } = require("./auth.js");
+const { signToken, authRequired, adminRequired } = require("./auth.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 const {
   moderateContent,
@@ -11,21 +11,31 @@ const {
 
 const router = express.Router();
 
-// 管理员登录
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin123";
+// 管理员凭据（必须从环境变量读取）
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+// 检查必要环境变量是否配置
+if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
+  console.error("错误: 缺少管理员凭据环境变量 ADMIN_USERNAME / ADMIN_PASSWORD");
+}
 
 router.post("/admin/login", (req, res) => {
   const { username, password } = req.body || {};
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    const token = signToken({ UserId: 0, UserName: username });
-    return res.json({ success: true, token });
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "账号或密码错误" });
   }
-  return res.status(401).json({ error: "账号或密码错误" });
+  // 生成带 admin 角色的 token
+  const token = signToken({ UserId: 0, UserName: username }, "admin");
+  return res.json({
+    success: true,
+    token,
+    user: { id: 0, name: username, role: "admin" },
+  });
 });
 
 // 管理后台统计数据
-router.get("/admin/stats", async (_req, res) => {
+router.get("/admin/stats", adminRequired, async (_req, res) => {
   try {
     const [[{ userCount }]] = await pool.query(
       "SELECT COUNT(*) AS userCount FROM Users",
@@ -297,13 +307,14 @@ router.get("/users/:id/events", async (req, res) => {
 });
 
 // 获取用户完整资料（包含 Consumers/Providers 信息）
+// 注意：此接口为公开接口，不返回敏感信息（身份证号、手机号）
 router.get("/users/:id/profile", async (req, res) => {
   const userId = req.params.id;
   try {
     const userGeoSelect = "u.LocationPlaceId,";
 
     const [rows] = await pool.query(
-      `SELECT u.UserId, u.UserName, u.RealName, u.IdCardNumber, u.PhoneNumber, u.UserAvatar, u.Location, ${userGeoSelect} u.BirthDate, u.Introduction, u.CreateTime,
+      `SELECT u.UserId, u.UserName, u.RealName, u.UserAvatar, u.Location, ${userGeoSelect} u.BirthDate, u.Introduction, u.CreateTime,
               (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
               c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
        FROM Users u
@@ -505,7 +516,7 @@ router.get("/users/:id/comments", async (req, res) => {
 });
 
 // 管理端：获取所有用户列表（包含买家评分、服务评分、服务单数）
-router.get("/admin/users", async (req, res) => {
+router.get("/admin/users", adminRequired, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT
@@ -542,7 +553,7 @@ router.get("/admin/users", async (req, res) => {
 });
 
 // 管理端：获取用户完整信息
-router.get("/admin/users/:id", async (req, res) => {
+router.get("/admin/users/:id", adminRequired, async (req, res) => {
   const userId = req.params.id;
 
   try {
@@ -596,7 +607,7 @@ router.get("/admin/users/:id", async (req, res) => {
 });
 
 // 管理端：删除用户
-router.delete("/admin/users/:id", async (req, res) => {
+router.delete("/admin/users/:id", adminRequired, async (req, res) => {
   const userId = req.params.id;
 
   let conn;

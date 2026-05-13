@@ -2,7 +2,7 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
-const { authRequired } = require("./auth.js");
+const { authRequired, adminRequired } = require("./auth.js");
 const { sendSystemMessage } = require("../chatHandler.js");
 const {
   moderateContent,
@@ -586,7 +586,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
 });
 
 // 管理端：获取事件列表
-router.get("/admin/events", authRequired, async (_req, res) => {
+router.get("/admin/events", adminRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -615,7 +615,7 @@ router.get("/admin/events", authRequired, async (_req, res) => {
 });
 
 // 管理端：删除事件（需登录，且检查未完结订单）
-router.delete("/admin/events/:id", authRequired, async (req, res) => {
+router.delete("/admin/events/:id", adminRequired, async (req, res) => {
   const eventId = Number(req.params.id);
   if (!Number.isInteger(eventId) || eventId <= 0) {
     return res.status(400).json({ success: false, error: "无效的事件ID" });
@@ -656,7 +656,7 @@ router.delete("/admin/events/:id", authRequired, async (req, res) => {
 });
 
 // 管理端：状态统计
-router.get("/admin/events/summary", authRequired, async (_req, res) => {
+router.get("/admin/events/summary", adminRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT

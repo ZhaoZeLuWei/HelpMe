@@ -302,8 +302,12 @@ function createModerationMiddleware(fieldName, source = "body") {
       next();
     } catch (error) {
       console.error("内容审核中间件错误:", error);
-      // 审核异常时不阻止请求
-      next();
+      // 审核异常时拒绝请求，避免违规内容漏检
+      return res.status(500).json({
+        success: false,
+        error: "内容审核服务暂时不可用，请稍后重试",
+        code: "CONTENT_MODERATION_ERROR",
+      });
     }
   };
 }

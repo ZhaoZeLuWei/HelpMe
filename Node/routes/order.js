@@ -1,6 +1,6 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
-const { authRequired } = require("./auth.js");
+const { authRequired, adminRequired } = require("./auth.js");
 const {
   sendSystemMessage,
   sendOrderSystemMessage,
@@ -595,7 +595,7 @@ router.put("/orders/:id/cancel", authRequired, async (req, res) => {
 });
 
 // 管理端订单列表
-router.get("/admin/orders", authRequired, async (req, res) => {
+router.get("/admin/orders", adminRequired, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -623,7 +623,7 @@ router.get("/admin/orders", authRequired, async (req, res) => {
 });
 
 // 管理端删除订单
-router.delete("/admin/orders/:id", authRequired, async (req, res) => {
+router.delete("/admin/orders/:id", adminRequired, async (req, res) => {
   const orderId = Number(req.params.id);
   if (!Number.isInteger(orderId) || orderId <= 0) {
     return res.status(400).json({ success: false, error: "订单ID无效" });

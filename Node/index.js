@@ -41,8 +41,12 @@ app.use(chatRoutes);
 app.use(locationRoutes);
 app.use(translationRoutes);
 
-// JWT secret (建议在生产环境通过 .env 配置)
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
+// JWT secret（必须从环境变量读取）
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error("错误: 缺少 JWT_SECRET 环境变量，Socket.IO 认证将失败");
+}
 
 // mongoDB Connection here
 const mongoDBConnect = async () => {

@@ -4,11 +4,11 @@
 const mysql = require("mysql2/promise");
 
 const dbConfig = {
-  host: "localhost",
-  port: 3306,
-  user: "root",
-  password: "123456",
-  database: "help_me_db",
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   //设置可用的连接池数量
   connectionLimit: 10,
   queueLimit: 0,

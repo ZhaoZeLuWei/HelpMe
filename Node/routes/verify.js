@@ -3,7 +3,7 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
-const { authRequired } = require("./auth.js");
+const { authRequired, adminRequired } = require("./auth.js");
 
 const { sendSystemMessage } = require("../chatHandler.js");
 const router = express.Router();
@@ -47,7 +47,7 @@ function normalizeCoordinate(value) {
 }
 
 //GET 获取所有申请记录（仅包含通过和待审核) by Zewei 2-3
-router.get("/adminVerify", async (req, res) => {
+router.get("/adminVerify", adminRequired, async (req, res) => {
   let conn;
   try {
     conn = await pool.getConnection();
@@ -296,6 +296,14 @@ router.post(
         );
 
         await conn.commit();
+
+        // 提交成功后发送系统通知
+        sendSystemMessage({
+          roomId: `system_${providerId}`,
+          text: "您的认证信息已更新，状态为待审核",
+          senderId: providerId,
+        }).catch((err) => console.error("发送系统消息失败:", err));
+
         return res.json({
           success: true,
           VerificationId: verificationId,
@@ -320,6 +328,14 @@ router.post(
       );
 
       await conn.commit();
+
+      // 提交成功后发送系统通知
+      sendSystemMessage({
+        roomId: `system_${providerId}`,
+        text: "您的认证信息已提交成功，状态为待审核",
+        senderId: providerId,
+      }).catch((err) => console.error("发送系统消息失败:", err));
+
       return res.json({
         success: true,
         VerificationId: result.insertId,
@@ -346,33 +362,32 @@ router.post(
       }
       return res.status(500).json({ success: false, error: "服务器内部错误" });
     } finally {
-      sendSystemMessage({
-        roomId: `system_${providerId}`,
-        text: "您的认证信息已更新，状态为待审核",
-        senderId: providerId,
-      });
-
       if (conn) conn.release();
     }
   },
 );
 
 // 管理端：获取认证详情（包含用户信息和照片）
-router.get("/adminVerify/detail/:providerId", async (req, res) => {
-  const providerId = Number(req.params.providerId);
+router.get(
+  "/adminVerify/detail/:providerId",
+  adminRequired,
+  async (req, res) => {
+    const providerId = Number(req.params.providerId);
 
-  if (!Number.isInteger(providerId) || providerId <= 0) {
-    return res.status(400).json({ success: false, error: "无效的ProviderId" });
-  }
+    if (!Number.isInteger(providerId) || providerId <= 0) {
+      return res
+        .status(400)
+        .json({ success: false, error: "无效的ProviderId" });
+    }
 
-  let conn;
-  try {
-    conn = await pool.getConnection();
+    let conn;
+    try {
+      conn = await pool.getConnection();
 
-    // 获取用户基本信息和最新认证记录（包含头像、简介、服务评分）
-    const [rows] = await conn.query(
-      `
-      SELECT 
+      // 获取用户基本信息和最新认证记录（包含头像、简介、服务评分）
+      const [rows] = await conn.query(
+        `
+      SELECT
         u.UserId,
         u.UserName,
         u.RealName,
@@ -398,57 +413,58 @@ router.get("/adminVerify/detail/:providerId", async (req, res) => {
       ORDER BY v.SubmissionTime DESC
       LIMIT 1
     `,
-      [providerId],
-    );
+        [providerId],
+      );
 
-    if (!rows || rows.length === 0) {
-      return res.status(404).json({ success: false, error: "用户不存在" });
-    }
-
-    const detail = rows[0];
-
-    // 解析照片JSON，确保返回数组
-    if (detail.IdCardPhoto) {
-      try {
-        const parsed = JSON.parse(detail.IdCardPhoto);
-        detail.IdCardPhoto = Array.isArray(parsed) ? parsed : [parsed];
-      } catch (e) {
-        // 如果不是JSON，将字符串包装成数组
-        detail.IdCardPhoto = [detail.IdCardPhoto];
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ success: false, error: "用户不存在" });
       }
-    } else {
-      detail.IdCardPhoto = [];
-    }
 
-    if (detail.ProfessionPhoto) {
-      try {
-        const parsed = JSON.parse(detail.ProfessionPhoto);
-        detail.ProfessionPhoto = Array.isArray(parsed) ? parsed : [parsed];
-      } catch (e) {
-        // 如果不是JSON，将字符串包装成数组
-        detail.ProfessionPhoto = [detail.ProfessionPhoto];
+      const detail = rows[0];
+
+      // 解析照片JSON，确保返回数组
+      if (detail.IdCardPhoto) {
+        try {
+          const parsed = JSON.parse(detail.IdCardPhoto);
+          detail.IdCardPhoto = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+          // 如果不是JSON，将字符串包装成数组
+          detail.IdCardPhoto = [detail.IdCardPhoto];
+        }
+      } else {
+        detail.IdCardPhoto = [];
       }
-    } else {
-      detail.ProfessionPhoto = [];
-    }
 
-    res.json({
-      success: true,
-      data: detail,
-    });
-  } catch (err) {
-    console.error("获取认证详情失败:", err);
-    res.status(500).json({
-      success: false,
-      error: "服务器内部错误",
-    });
-  } finally {
-    if (conn) conn.release();
-  }
-});
+      if (detail.ProfessionPhoto) {
+        try {
+          const parsed = JSON.parse(detail.ProfessionPhoto);
+          detail.ProfessionPhoto = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+          // 如果不是JSON，将字符串包装成数组
+          detail.ProfessionPhoto = [detail.ProfessionPhoto];
+        }
+      } else {
+        detail.ProfessionPhoto = [];
+      }
+
+      res.json({
+        success: true,
+        data: detail,
+      });
+    } catch (err) {
+      console.error("获取认证详情失败:", err);
+      res.status(500).json({
+        success: false,
+        error: "服务器内部错误",
+      });
+    } finally {
+      if (conn) conn.release();
+    }
+  },
+);
 
 // 管理端：审核通过
-router.post("/adminVerify/approve", async (req, res) => {
+router.post("/adminVerify/approve", adminRequired, async (req, res) => {
   const { providerId, results } = req.body;
 
   if (!providerId) {
@@ -511,7 +527,7 @@ router.post("/adminVerify/approve", async (req, res) => {
 });
 
 // 管理端：审核驳回
-router.post("/adminVerify/reject", async (req, res) => {
+router.post("/adminVerify/reject", adminRequired, async (req, res) => {
   const { providerId, results } = req.body;
 
   if (!providerId) {

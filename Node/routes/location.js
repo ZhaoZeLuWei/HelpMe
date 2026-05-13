@@ -1,6 +1,7 @@
 const express = require("express");
 const { ObjectId } = require("mongodb");
 const { getLocationDb } = require("../help_me_location_db.js");
+const { adminRequired } = require("./auth.js");
 
 const router = express.Router();
 const COLLECTION_NAME = "places";
@@ -183,7 +184,6 @@ router.get("/locations/nearby", async (req, res) => {
   }
 });
 
-
 // 保存地点（从高德地图获取后存入数据库）
 router.post("/locations/save", async (req, res) => {
   const db = await getLocationDb();
@@ -210,7 +210,7 @@ router.post("/locations/save", async (req, res) => {
         coordinates: [Number(loc.lng) || 0, Number(loc.lat) || 0],
       },
       isActive: true,
-      source: "amap",  // 标记数据来源
+      source: "amap", // 标记数据来源
       createdAt: now,
       updatedAt: now,
     }));
@@ -234,7 +234,7 @@ router.post("/locations/save", async (req, res) => {
 });
 
 // 管理端列表
-router.get("/admin/locations", async (req, res) => {
+router.get("/admin/locations", adminRequired, async (req, res) => {
   const db = await getLocationDb();
   const places = db.collection(COLLECTION_NAME);
 
