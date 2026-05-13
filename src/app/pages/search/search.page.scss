@@ -12,13 +12,19 @@ ion-button {
   max-width: 200px;
 }
 
+/* AI 辅助按钮使用青绿色 */
+ion-button[color="tertiary"] {
+  --background: #0f766e;
+  --background-hover: #115e59;
+}
+
 /* 响应式设计 */
 @media (max-width: 576px) {
   .button-container {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   ion-button {
     max-width: none;
   }

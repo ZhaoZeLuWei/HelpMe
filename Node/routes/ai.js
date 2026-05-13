@@ -11,6 +11,7 @@ const { authOptional } = require("./auth.js");
 const {
   fillForm,
   extractTags,
+  extractSearchKeywords,
   enhanceSearch,
 } = require("../services/aiService.js");
 const { filter: sensitiveFilter } = require("../services/sensitiveFilter.js");
@@ -45,7 +46,7 @@ router.post(
           .json({ success: false, error: "今日 AI 调用次数已达上限，请明天再试" });
       }
 
-      const { input } = req.body;
+      const { input, type = "request" } = req.body;
 
       if (!input || input.trim().length < 2) {
         return res
@@ -62,7 +63,7 @@ router.post(
         });
       }
 
-      const result = await fillForm(input);
+      const result = await fillForm(input, type);
       return res.json({ success: true, data: result });
     } catch (err) {
       console.error("AI fill-form error:", err.message);
@@ -117,17 +118,36 @@ router.post("/api/ai/enhance-search", authOptional, async (req, res) => {
         .json({ success: false, error: "请输入搜索关键词" });
     }
 
-    // 查询匹配的事件
-    const searchPattern = `%${keyword}%`;
+    // AI 提取核心搜索关键词（去除语气词）
+    let searchKeywords = [keyword];
+    try {
+      const extracted = await extractSearchKeywords(keyword);
+      if (extracted.length > 0) {
+        searchKeywords = extracted;
+      }
+    } catch {
+      // 提取失败就用原词搜索
+    }
+
+    // 用多个关键词 OR 搜索，匹配更多事件
+    const likeClauses = searchKeywords.map(() => "(e.EventDetails LIKE ? OR e.EventTitle LIKE ?)");
+    const likeParams = searchKeywords.flatMap((kw) => [`%${kw}%`, `%${kw}%`]);
+
     const [events] = await pool.query(
-      `SELECT e.EventId, e.EventTitle, e.EventDetails, e.Location,
-              e.Price, e.EventType, u.UserName
+      `SELECT DISTINCT
+        e.EventId AS id, e.Photos AS cardImage,
+        e.Location AS address, e.LocationPlaceId AS locationPlaceId,
+        e.LocationLng AS lng, e.LocationLat AS lat,
+        e.EventTitle AS title, e.EventDetails AS demand, e.EventType AS eventType,
+        e.Price AS price, e.CreateTime AS createTime,
+        e.CreatorId AS creatorId,
+        u.UserName AS name, u.UserAvatar AS avatar
        FROM Events e
        JOIN Users u ON e.CreatorId = u.UserId
-       WHERE e.EventDetails LIKE ? OR e.EventTitle LIKE ?
+       WHERE ${likeClauses.join(" OR ")}
        ORDER BY e.CreateTime DESC
-       LIMIT 10`,
-      [searchPattern, searchPattern],
+       LIMIT 50`,
+      likeParams,
     );
 
     // 查询附近服务者（按地点关键词匹配）

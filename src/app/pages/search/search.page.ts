@@ -2,13 +2,16 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonButton, IonContent, IonHeader, IonSearchbar, IonIcon } from '@ionic/angular/standalone';
+import { ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
-import { Location } from '@angular/common';  // 添加这行
+import { Location } from '@angular/common';
 import { SearchStateService } from '../../services/search-state.service';
 import { AiService } from '../../services/ai.service';
 import { HttpClientModule } from '@angular/common/http';
+import { addIcons } from 'ionicons';
+import { searchOutline, sparklesOutline, chevronBackOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-search',
@@ -21,9 +24,9 @@ import { HttpClientModule } from '@angular/common/http';
     HttpClientModule,
     IonHeader,
     IonContent,
-    IonButton,    // ← 已有
-    IonSearchbar, // 如果模板里用到也加上
-    IonIcon,      // ← 添加IonIcon
+    IonButton,
+    IonSearchbar,
+    IonIcon,
   ],
 })
 export class SearchPage implements OnInit {
@@ -33,9 +36,15 @@ export class SearchPage implements OnInit {
   private http = inject(HttpClient);
   private location = inject(Location);
   private route = inject(ActivatedRoute);
+  private toastCtrl = inject(ToastController);
 
   keyword = '';
   returnTo = '';
+  aiSearching = false;
+
+  constructor() {
+    addIcons({ searchOutline, sparklesOutline, chevronBackOutline });
+  }
 
   ngOnInit() {
     this.returnTo = this.route.snapshot.queryParams['returnTo'] || 'tabs/tab2';
@@ -43,14 +52,12 @@ export class SearchPage implements OnInit {
 
   onSearch() {
     const kw = this.keyword.trim();
-    // 直接把关键词带回 Tab2（不再写全局 service）
     this.router.navigate(['/tabs/tab2'], {
-      queryParams: { search: kw }   // 只传关键词，不存 service 也可
+      queryParams: { search: kw }
     });
   }
 
   goBack() {
-    // 尝试返回上一页，如果没有历史则回首页
     if (window.history.length > 1) {
       this.location.back();
     } else {
@@ -61,28 +68,50 @@ export class SearchPage implements OnInit {
   async aiSearch() {
     const kw = this.keyword.trim();
     if (!kw) {
+      const toast = await this.toastCtrl.create({
+        message: '请输入搜索关键词',
+        duration: 1500,
+        position: 'bottom',
+      });
+      await toast.present();
       return;
     }
 
-    // 调用 AI 增强搜索
-    const result = await this.aiService.enhanceSearch(kw);
+    this.aiSearching = true;
+    try {
+      const result = await this.aiService.enhanceSearch(kw);
 
-    if (result) {
-      // 存储 AI 结果到共享状态
-      this.searchState.setAiResults({
-        keyword: kw,
-        recommendation: result.recommendation,
-        matchedEvents: result.matchedEvents,
-        matchedProviders: result.matchedProviders,
-      });
+      if (result) {
+        this.searchState.setAiResults({
+          keyword: kw,
+          recommendation: result.recommendation,
+          matchedEvents: result.matchedEvents,
+          matchedProviders: result.matchedProviders,
+        });
 
-      // 导航到 Tab2，带 AI 标记
-      this.router.navigate(['/tabs/tab2'], {
-        queryParams: { search: kw, ai: '1' },
+        this.router.navigate(['/tabs/tab2'], {
+          queryParams: { ai: '1' },
+        });
+      } else {
+        // AI 失败，回退到普通搜索
+        const toast = await this.toastCtrl.create({
+          message: 'AI 搜索暂不可用，使用普通搜索结果',
+          duration: 1500,
+          position: 'bottom',
+        });
+        await toast.present();
+        this.onSearch();
+      }
+    } catch {
+      const toast = await this.toastCtrl.create({
+        message: '搜索出错，请重试',
+        duration: 1500,
+        position: 'bottom',
       });
-    } else {
-      // AI 搜索失败，回退到普通搜索
+      await toast.present();
       this.onSearch();
+    } finally {
+      this.aiSearching = false;
     }
   }
 }

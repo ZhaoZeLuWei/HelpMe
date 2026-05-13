@@ -30,13 +30,13 @@ export class AiService {
     };
   }
 
-  /** 1. AI 智能填表：根据输入生成标题、分类、详细描述 */
-  async fillForm(input: string): Promise<AiFillFormResult | null> {
+  /** 1. AI 智能填表：根据输入生成标题、标签、详细描述 */
+  async fillForm(input: string, type: 'request' | 'help' = 'request'): Promise<AiFillFormResult | null> {
     try {
       const res = await fetch(`${this.API_BASE}/api/ai/fill-form`, {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input, type }),
       });
       const data = await res.json();
       if (!res.ok || !data?.success) {

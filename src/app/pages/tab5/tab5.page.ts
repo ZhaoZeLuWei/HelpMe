@@ -285,7 +285,7 @@ export class Tab5Page implements OnInit, OnDestroy {
 
     this.isAiGenerating = true;
     try {
-      const result = await this.aiService.fillForm(input);
+      const result = await this.aiService.fillForm(input, formType);
       if (result) {
         this.aiTags = result.tags || [];
         form.patchValue({
