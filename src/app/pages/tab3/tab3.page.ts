@@ -121,6 +121,7 @@ export class Tab3Page implements OnInit {
     this.http
       .get<any>(`${environment.apiBase}/api/rooms/list`, {
         params: { userId: String(userId) },
+        headers: { ...this.auth.getAuthHeader() },
       })
       .subscribe({
         next: (data) => {

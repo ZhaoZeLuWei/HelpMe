@@ -1,8 +1,8 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>{{ t.register.title }}</ion-title>
+    <ion-title>{{ t.title }}</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="closeModal()">{{ t.register.close }}</ion-button>
+      <ion-button (click)="closeModal()">{{ t.close }}</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -11,30 +11,30 @@
   <!-- 第一步：验证手机号 -->
   @if (step() === 'verify') {
   <div class="step-container">
-    <h2>{{ t.register.verifyTitle }}</h2>
-    <p class="step-desc">{{ t.register.verifyDesc }}</p>
+    <h2>{{ t.verifyTitle }}</h2>
+    <p class="step-desc">{{ t.verifyDesc }}</p>
 
     <form [formGroup]="verifyForm">
       <ion-list>
         <ion-item>
-          <ion-label position="floating">{{ t.register.phoneLabel }}</ion-label>
+          <ion-label position="floating">{{ t.phoneLabel }}</ion-label>
           <ion-input
             type="tel"
             inputmode="numeric"
             formControlName="phone"
             [maxlength]="11"
-            [placeholder]="t.register.phonePlaceholder"
+            [placeholder]="t.phonePlaceholder"
           ></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating">{{ t.register.codeLabel }}</ion-label>
+          <ion-label position="floating">{{ t.codeLabel }}</ion-label>
           <ion-input
             type="tel"
             inputmode="numeric"
             formControlName="code"
             [maxlength]="4"
-            [placeholder]="t.register.codePlaceholder"
+            [placeholder]="t.codePlaceholder"
           ></ion-input>
           <ion-button
             slot="end"
@@ -42,28 +42,28 @@
             (click)="sendCode()"
             [disabled]="sendCooldown() > 0"
           >
-            @if (sendCooldown() === 0) { {{ t.register.sendCode }} } @if
-            (sendCooldown() > 0) { {{ sendCooldown() }}s }
+            @if (sendCooldown() === 0) { {{ t.sendCode }} } @if (sendCooldown()
+            > 0) { {{ sendCooldown() }}s }
           </ion-button>
         </ion-item>
       </ion-list>
 
       <div class="actions">
         <ion-button expand="block" (click)="nextStep()">
-          {{ t.register.nextStep }}
+          {{ t.nextStep }}
         </ion-button>
       </div>
     </form>
 
-    <div class="hint">{{ t.register.verifyHint }}</div>
+    <div class="hint">{{ t.verifyHint }}</div>
   </div>
   }
 
   <!-- 第二步：填写用户信息 -->
   @if (step() === 'info') {
   <div class="step-container">
-    <h2>{{ t.register.infoTitle }}</h2>
-    <p class="step-desc">{{ t.register.infoDesc }}</p>
+    <h2>{{ t.infoTitle }}</h2>
+    <p class="step-desc">{{ t.infoDesc }}</p>
 
     <form [formGroup]="infoForm" (ngSubmit)="submit()">
       <ion-list>
@@ -78,8 +78,7 @@
           </div>
           <div class="avatar-actions">
             <ion-button size="small" (click)="triggerAvatarPicker()">
-              {{ avatarPreview ? t.register.changeAvatar :
-              t.register.uploadAvatar }}
+              {{ avatarPreview ? t.changeAvatar : t.uploadAvatar }}
             </ion-button>
             @if (avatarPreview) {
             <ion-button
@@ -88,7 +87,7 @@
               color="danger"
               (click)="removeAvatar()"
             >
-              {{ t.register.delete }}
+              {{ t.delete }}
             </ion-button>
             }
           </div>
@@ -99,67 +98,59 @@
             style="display: none"
             (change)="onAvatarSelected($event)"
           />
-          <p class="avatar-hint">{{ t.register.avatarHint }}</p>
+          <p class="avatar-hint">{{ t.avatarHint }}</p>
         </div>
 
         <ion-item>
-          <ion-label position="floating"
-            >{{ t.register.userNameLabel }}</ion-label
-          >
+          <ion-label position="floating">{{ t.userNameLabel }}</ion-label>
           <ion-input
             type="text"
             formControlName="userName"
-            [placeholder]="t.register.userNamePlaceholder"
+            [placeholder]="t.userNamePlaceholder"
             [maxlength]="20"
           ></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating"
-            >{{ t.register.realNameLabel }}</ion-label
-          >
+          <ion-label position="floating">{{ t.realNameLabel }}</ion-label>
           <ion-input
             type="text"
             formControlName="realName"
-            [placeholder]="t.register.realNamePlaceholder"
+            [placeholder]="t.realNamePlaceholder"
             [maxlength]="20"
           ></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating"
-            >{{ t.register.idCardLabel }}</ion-label
-          >
+          <ion-label position="floating">{{ t.idCardLabel }}</ion-label>
           <ion-input
             type="text"
             formControlName="idCardNumber"
-            [placeholder]="t.register.idCardPlaceholder"
+            [placeholder]="t.idCardPlaceholder"
             [maxlength]="18"
           ></ion-input>
         </ion-item>
 
         <ion-item button detail="true" (click)="openLocationPicker()">
-          <ion-label>{{ t.register.locationLabel }}</ion-label>
+          <ion-label>{{ t.locationLabel }}</ion-label>
           <ion-note
             slot="end"
             [class.placeholder]="!infoForm.controls.location.value"
           >
-            {{ infoForm.controls.location.value || t.register.selectLocation }}
+            {{ infoForm.controls.location.value || t.selectLocation }}
           </ion-note>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating"
-            >{{ t.register.birthDateLabel }}</ion-label
-          >
+          <ion-label position="floating">{{ t.birthDateLabel }}</ion-label>
           <ion-input type="date" formControlName="birthDate"></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating">{{ t.register.introLabel }}</ion-label>
+          <ion-label position="floating">{{ t.introLabel }}</ion-label>
           <ion-textarea
             formControlName="introduction"
-            [placeholder]="t.register.introPlaceholder"
+            [placeholder]="t.introPlaceholder"
             [maxlength]="200"
             [autoGrow]="true"
             rows="3"
@@ -169,16 +160,15 @@
 
       <div class="actions">
         <ion-button expand="block" fill="outline" (click)="backToVerify()">
-          {{ t.register.prevStep }}
+          {{ t.prevStep }}
         </ion-button>
         <ion-button expand="block" type="submit" [disabled]="registering()">
-          @if (registering()) { {{ t.register.registering }} } @else { {{
-          t.register.complete }} }
+          @if (registering()) { {{ t.registering }} } @else { {{ t.complete }} }
         </ion-button>
       </div>
     </form>
 
-    <div class="hint">{{ t.register.requiredHint }}</div>
+    <div class="hint">{{ t.requiredHint }}</div>
   </div>
   }
 </ion-content>

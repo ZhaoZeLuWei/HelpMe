@@ -4,13 +4,13 @@
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
         <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
-        {{ t.particular.back }}
+        {{ t.back }}
       </ion-button>
     </ion-buttons>
     <ion-buttons slot="end">
       <ion-button (click)="goHome()">
         <ion-icon slot="start" name="home-outline"></ion-icon>
-        {{ t.particular.home }}
+        {{ t.home }}
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -25,7 +25,7 @@
         <div class="avatar-container">
           <img
             [src]="getAvatarUrl(userInfo?.avatar)"
-            [alt]="t.particular.userAvatar"
+            [alt]="t.userAvatar"
             class="user-avatar"
           />
         </div>
@@ -40,14 +40,13 @@
             </ion-badge>
           </h3>
           <p class="publisher-meta">
-            {{ t.particular.buyerRating }}{{ (userInfo.buyerRanking || 0) }} 分
+            {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }} 分
             <br />
-            {{ t.particular.serviceRating }}{{ (userInfo.serviceRanking || 0) }}
-            分
+            {{ t.serviceRating }}{{ (userInfo.serviceRanking || 0) }} 分
             <br />
-            {{ t.particular.serviceCount }}{{ (userInfo.orderCount || 0) }} 次
+            {{ t.serviceCount }}{{ (userInfo.orderCount || 0) }} 次
             <br />
-            {{ t.particular.registerTime }}{{ userInfo.CreateTime }}
+            {{ t.registerTime }}{{ userInfo.CreateTime }}
           </p>
         </div>
         @if (!isCurrentUserCreator && currentUserId) {
@@ -62,8 +61,7 @@
               slot="start"
               [name]="isFollowingCreator ? 'heart' : 'heart-outline'"
             ></ion-icon>
-            {{ isFollowingCreator ? t.particular.followed : t.particular.follow
-            }}
+            {{ isFollowingCreator ? t.followed : t.follow }}
           </ion-button>
         </div>
         }
@@ -74,16 +72,16 @@
         <h2 class="event-title">{{event?.title}}</h2>
         <div class="event-details">
           <p>
-            <ion-icon name="location-outline"></ion-icon> {{
-            t.particular.location }}{{ event?.address }}
+            <ion-icon name="location-outline"></ion-icon> {{ t.location }}{{
+            event?.address }}
           </p>
           <p>
-            <ion-icon name="time-outline"></ion-icon> {{ t.particular.time }}{{
+            <ion-icon name="time-outline"></ion-icon> {{ t.time }}{{
             event?.createTime }}
           </p>
           <p>
-            <ion-icon name="cash-outline"></ion-icon> {{ t.particular.price
-            }}¥{{ event?.price }}
+            <ion-icon name="cash-outline"></ion-icon> {{ t.price }}¥{{
+            event?.price }}
           </p>
         </div>
         <p class="event-description">{{ event?.demand }}</p>
@@ -97,7 +95,7 @@
           <div class="event-photo-item" (click)="previewPhoto(photo)">
             <img
               [src]="photo.startsWith('http') ? photo : apiBase + photo"
-              [alt]="t.particular.eventImage"
+              [alt]="t.eventImage"
               class="event-photo"
             />
           </div>
@@ -106,7 +104,7 @@
         } @else {
         <div class="event-no-photos">
           <ion-icon name="image-outline" class="no-photos-icon"></ion-icon>
-          <p class="no-photos-text">{{ t.particular.noPhotos }}</p>
+          <p class="no-photos-text">{{ t.noPhotos }}</p>
         </div>
         }
       </div>
@@ -128,7 +126,7 @@
             slot="start"
             [name]="isFavorited ? 'star' : 'star-outline'"
           ></ion-icon>
-          {{ isFavorited ? t.particular.favorited : t.particular.favorite }}
+          {{ isFavorited ? t.favorited : t.favorite }}
         </ion-button>
       </ion-col>
       @if (!isCurrentUserCreator) {
@@ -140,8 +138,7 @@
           [disabled]="!canCreateOrder"
         >
           <ion-icon slot="start" name="document-text"></ion-icon>
-          {{ canCreateOrder ? t.particular.placeOrder : t.particular.cannotOrder
-          }}
+          {{ canCreateOrder ? t.placeOrder : t.cannotOrder }}
         </ion-button>
       </ion-col>
       }
@@ -151,7 +148,7 @@
             slot="start"
             [name]="isCurrentUserCreator ? 'create-outline' : 'chatbubble-outline'"
           ></ion-icon>
-          {{ isCurrentUserCreator ? t.particular.edit : t.particular.chat }}
+          {{ isCurrentUserCreator ? t.edit : t.chat }}
         </ion-button>
       </ion-col>
     </ion-row>
@@ -173,10 +170,10 @@
   <ng-template>
     <ion-header>
       <ion-toolbar>
-        <ion-title>{{ t.particular.orderFormTitle }}</ion-title>
+        <ion-title>{{ t.orderFormTitle }}</ion-title>
         <ion-buttons slot="end">
           <ion-button fill="clear" (click)="closeOrderModal()"
-            >{{ t.particular.close }}</ion-button
+            >{{ t.close }}</ion-button
           >
         </ion-buttons>
       </ion-toolbar>
@@ -186,33 +183,29 @@
         <ion-list lines="full">
           <!-- 地图选择地址（预选为事件地址） -->
           <ion-item button detail="true" (click)="openOrderLocationPicker()">
-            <ion-label>{{ t.particular.detailAddress }}</ion-label>
+            <ion-label>{{ t.detailAddress }}</ion-label>
             <ion-note
               slot="end"
               [color]="orderForm.value.DetailLocation ? 'primary' : 'medium'"
             >
-              {{ pickedLocationDisplay || t.particular.selectLocation }}
+              {{ pickedLocationDisplay || t.selectLocation }}
             </ion-note>
           </ion-item>
           <!-- 具体位置（门牌号、楼栋号等） -->
           <ion-item>
-            <ion-label position="stacked"
-              >{{ t.particular.specificLocation }}</ion-label
-            >
+            <ion-label position="stacked">{{ t.specificLocation }}</ion-label>
             <ion-input
               formControlName="SpecificLocation"
-              [placeholder]="t.particular.specificLocationPlaceholder"
+              [placeholder]="t.specificLocationPlaceholder"
             ></ion-input>
           </ion-item>
           <!-- 补充信息 -->
           <ion-item>
-            <ion-label position="stacked"
-              >{{ t.particular.additionalInfo }}</ion-label
-            >
+            <ion-label position="stacked">{{ t.additionalInfo }}</ion-label>
             <ion-textarea
               formControlName="AdditionalInfo"
               [autoGrow]="true"
-              [placeholder]="t.particular.additionalInfoPlaceholder"
+              [placeholder]="t.additionalInfoPlaceholder"
             ></ion-textarea>
           </ion-item>
         </ion-list>
@@ -222,8 +215,7 @@
             (click)="submitOrder()"
             [disabled]="isSubmittingOrder || orderForm.invalid"
           >
-            {{ isSubmittingOrder ? t.particular.submitting :
-            t.particular.confirmOrder }}
+            {{ isSubmittingOrder ? t.submitting : t.confirmOrder }}
           </ion-button>
         </div>
       </form>
@@ -240,7 +232,7 @@
     </button>
     <img
       [src]="previewImageUrl"
-      [alt]="t.particular.imagePreview"
+      [alt]="t.imagePreview"
       class="photo-preview-img"
     />
     <div class="photo-preview-counter">

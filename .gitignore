@@ -77,7 +77,7 @@ Thumbs.db
 *.md
 Node/help_me_db.js
 /.claude
-/upload/img
+/upload
 
 # 前端配置文件（由后端运行时生成，不提交）
 /src/assets/config.js

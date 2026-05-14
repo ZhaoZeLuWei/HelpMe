@@ -76,6 +76,7 @@ router.get("/api/rooms/:roomId/order-info", authRequired, async (req, res) => {
 
     const [orders] = await pool.query(
       `SELECT o.OrderId, o.EventId, o.TransactionPrice, o.OrderStatus, o.OrderCreateTime,
+              o.PaymentTime, o.CompletionTime, o.RefundTime,
               o.EventSnapshot, o.ConsumerId, o.ProviderId,
               o.EventSnapshot->>'$.DeliveryAddress' AS DeliveryAddress,
               o.EventSnapshot->>'$.DeliverySpecific' AS DeliverySpecific,

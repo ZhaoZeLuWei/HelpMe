@@ -25,14 +25,11 @@ export class LoginPage {
   private languageService = inject(LanguageService);
   private captchaService = inject(AliyunCaptchaService);
 
-  t: any;
+  t = this.languageService.getTranslations('zh').login;
 
   constructor() {
-    this.t = this.languageService.getTranslations(
-      this.languageService.getCurrentLang(),
-    );
     this.languageService.currentLang$.subscribe((lang) => {
-      this.t = this.languageService.getTranslations(lang);
+      this.t = this.languageService.getTranslations(lang).login;
     });
   }
 
@@ -53,7 +50,7 @@ export class LoginPage {
   async sendCode() {
     if (this.form.controls.phone.invalid) {
       const t = await this.toastCtrl.create({
-        message: '请输入有效的11位手机号',
+        message: this.t.invalidPhone,
         duration: 750,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -73,7 +70,7 @@ export class LoginPage {
     if (!checkResult) {
       this.sending.set(false);
       const toast = await this.toastCtrl.create({
-        message: '无法验证手机号，请稍后重试',
+        message: this.t.phoneCheckFailed,
         duration: 1500,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -85,7 +82,7 @@ export class LoginPage {
     if (!checkResult.exists) {
       this.sending.set(false);
       const toast = await this.toastCtrl.create({
-        message: '该手机号未注册，请先注册',
+        message: this.t.phoneNotRegistered,
         duration: 1500,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -101,7 +98,7 @@ export class LoginPage {
     } catch (err) {
       this.sending.set(false);
       const toast = await this.toastCtrl.create({
-        message: err instanceof Error ? err.message : '图形验证码加载失败',
+        message: err instanceof Error ? err.message : this.t.captchaLoadFailed,
         duration: 1500,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -114,7 +111,7 @@ export class LoginPage {
     if (!sendResult?.success) {
       this.sending.set(false);
       const toast = await this.toastCtrl.create({
-        message: sendResult?.error || '验证码发送失败',
+        message: sendResult?.error || this.t.codeSendFailed,
         duration: 1500,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -124,7 +121,7 @@ export class LoginPage {
     }
 
     const toast = await this.toastCtrl.create({
-      message: sendResult.message || '验证码已发送',
+      message: sendResult.message || this.t.codeSent,
       duration: 750,
       position: 'bottom',
       positionAnchor: 'main-tab-bar',
@@ -145,7 +142,7 @@ export class LoginPage {
   async submit() {
     if (this.form.invalid) {
       const t = await this.toastCtrl.create({
-        message: '请完善手机号和验证码',
+        message: this.t.formIncomplete,
         duration: 750,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -171,7 +168,9 @@ export class LoginPage {
 
     const u = this.auth.currentUser;
     const name = u?.UserName ?? u?.userName ?? u?.name ?? '';
-    const message = name ? `登录成功，${name}，欢迎您！` : '登录成功，欢迎您！';
+    const message = name
+      ? `${this.t.loginSuccess.replace('！', '')}，${name}，${this.t.loginSuccess}`
+      : this.t.loginSuccess;
 
     const t = await this.toastCtrl.create({
       message,

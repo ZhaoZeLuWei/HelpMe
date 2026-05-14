@@ -32,7 +32,10 @@
       </div>
     </div>
 
-    <div class="action-card identity-card" (click)="navigateToIdentitySelection()">
+    <div
+      class="action-card identity-card"
+      (click)="navigateToIdentitySelection()"
+    >
       <div class="icon-bubble">
         <ion-icon name="shield-checkmark-outline"></ion-icon>
       </div>
@@ -46,7 +49,10 @@
   </div>
 
   <!-- 求助发布弹窗 -->
-  <ion-modal [isOpen]="showRequestModal" (didDismiss)="showRequestModal = false">
+  <ion-modal
+    [isOpen]="showRequestModal"
+    (didDismiss)="showRequestModal = false"
+  >
     <ng-template>
       <ion-header [translucent]="true">
         <ion-toolbar>
@@ -62,10 +68,12 @@
         <form [formGroup]="requestForm">
           <!-- 基本信息 -->
           <div class="form-section">
-            <p class="form-section-title">基本信息</p>
+            <p class="form-section-title">{{ t.form.basicInfo }}</p>
 
             <div class="form-row">
-              <label class="form-row-label">标题 <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.title }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
                 <input
                   class="form-input"
@@ -80,29 +88,34 @@
                   type="button"
                 >
                   <ion-icon name="sparkles-outline"></ion-icon>
-                  {{ isAiGenerating ? '填表中…' : '智能填表' }}
+                  {{ isAiGenerating ? t.aiGenerating : t.aiSmartFill }}
                 </button>
               </div>
             </div>
 
             <div class="form-row">
-              <label class="form-row-label">标签 <span class="required">*</span></label>
-              <div class="form-row-content" style="flex-wrap: wrap;">
-                @if (aiTags.length > 0) {
-                  @for (tag of aiTags; track $index; let i = $index) {
-                  <span class="tag-chip" (click)="removeAiTag('request', i)">
-                    #{{ tag }}
-                    <span class="chip-close">
-                      <ion-icon name="close-circle"></ion-icon>
-                    </span>
+              <label class="form-row-label"
+                >{{ t.form.tags }} <span class="required">*</span></label
+              >
+              <div class="form-row-content" style="flex-wrap: wrap">
+                @if (aiTags.length > 0) { @for (tag of aiTags; track $index; let
+                i = $index) {
+                <span class="tag-chip" (click)="removeAiTag('request', i)">
+                  #{{ tag }}
+                  <span class="chip-close">
+                    <ion-icon name="close-circle"></ion-icon>
                   </span>
-                  }
-                } @else {
-                  <span class="tags-hint">点击「智能填表」自动生成</span>
+                </span>
+                } } @else {
+                <span class="tags-hint">{{ t.form.tagsHint }}</span>
                 }
-                <button class="add-tag-btn" type="button" (click)="addManualTag('request')">
+                <button
+                  class="add-tag-btn"
+                  type="button"
+                  (click)="addManualTag('request')"
+                >
                   <ion-icon name="add"></ion-icon>
-                  添加
+                  {{ t.form.addTag }}
                 </button>
               </div>
             </div>
@@ -110,10 +123,12 @@
 
           <!-- 位置与价格 -->
           <div class="form-section">
-            <p class="form-section-title">位置与价格</p>
+            <p class="form-section-title">{{ t.form.locationPrice }}</p>
 
             <div class="form-row">
-              <label class="form-row-label">位置 <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.location }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
                 <button
                   type="button"
@@ -128,9 +143,11 @@
             </div>
 
             <div class="form-row">
-              <label class="form-row-label">价格</label>
+              <label class="form-row-label">{{ t.form.price }}</label>
               <div class="form-row-content">
-                <span style="font-size:15px;color:var(--ion-color-medium);">¥</span>
+                <span style="font-size: 15px; color: var(--ion-color-medium)"
+                  >¥</span
+                >
                 <input
                   class="form-input form-input-number"
                   type="number"
@@ -144,9 +161,12 @@
 
           <!-- 详细描述 -->
           <div class="form-section">
-            <p class="form-section-title">详细描述 <span class="required" style="text-transform:none;">*</span></p>
+            <p class="form-section-title">
+              {{ t.form.details }}
+              <span class="required" style="text-transform: none">*</span>
+            </p>
 
-            <div style="padding: 0 16px 12px;">
+            <div style="padding: 0 16px 12px">
               <textarea
                 class="textarea-input"
                 formControlName="EventDetails"
@@ -164,7 +184,10 @@
                 @for (photo of requestPhotos; track $index; let i = $index) {
                 <div class="photo-item">
                   <img [src]="photo" alt="预览" />
-                  <span class="photo-remove" (click)="removePhoto(i, 'request'); $event.stopPropagation()">
+                  <span
+                    class="photo-remove"
+                    (click)="removePhoto(i, 'request'); $event.stopPropagation()"
+                  >
                     <ion-icon name="close-circle"></ion-icon>
                   </span>
                 </div>
@@ -172,10 +195,10 @@
                 <div class="upload-btn" (click)="triggerFileInput('request')">
                   @if (requestPhotos.length === 0) {
                   <ion-icon name="image-outline"></ion-icon>
-                  <span>上传图片</span>
+                  <span>{{ t.form.uploadImage }}</span>
                   } @else if (requestPhotos.length < 5) {
                   <ion-icon name="add-circle-outline"></ion-icon>
-                  <span>继续添加</span>
+                  <span>{{ t.form.continueAdd }}</span>
                   }
                 </div>
               </div>
@@ -195,8 +218,12 @@
           />
 
           <div class="modal-actions">
-            <button type="button" class="modal-btn modal-btn-secondary" (click)="showRequestModal = false">
-              取消
+            <button
+              type="button"
+              class="modal-btn modal-btn-secondary"
+              (click)="showRequestModal = false"
+            >
+              {{ t.form.cancel }}
             </button>
             <button
               type="button"
@@ -229,10 +256,12 @@
         <form [formGroup]="helpForm">
           <!-- 基本信息 -->
           <div class="form-section">
-            <p class="form-section-title">基本信息</p>
+            <p class="form-section-title">{{ t.form.basicInfo }}</p>
 
             <div class="form-row">
-              <label class="form-row-label">标题 <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.title }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
                 <input
                   class="form-input"
@@ -247,29 +276,34 @@
                   type="button"
                 >
                   <ion-icon name="sparkles-outline"></ion-icon>
-                  {{ isAiGenerating ? '填表中…' : '智能填表' }}
+                  {{ isAiGenerating ? t.aiGenerating : t.aiSmartFill }}
                 </button>
               </div>
             </div>
 
             <div class="form-row">
-              <label class="form-row-label">标签 <span class="required">*</span></label>
-              <div class="form-row-content" style="flex-wrap: wrap;">
-                @if (aiTags.length > 0) {
-                  @for (tag of aiTags; track $index; let i = $index) {
-                  <span class="tag-chip" (click)="removeAiTag('help', i)">
-                    #{{ tag }}
-                    <span class="chip-close">
-                      <ion-icon name="close-circle"></ion-icon>
-                    </span>
+              <label class="form-row-label"
+                >{{ t.form.tags }} <span class="required">*</span></label
+              >
+              <div class="form-row-content" style="flex-wrap: wrap">
+                @if (aiTags.length > 0) { @for (tag of aiTags; track $index; let
+                i = $index) {
+                <span class="tag-chip" (click)="removeAiTag('help', i)">
+                  #{{ tag }}
+                  <span class="chip-close">
+                    <ion-icon name="close-circle"></ion-icon>
                   </span>
-                  }
-                } @else {
-                  <span class="tags-hint">点击「智能填表」自动生成</span>
+                </span>
+                } } @else {
+                <span class="tags-hint">{{ t.form.tagsHint }}</span>
                 }
-                <button class="add-tag-btn" type="button" (click)="addManualTag('help')">
+                <button
+                  class="add-tag-btn"
+                  type="button"
+                  (click)="addManualTag('help')"
+                >
                   <ion-icon name="add"></ion-icon>
-                  添加
+                  {{ t.form.addTag }}
                 </button>
               </div>
             </div>
@@ -277,10 +311,12 @@
 
           <!-- 位置与价格 -->
           <div class="form-section">
-            <p class="form-section-title">位置与价格</p>
+            <p class="form-section-title">{{ t.form.locationPrice }}</p>
 
             <div class="form-row">
-              <label class="form-row-label">位置 <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.location }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
                 <button
                   type="button"
@@ -295,9 +331,13 @@
             </div>
 
             <div class="form-row">
-              <label class="form-row-label">价格 <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.price }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
-                <span style="font-size:15px;color:var(--ion-color-medium);">¥</span>
+                <span style="font-size: 15px; color: var(--ion-color-medium)"
+                  >¥</span
+                >
                 <input
                   class="form-input form-input-number"
                   type="number"
@@ -311,8 +351,11 @@
 
           <!-- 详细描述 -->
           <div class="form-section">
-            <p class="form-section-title">详细描述 <span class="required" style="text-transform:none;">*</span></p>
-            <div style="padding: 0 16px 12px;">
+            <p class="form-section-title">
+              {{ t.form.details }}
+              <span class="required" style="text-transform: none">*</span>
+            </p>
+            <div style="padding: 0 16px 12px">
               <textarea
                 class="textarea-input"
                 formControlName="EventDetails"
@@ -330,7 +373,10 @@
                 @for (photo of helpPhotos; track $index; let i = $index) {
                 <div class="photo-item">
                   <img [src]="photo" alt="预览" />
-                  <span class="photo-remove" (click)="removePhoto(i, 'help'); $event.stopPropagation()">
+                  <span
+                    class="photo-remove"
+                    (click)="removePhoto(i, 'help'); $event.stopPropagation()"
+                  >
                     <ion-icon name="close-circle"></ion-icon>
                   </span>
                 </div>
@@ -338,10 +384,10 @@
                 <div class="upload-btn" (click)="triggerFileInput('help')">
                   @if (helpPhotos.length === 0) {
                   <ion-icon name="image-outline"></ion-icon>
-                  <span>上传图片</span>
+                  <span>{{ t.form.uploadImage }}</span>
                   } @else if (helpPhotos.length < 5) {
                   <ion-icon name="add-circle-outline"></ion-icon>
-                  <span>继续添加</span>
+                  <span>{{ t.form.continueAdd }}</span>
                   }
                 </div>
               </div>
@@ -361,8 +407,12 @@
           />
 
           <div class="modal-actions">
-            <button type="button" class="modal-btn modal-btn-secondary" (click)="showHelpModal = false">
-              取消
+            <button
+              type="button"
+              class="modal-btn modal-btn-secondary"
+              (click)="showHelpModal = false"
+            >
+              {{ t.form.cancel }}
             </button>
             <button
               type="button"
@@ -379,7 +429,10 @@
   </ion-modal>
 
   <!-- 认证资格弹窗 -->
-  <ion-modal [isOpen]="showIdentityModal" (didDismiss)="showIdentityModal = false">
+  <ion-modal
+    [isOpen]="showIdentityModal"
+    (didDismiss)="showIdentityModal = false"
+  >
     <ng-template>
       <ion-header [translucent]="true">
         <ion-toolbar>
@@ -394,10 +447,12 @@
       <ion-content class="modal-content">
         <form [formGroup]="identityForm">
           <div class="form-section">
-            <p class="form-section-title">身份信息</p>
+            <p class="form-section-title">{{ t.form.identityInfo }}</p>
 
             <div class="form-row">
-              <label class="form-row-label">{{ t.form.realName }} <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.realName }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
                 <input
                   class="form-input"
@@ -408,7 +463,9 @@
             </div>
 
             <div class="form-row">
-              <label class="form-row-label">{{ t.form.phone }} <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.phone }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
                 <input
                   class="form-input"
@@ -421,7 +478,9 @@
             </div>
 
             <div class="form-row">
-              <label class="form-row-label">{{ t.form.idCard }} <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.idCard }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
                 <input
                   class="form-input"
@@ -433,7 +492,9 @@
             </div>
 
             <div class="form-row">
-              <label class="form-row-label">{{ t.form.area }} <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.area }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
                 <button
                   type="button"
@@ -448,12 +509,14 @@
             </div>
 
             <div class="form-row">
-              <label class="form-row-label">{{ t.form.role }} <span class="required">*</span></label>
+              <label class="form-row-label"
+                >{{ t.form.role }} <span class="required">*</span></label
+              >
               <div class="form-row-content">
                 <select
                   class="form-input"
                   formControlName="ProviderRole"
-                  style="appearance: auto;"
+                  style="appearance: auto"
                 >
                   <option value="" disabled selected>{{ t.form.role }}</option>
                   <option value="1">{{ t.authDesc.split(' ')[0] }}</option>
@@ -477,13 +540,19 @@
           </div>
 
           <div class="form-section">
-            <p class="form-section-title">{{ t.form.uploadIdCard }} <span class="required" style="text-transform:none;">*</span></p>
+            <p class="form-section-title">
+              {{ t.form.uploadIdCard }}
+              <span class="required" style="text-transform: none">*</span>
+            </p>
             <div class="photo-section">
               <div class="photo-grid">
                 @for (photo of idCardPhotos; track $index; let i = $index) {
                 <div class="photo-item">
                   <img [src]="photo" alt="身份证" />
-                  <span class="photo-remove" (click)="removePhoto(i, 'idcard'); $event.stopPropagation()">
+                  <span
+                    class="photo-remove"
+                    (click)="removePhoto(i, 'idcard'); $event.stopPropagation()"
+                  >
                     <ion-icon name="close-circle"></ion-icon>
                   </span>
                 </div>
@@ -491,10 +560,10 @@
                 <div class="upload-btn" (click)="triggerFileInput('idcard')">
                   @if (idCardPhotos.length === 0) {
                   <ion-icon name="image-outline"></ion-icon>
-                  <span>上传</span>
+                  <span>{{ t.form.upload }}</span>
                   } @else if (idCardPhotos.length < IDCARD_MAX) {
                   <ion-icon name="add-circle-outline"></ion-icon>
-                  <span>添加</span>
+                  <span>{{ t.form.addTag }}</span>
                   }
                 </div>
               </div>
@@ -502,13 +571,19 @@
           </div>
 
           <div class="form-section">
-            <p class="form-section-title">{{ t.form.uploadCert }} <span class="required" style="text-transform:none;">*</span></p>
+            <p class="form-section-title">
+              {{ t.form.uploadCert }}
+              <span class="required" style="text-transform: none">*</span>
+            </p>
             <div class="photo-section">
               <div class="photo-grid">
                 @for (photo of certPhotos; track $index; let i = $index) {
                 <div class="photo-item">
                   <img [src]="photo" alt="证书" />
-                  <span class="photo-remove" (click)="removePhoto(i, 'cert'); $event.stopPropagation()">
+                  <span
+                    class="photo-remove"
+                    (click)="removePhoto(i, 'cert'); $event.stopPropagation()"
+                  >
                     <ion-icon name="close-circle"></ion-icon>
                   </span>
                 </div>
@@ -516,22 +591,40 @@
                 <div class="upload-btn" (click)="triggerFileInput('cert')">
                   @if (certPhotos.length === 0) {
                   <ion-icon name="image-outline"></ion-icon>
-                  <span>上传</span>
+                  <span>{{ t.form.upload }}</span>
                   } @else if (certPhotos.length < CERT_MAX) {
                   <ion-icon name="add-circle-outline"></ion-icon>
-                  <span>添加</span>
+                  <span>{{ t.form.addTag }}</span>
                   }
                 </div>
               </div>
             </div>
           </div>
 
-          <input #idCardFileInput type="file" accept="image/*" multiple (change)="onFileSelected($event, 'idcard')" style="display: none" />
-          <input #certFileInput type="file" accept="image/*" multiple (change)="onFileSelected($event, 'cert')" style="display: none" />
+          <input
+            #idCardFileInput
+            type="file"
+            accept="image/*"
+            multiple
+            (change)="onFileSelected($event, 'idcard')"
+            style="display: none"
+          />
+          <input
+            #certFileInput
+            type="file"
+            accept="image/*"
+            multiple
+            (change)="onFileSelected($event, 'cert')"
+            style="display: none"
+          />
 
           <div class="modal-actions">
-            <button type="button" class="modal-btn modal-btn-secondary" (click)="showIdentityModal = false">
-              取消
+            <button
+              type="button"
+              class="modal-btn modal-btn-secondary"
+              (click)="showIdentityModal = false"
+            >
+              {{ t.form.cancel }}
             </button>
             <button
               type="button"

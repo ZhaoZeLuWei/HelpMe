@@ -93,7 +93,10 @@ import {
   ],
 })
 export class ParticularPage implements OnInit {
-  t: any;
+  private languageService = inject(LanguageService);
+
+  // 翻译对象 - 声明时就初始化
+  t = this.languageService.getTranslations('zh').particular;
 
   constructor() {
     addIcons({
@@ -123,7 +126,6 @@ export class ParticularPage implements OnInit {
   private toastController = inject(ToastController);
   private navCtrl = inject(NavController);
   private fb = inject(FormBuilder);
-  private languageService = inject(LanguageService);
   readonly apiBase = environment.apiBase;
 
   @ViewChild('editEventModal')
@@ -171,11 +173,9 @@ export class ParticularPage implements OnInit {
   previewPhotoIndex = 0;
 
   ngOnInit() {
-    this.t = this.languageService.getTranslations(
-      this.languageService.getCurrentLang(),
-    );
+    // 监听语言变化
     this.languageService.currentLang$.subscribe((lang) => {
-      this.t = this.languageService.getTranslations(lang);
+      this.t = this.languageService.getTranslations(lang).particular;
     });
     this.route.queryParams.subscribe((params) => {
       const eventId = params['eventId'];
@@ -271,13 +271,13 @@ export class ParticularPage implements OnInit {
   getServiceRoleText(providerRole: number): string {
     switch (providerRole) {
       case 1:
-        return '热心群众';
+        return this.t.roleEnthusiast;
       case 2:
-        return '专业人士';
+        return this.t.roleProfessional;
       case 3:
-        return '商家';
+        return this.t.roleMerchant;
       default:
-        return '普通用户';
+        return this.t.roleRegular;
     }
   }
 
@@ -323,14 +323,14 @@ export class ParticularPage implements OnInit {
     if (!this.event) return;
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录后使用');
+      this.showToast(this.t.loginRequired);
       this.router.navigate(['/tabs/tab4'], {
         queryParams: { returnEventId: this.event?.id },
       });
       return;
     }
     if (!this.canCreateOrder) {
-      this.showToast('该事件当前存在未完结订单，暂不可下单');
+      this.showToast(this.t.orderInProgress);
       return;
     }
     // 预选事件地址为下单地址
@@ -368,7 +368,7 @@ export class ParticularPage implements OnInit {
   async submitOrder() {
     if (!this.event || this.isSubmittingOrder) return;
     if (this.orderForm.invalid) {
-      this.showToast('请填写完整信息');
+      this.showToast(this.t.fillComplete);
       return;
     }
 
@@ -390,16 +390,16 @@ export class ParticularPage implements OnInit {
       });
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.success) {
-        this.showToast(data?.error || '下单失败');
+        this.showToast(data?.error || this.t.orderFailed);
         return;
       }
       this.closeOrderModal();
       this.canCreateOrder = false;
       this.activeOrder = { OrderId: data.orderId, OrderStatus: 0 };
-      this.showToast('下单成功，等待卖家确认');
+      this.showToast(this.t.orderSuccess);
     } catch (e) {
       console.error('submitOrder error', e);
-      this.showToast('网络错误，请稍后重试');
+      this.showToast(this.t.networkError);
     } finally {
       this.isSubmittingOrder = false;
     }
@@ -408,7 +408,7 @@ export class ParticularPage implements OnInit {
   async onFollow() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录后使用');
+      this.showToast(this.t.loginRequired);
       this.router.navigate(['/tabs/tab4'], {
         queryParams: { returnEventId: this.event?.id },
       });
@@ -418,14 +418,14 @@ export class ParticularPage implements OnInit {
     const result = await this.authService.toggleFollow(this.event.creatorId);
     if (result !== null) {
       this.isFollowingCreator = result;
-      this.showToast(result ? '已关注' : '已取消关注');
+      this.showToast(result ? this.t.followed : this.t.unfollowed);
     }
   }
 
   async onCollect() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录后使用');
+      this.showToast(this.t.loginRequired);
       this.router.navigate(['/tabs/tab4'], {
         queryParams: { returnEventId: this.event?.id },
       });
@@ -435,7 +435,7 @@ export class ParticularPage implements OnInit {
     const result = await this.authService.toggleFavorite(Number(this.event.id));
     if (result !== null) {
       this.isFavorited = result;
-      this.showToast(result ? '已收藏' : '已取消收藏');
+      this.showToast(result ? this.t.favorited : this.t.unfavorited);
     }
   }
 
@@ -462,7 +462,7 @@ export class ParticularPage implements OnInit {
   async onChat() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      this.showToast('请先登录后使用');
+      this.showToast(this.t.loginRequired);
       this.router.navigate(['/tabs/tab4'], {
         queryParams: { returnEventId: this.event?.id },
       });
@@ -567,15 +567,15 @@ export class ParticularPage implements OnInit {
       const data = await resp.json();
 
       if (data.success) {
-        this.showToast('修改成功');
+        this.showToast(this.t.editSuccess);
         this.closeEditModal();
         this.loadEventDetail(String(this.event.id));
       } else {
-        this.showToast(data.error || '修改失败');
+        this.showToast(data.error || this.t.editFailed);
       }
     } catch (e) {
       console.error('提交修改失败', e);
-      this.showToast('网络错误，请稍后重试');
+      this.showToast(this.t.networkError);
     } finally {
       this.isSavingEdit = false;
     }

@@ -6,6 +6,7 @@ import {
   inject,
   ViewChild,
   ElementRef,
+  NgZone,
 } from '@angular/core';
 import { io } from 'socket.io-client';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -49,6 +50,7 @@ import { ChatHistory } from '../../models/chatHistory.model';
 
 //import Service
 import { AuthService } from '../../services/auth.service';
+import { LanguageService } from '../../services/language.service';
 import {
   ReviewModalComponent,
   ReviewSubmitPayload,
@@ -106,6 +108,11 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   private toastCtrl = inject(ToastController);
   private alertCtrl = inject(AlertController);
   private modalCtrl = inject(ModalController);
+  private langService = inject(LanguageService);
+  private zone = inject(NgZone);
+
+  // 翻译对象
+  t = this.langService.getTranslations('zh').chatDetail;
 
   //get user info from chat list page(Tab3)
   roomInfoTab3: any;
@@ -137,13 +144,23 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   isEventRoom = false;
   eventInfo: any = null;
   showEventInfo = false;
-  readonly orderStatusMap: Record<number, string> = {
-    0: '待确认',
-    1: '进行中',
-    2: '待评价',
-    3: '已完成',
-    4: '已取消',
+  orderStatusMap: Record<number, string> = {
+    0: this.t.statusPending,
+    1: this.t.statusActive,
+    2: this.t.statusReview,
+    3: this.t.statusCompleted,
+    4: this.t.statusCancelled,
   };
+
+  private updateOrderStatusMap() {
+    this.orderStatusMap = {
+      0: this.t.statusPending,
+      1: this.t.statusActive,
+      2: this.t.statusReview,
+      3: this.t.statusCompleted,
+      4: this.t.statusCancelled,
+    };
+  }
 
   readonly orderColorMap: Record<number, string> = {
     0: 'warning',
@@ -165,6 +182,14 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       handLeft,
       heart,
     });
+
+    // 监听语言变化
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).chatDetail;
+      // 更新订单状态映射
+      this.updateOrderStatusMap();
+    });
+
     //get user from Node server first
     this.getUserFromService = this.auth.currentUser;
 
@@ -265,19 +290,27 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       await toast.present();
     });
 
-    // 监听订单状态更新
+    // 监听订单状态更新（socket 回调在 Angular zone 外，需手动触发变更检测）
     this.socket.on('orderStatusUpdate', (data: any) => {
-      if (data && this.orderInfo && data.orderId === this.orderInfo.OrderId) {
-        this.orderInfo.OrderStatus = data.newStatus;
-        this.showToast(data.message || '订单状态已更新');
-      }
+      this.zone.run(() => {
+        if (data && this.orderInfo && data.orderId === this.orderInfo.OrderId) {
+          this.orderInfo.OrderStatus = data.newStatus;
+          // 当双方都评价完毕（状态变为3）时，刷新完整订单信息以同步评价状态
+          if (data.newStatus === 3) {
+            this.loadOrderInfo(this.roomId);
+          }
+          this.showToast(data.message || this.t.orderStatusUpdated);
+        }
+      });
     });
 
     // 监听新订单创建（对方下单后刷新订单信息）
     this.socket.on('orderCreated', (data: any) => {
-      if (data && data.roomId === this.roomId) {
-        this.loadOrderInfo(this.roomId);
-      }
+      this.zone.run(() => {
+        if (data && data.roomId === this.roomId) {
+          this.loadOrderInfo(this.roomId);
+        }
+      });
     });
 
     // 监听内容审核失败
@@ -291,6 +324,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     this.http
       .get<ChatHistory>(
         `${environment.apiBase}/api/messages/history?roomId=${roomId}&pageSize=100&sortOrder=desc`,
+        { headers: { ...this.auth.getAuthHeader() } },
       )
       .subscribe({
         next: (res) => {
@@ -354,11 +388,11 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
     // 校验文件类型和大小
     if (!file.type.startsWith('image/')) {
-      this.showToast('请选择图片文件');
+      this.showToast(this.t.selectImage);
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      this.showToast('图片不能超过10MB');
+      this.showToast(this.t.imageTooLarge);
       return;
     }
 
@@ -376,12 +410,12 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        throw new Error(errData?.error || '上传失败');
+        throw new Error(errData?.error || this.t.uploadFailed);
       }
 
       const data = await res.json();
       if (!data.success || !data.paths?.length) {
-        throw new Error('上传返回数据异常');
+        throw new Error(this.t.uploadFailed);
       }
 
       const imageUrl = data.paths[0];
@@ -392,7 +426,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
         imageUrl: imageUrl,
       });
     } catch (err: any) {
-      this.showToast(err.message || '图片上传失败，请重试');
+      this.showToast(err.message || this.t.uploadError);
       console.error('图片上传失败:', err);
     } finally {
       this.uploadingImage.set(false);
@@ -541,12 +575,12 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     if (!this.orderInfo) return '';
     const status = this.orderInfo.OrderStatus;
     if (status === 2) {
-      if (this.hasReviewed && this.otherHasReviewed) return '双方已评价';
-      if (this.hasReviewed) return '我方已评价，等待对方';
-      if (this.otherHasReviewed) return '对方已评价，待我方评价';
-      return '待评价';
+      if (this.hasReviewed && this.otherHasReviewed) return this.t.bothReviewed;
+      if (this.hasReviewed) return this.t.selfReviewed;
+      if (this.otherHasReviewed) return this.t.otherReviewed;
+      return this.t.statusReview;
     }
-    return this.orderStatusMap[status] || '未知状态';
+    return this.orderStatusMap[status] || '';
   }
 
   get orderStatusColor(): string {
@@ -559,12 +593,15 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     this.http
       .get<any>(`${environment.apiBase}/api/rooms/${roomId}/order-info`, {
         params: { userId: String(userId) },
+        headers: { ...this.auth.getAuthHeader() },
       })
       .subscribe({
         next: (res) => {
           if (res.success && res.data?.order) {
             this.orderInfo = res.data.order;
             this.isOrderRoom = true;
+            // 有订单时不显示事件状态栏
+            this.isEventRoom = false;
             // 如果订单关联了事件，同时加载事件信息
             if (res.data.eventId) {
               this.loadEventInfo(res.data.eventId);
@@ -616,7 +653,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   }
 
   getEventTypeLabel(type: number): string {
-    return type === 1 ? '帮助' : '求助';
+    return type === 1 ? this.t.typeHelp : this.t.typeRequest;
   }
 
   /** 判断当前用户是否是买家 */
@@ -665,28 +702,29 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       const data = await res.json();
       if (data.success) {
         this.orderInfo.OrderStatus = 1;
-        this.showToast('订单已确认');
+        this.orderInfo.PaymentTime = new Date().toISOString();
+        this.showToast(this.t.confirmSuccess);
       } else {
-        this.showToast(data.error || '确认失败');
+        this.showToast(data.error || this.t.confirmFailed);
       }
     } catch {
-      this.showToast('网络错误');
+      this.showToast(this.t.networkError);
     }
   }
 
   async cancelOrder() {
     if (!this.orderInfo?.OrderId) return;
     const alert = await this.alertCtrl.create({
-      header: '确认取消订单',
-      message: '取消后将无法恢复，确定要取消这个订单吗？',
+      header: this.t.cancelTitle,
+      message: this.t.cancelMessage,
       cssClass: 'cancel-order-alert',
       buttons: [
         {
-          text: '再想想',
+          text: this.t.cancelThinkAgain,
           role: 'cancel',
         },
         {
-          text: '确认取消',
+          text: this.t.cancelConfirm,
           role: 'destructive',
           handler: async () => {
             try {
@@ -703,12 +741,13 @@ export class ChatDetailPage implements OnInit, OnDestroy {
               const data = await res.json();
               if (data.success) {
                 this.orderInfo.OrderStatus = 4;
-                this.showToast('订单已取消');
+                this.orderInfo.RefundTime = new Date().toISOString();
+                this.showToast(this.t.orderCancelled);
               } else {
-                this.showToast(data.error || '取消失败');
+                this.showToast(data.error || this.t.submitFailed);
               }
             } catch {
-              this.showToast('网络错误');
+              this.showToast(this.t.networkError);
             }
           },
         },
@@ -733,12 +772,13 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       const data = await res.json();
       if (data.success) {
         this.orderInfo.OrderStatus = 2;
-        this.showToast('订单已完成，请评价');
+        this.orderInfo.CompletionTime = new Date().toISOString();
+        this.showToast(this.t.orderCompleted);
       } else {
-        this.showToast(data.error || '操作失败');
+        this.showToast(data.error || this.t.submitFailed);
       }
     } catch {
-      this.showToast('网络错误');
+      this.showToast(this.t.networkError);
     }
   }
 
@@ -749,7 +789,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   openReviewModal() {
     this.closeOrderPreview();
     if (this.hasReviewed) {
-      this.showToast('你已经评价过该订单');
+      this.showToast(this.t.alreadyReviewed);
       return;
     }
     this.isReviewModalOpen = true;
@@ -794,14 +834,20 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       });
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.success) {
-        this.showToast(data?.error || '提交失败');
+        this.showToast(data?.error || this.t.submitFailed);
         return;
       }
       this.closeReviewModal();
-      this.refreshOrderInfo();
-      this.showToast('评价已提交');
+      // 立即在本地标记已评价，避免等待网络请求
+      if (this.orderInfo) {
+        this.orderInfo.HasReviewed = 1;
+        this.orderInfo.ReviewCount = (this.orderInfo.ReviewCount || 0) + 1;
+      }
+      this.showToast(this.t.reviewSubmitted);
+      // 通过 roomId 端点刷新完整订单信息（避免 /orders/:id 可能的 404）
+      this.loadOrderInfo(this.roomId);
     } catch {
-      this.showToast('网络错误');
+      this.showToast(this.t.networkError);
     } finally {
       this.isSubmittingReview = false;
     }
@@ -816,22 +862,6 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
   closeReviewDetail() {
     this.isReviewDetailOpen = false;
-  }
-
-  /** 刷新订单状态 */
-  refreshOrderInfo() {
-    if (!this.orderInfo?.OrderId) return;
-    this.http
-      .get<any>(`${environment.apiBase}/orders/${this.orderInfo.OrderId}`, {
-        headers: this.auth.getAuthHeader() as any,
-      })
-      .subscribe({
-        next: (res) => {
-          if (res.success && res.data?.order) {
-            this.orderInfo = res.data.order;
-          }
-        },
-      });
   }
 
   ngOnDestroy() {

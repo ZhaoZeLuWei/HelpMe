@@ -27,10 +27,20 @@ function signToken(user, role = "user") {
 }
 
 function authRequired(req, res, next) {
+  // 支持从 Authorization header 或 query parameter 获取 token
+  // query parameter 用于 <img> 标签等无法设置自定义 header 的场景
+  let token = null;
   const header = req.headers.authorization || "";
-  const [type, token] = header.split(" ");
+  const [type, headerToken] = header.split(" ");
 
-  if (type !== "Bearer" || !token) {
+  if (type === "Bearer" && headerToken) {
+    token = headerToken;
+  } else if (req.query && req.query.token) {
+    // 从 query parameter 获取 token
+    token = req.query.token;
+  }
+
+  if (!token) {
     return res.status(401).json({ success: false, error: "当前用户未登录" });
   }
 

@@ -6,44 +6,42 @@
         [disabled]="true"
         [placeholder]="t.searchPlaceholder"
         [animated]="true"
-        show-clear-button="never">
+        show-clear-button="never"
+      >
       </ion-searchbar>
     </div>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-
   <!-- AI 智能推荐区域 -->
   @if (aiRecommendation) {
-    <div class="ai-recommendation">
-      <div class="ai-header">
-        <div class="ai-header-left">
-          <ion-icon name="sparkles-outline" color="primary"></ion-icon>
-          <span>AI 智能推荐</span>
-        </div>
-        <span class="ai-header-count">共 {{ eventsData().length }} 条结果</span>
+  <div class="ai-recommendation">
+    <div class="ai-header">
+      <div class="ai-header-left">
+        <ion-icon name="sparkles-outline" color="primary"></ion-icon>
+        <span>{{ t.aiRecommendation }}</span>
       </div>
-      <div class="ai-keyword">
-        搜索分析：<span class="ai-keyword-tag">{{ aiKeyword }}</span>
-      </div>
-      <div class="ai-content">
-        {{ aiRecommendation }}
-      </div>
+      <span class="ai-header-count"
+        >{{ eventsData().length }} {{ t.resultCount }}</span
+      >
     </div>
+    <div class="ai-keyword">
+      {{ t.searchAnalysis }}<span class="ai-keyword-tag">{{ aiKeyword }}</span>
+    </div>
+    <div class="ai-content">{{ aiRecommendation }}</div>
+  </div>
   }
 
   <!-- 调用搜索组件，用于显示搜索结果 -->
-  <app-universal-search [dataSource]="eventsData()" [detailRoute]="'/tabs/tab2/detail'" (typeChange)="onTypeChange($event)">
-
+  <app-universal-search
+    [dataSource]="eventsData()"
+    [detailRoute]="'/tabs/tab2/detail'"
+    (typeChange)="onTypeChange($event)"
+  >
     <ng-template #cardTemplate let-event="event" let-onClick="onItemClick">
-
-      <app-show-event
-        [event]="event"
-        (cardClick)="onClick(event)">
+      <app-show-event [event]="event" (cardClick)="onClick(event)">
       </app-show-event>
-
     </ng-template>
-
   </app-universal-search>
 </ion-content>

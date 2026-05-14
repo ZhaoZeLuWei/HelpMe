@@ -38,7 +38,7 @@
       <p><strong>地点：</strong>{{ orderInfo.Location }}</p>
       <p><strong>描述：</strong>{{ orderInfo.EventDetails }}</p>
       <p>
-        <strong>下单时间：</strong>{{ orderInfo.OrderCreateTime |
+        <strong>{{ t.orderTime }}：</strong>{{ orderInfo.OrderCreateTime |
         date:'yyyy-MM-dd HH:mm' }}
       </p>
       <div class="order-actions">
@@ -142,28 +142,28 @@
           </div>
           <div class="message-bubble">
             @if (msg.messageType === 'image' && msg.imageUrl) {
-              <div class="msg-image-wrap">
-                <img
-                  [src]="env.apiBase + msg.imageUrl"
-                  alt="图片消息"
-                  class="msg-image"
-                  (click)="previewImage(env.apiBase + msg.imageUrl)"
-                />
+            <div class="msg-image-wrap">
+              <img
+                [src]="env.apiBase + msg.imageUrl"
+                alt="图片消息"
+                class="msg-image"
+                (click)="previewImage(env.apiBase + msg.imageUrl)"
+              />
+            </div>
+            @if (msg.text) {
+            <p class="msg-image-caption">{{ msg.text }}</p>
+            } } @else if (msg.messageType === 'location' && msg.location) {
+            <div class="msg-location" (click)="openMapLocation(msg.location!)">
+              <ion-icon name="location-outline" class="loc-icon"></ion-icon>
+              <div class="loc-info">
+                <span class="loc-address">{{ msg.location.address }}</span>
+                <span class="loc-coords"
+                  >{{ msg.location.lat.toFixed(4) }}, {{
+                  msg.location.lng.toFixed(4) }}</span
+                >
               </div>
-              @if (msg.text) {
-                <p class="msg-image-caption">{{ msg.text }}</p>
-              }
-            } @else if (msg.messageType === 'location' && msg.location) {
-              <div class="msg-location" (click)="openMapLocation(msg.location!)">
-                <ion-icon name="location-outline" class="loc-icon"></ion-icon>
-                <div class="loc-info">
-                  <span class="loc-address">{{ msg.location.address }}</span>
-                  <span class="loc-coords">{{ msg.location.lat.toFixed(4) }}, {{ msg.location.lng.toFixed(4) }}</span>
-                </div>
-              </div>
-            } @else {
-              {{ msg.text }}
-            }
+            </div>
+            } @else { {{ msg.text }} }
           </div>
         </div>
       </div>
@@ -183,14 +183,27 @@
         hidden
         (change)="onFileSelected($event)"
       />
-      <ion-button slot="start" fill="clear" size="small" (click)="triggerFileInput()" [disabled]="uploadingImage()" class="chat-action-btn">
+      <ion-button
+        slot="start"
+        fill="clear"
+        size="small"
+        (click)="triggerFileInput()"
+        [disabled]="uploadingImage()"
+        class="chat-action-btn"
+      >
         @if (uploadingImage()) {
-          <ion-spinner name="crescent" slot="icon-only"></ion-spinner>
+        <ion-spinner name="crescent" slot="icon-only"></ion-spinner>
         } @else {
-          <ion-icon slot="icon-only" name="image-outline"></ion-icon>
+        <ion-icon slot="icon-only" name="image-outline"></ion-icon>
         }
       </ion-button>
-      <ion-button slot="start" fill="clear" size="small" (click)="sendLocation()" class="chat-action-btn">
+      <ion-button
+        slot="start"
+        fill="clear"
+        size="small"
+        (click)="sendLocation()"
+        class="chat-action-btn"
+      >
         <ion-icon slot="icon-only" name="location-outline"></ion-icon>
       </ion-button>
       <ion-input
@@ -270,12 +283,33 @@
         </div>
         }
         <div class="info-row">
-          <span class="info-label">下单时间</span>
+          <span class="info-label">{{ t.orderTime }}</span>
           <span class="info-value"
             >{{ orderInfo.OrderCreateTime | date:'yyyy-MM-dd HH:mm' }}</span
           >
         </div>
-        @if (orderInfo.EventDetails) {
+        @if (orderInfo.PaymentTime) {
+        <div class="info-row">
+          <span class="info-label">{{ t.confirmTime }}</span>
+          <span class="info-value"
+            >{{ orderInfo.PaymentTime | date:'yyyy-MM-dd HH:mm' }}</span
+          >
+        </div>
+        } @if (orderInfo.CompletionTime) {
+        <div class="info-row">
+          <span class="info-label">{{ t.completeTime }}</span>
+          <span class="info-value"
+            >{{ orderInfo.CompletionTime | date:'yyyy-MM-dd HH:mm' }}</span
+          >
+        </div>
+        } @if (orderInfo.RefundTime) {
+        <div class="info-row">
+          <span class="info-label">{{ t.cancelTime }}</span>
+          <span class="info-value"
+            >{{ orderInfo.RefundTime | date:'yyyy-MM-dd HH:mm' }}</span
+          >
+        </div>
+        } @if (orderInfo.EventDetails) {
         <div class="info-row">
           <span class="info-label">事件描述</span>
           <span class="info-value description"
@@ -322,7 +356,22 @@
         >
           查看评价
         </ion-button>
-        } @if (orderInfo.OrderStatus === 3 && hasReviewed) {
+        } @if (orderInfo.OrderStatus === 3 && !hasReviewed && !otherHasReviewed)
+        {
+        <ion-button expand="block" color="tertiary" (click)="openReviewModal()">
+          去评价
+        </ion-button>
+        } @if (orderInfo.OrderStatus === 3 && hasReviewed && !otherHasReviewed)
+        {
+        <ion-button expand="block" fill="outline" color="medium" disabled>
+          已评价，等待对方
+        </ion-button>
+        } @if (orderInfo.OrderStatus === 3 && !hasReviewed && otherHasReviewed)
+        {
+        <ion-button expand="block" color="tertiary" (click)="openReviewModal()">
+          去评价
+        </ion-button>
+        } @if (orderInfo.OrderStatus === 3 && hasReviewed && otherHasReviewed) {
         <ion-button
           expand="block"
           fill="outline"

@@ -33,14 +33,11 @@ export class RegisterPage {
   private languageService = inject(LanguageService);
   private captchaService = inject(AliyunCaptchaService);
 
-  t: any;
+  t = this.languageService.getTranslations('zh').register;
 
   constructor() {
-    this.t = this.languageService.getTranslations(
-      this.languageService.getCurrentLang(),
-    );
     this.languageService.currentLang$.subscribe((lang) => {
-      this.t = this.languageService.getTranslations(lang);
+      this.t = this.languageService.getTranslations(lang).register;
     });
   }
 
@@ -97,7 +94,7 @@ export class RegisterPage {
   async sendCode() {
     if (this.verifyForm.controls.phone.invalid) {
       const t = await this.toastCtrl.create({
-        message: '请输入有效的11位手机号',
+        message: this.t.invalidPhone,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -123,7 +120,7 @@ export class RegisterPage {
       if (!resp.ok || !data?.success) {
         this.sending.set(false);
         const t = await this.toastCtrl.create({
-          message: data?.error || '检查手机号失败，请稍后重试',
+          message: data?.error || this.t.phoneCheckFailed,
           duration: 2000,
           position: 'bottom',
           positionAnchor: 'main-tab-bar',
@@ -135,7 +132,7 @@ export class RegisterPage {
       if (data.exists) {
         this.sending.set(false);
         const t = await this.toastCtrl.create({
-          message: '该手机号已注册，请直接登录',
+          message: this.t.phoneExists,
           duration: 2000,
           position: 'bottom',
           positionAnchor: 'main-tab-bar',
@@ -147,7 +144,7 @@ export class RegisterPage {
       console.error('Check phone error:', err);
       this.sending.set(false);
       const t = await this.toastCtrl.create({
-        message: '无法连接到服务器',
+        message: this.t.networkError,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -162,7 +159,7 @@ export class RegisterPage {
     } catch (err) {
       this.sending.set(false);
       const toast = await this.toastCtrl.create({
-        message: err instanceof Error ? err.message : '图形验证码加载失败',
+        message: err instanceof Error ? err.message : this.t.captchaLoadFailed,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -175,7 +172,7 @@ export class RegisterPage {
     if (!sendResult?.success) {
       this.sending.set(false);
       const toast = await this.toastCtrl.create({
-        message: sendResult?.error || '验证码发送失败',
+        message: sendResult?.error || this.t.codeSendFailed,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -185,7 +182,7 @@ export class RegisterPage {
     }
 
     const toast = await this.toastCtrl.create({
-      message: sendResult.message || '验证码已发送',
+      message: sendResult.message || this.t.codeSent,
       duration: 2000,
       position: 'bottom',
       positionAnchor: 'main-tab-bar',
@@ -206,7 +203,7 @@ export class RegisterPage {
   async nextStep() {
     if (this.verifyForm.invalid) {
       const t = await this.toastCtrl.create({
-        message: '请完善手机号和验证码',
+        message: this.t.formIncomplete,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -220,7 +217,7 @@ export class RegisterPage {
     const verifyResult = await this.auth.verifyVerificationCode(phone, code);
     if (!verifyResult?.success) {
       const t = await this.toastCtrl.create({
-        message: verifyResult?.error || '验证码错误',
+        message: verifyResult?.error || this.t.codeError,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -250,7 +247,7 @@ export class RegisterPage {
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
       const t = await this.toastCtrl.create({
-        message: '请选择图片文件',
+        message: this.t.selectImage,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -262,7 +259,7 @@ export class RegisterPage {
     // 验证文件大小（限制5MB）
     if (file.size > 5 * 1024 * 1024) {
       const t = await this.toastCtrl.create({
-        message: '图片大小不能超过5MB',
+        message: this.t.imageTooLarge,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -291,17 +288,17 @@ export class RegisterPage {
 
   async submit() {
     if (this.infoForm.invalid) {
-      let message = '请完善必填信息';
+      let message = this.t.formRequired;
       if (this.infoForm.controls.userName.invalid)
-        message = '请输入用户名（2-20个字符）';
+        message = this.t.userNameInvalid;
       else if (this.infoForm.controls.realName.invalid)
-        message = '请输入真实姓名（2-20个字符）';
+        message = this.t.realNameInvalid;
       else if (this.infoForm.controls.idCardNumber.invalid)
-        message = '请输入有效的18位身份证号';
+        message = this.t.idCardInvalid;
       else if (this.infoForm.controls.location.invalid)
-        message = '请输入所在地';
+        message = this.t.locationInvalid;
       else if (this.infoForm.controls.birthDate.invalid)
-        message = '请选择出生日期';
+        message = this.t.birthDateInvalid;
 
       const t = await this.toastCtrl.create({
         message,
@@ -354,7 +351,7 @@ export class RegisterPage {
     }
 
     const t = await this.toastCtrl.create({
-      message: `注册成功，欢迎您，${userName}！`,
+      message: this.t.registerSuccess.replace('${userName}', userName),
       duration: 2000,
       position: 'bottom',
       positionAnchor: 'main-tab-bar',

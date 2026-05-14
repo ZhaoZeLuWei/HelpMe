@@ -74,9 +74,6 @@ export class ConfigService {
     const script = document.createElement('script');
     script.src = `https://webapi.amap.com/maps?v=2.0&key=${this.config.amap.key}`;
     script.async = true;
-    script.onload = () => {
-      console.log('高德地图加载完成');
-    };
     script.onerror = () => {
       console.error('高德地图加载失败');
     };

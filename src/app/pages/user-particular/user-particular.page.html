@@ -7,12 +7,12 @@
       </ion-button>
     </ion-buttons>
     <!-- 页面标题 -->
-    <ion-title>{{ t.userParticular.title }}</ion-title>
+    <ion-title>{{ t.title }}</ion-title>
     <!-- 右侧：主页按钮 -->
     <ion-buttons slot="end">
       <ion-button (click)="goHome()">
         <ion-icon slot="start" name="home-outline"></ion-icon>
-        {{ t.userParticular.home }}
+        {{ t.home }}
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -26,7 +26,7 @@
         <div class="avatar-container">
           <img
             [src]="getAvatarUrl(userInfo?.avatar)"
-            [alt]="t.userParticular.userAvatar"
+            [alt]="t.userAvatar"
             class="user-avatar"
           />
         </div>
@@ -43,18 +43,16 @@
             </h3>
           </div>
           <p class="publisher-meta">
-            {{ t.userParticular.address }}{{ userInfo.location }}
+            {{ t.address }}{{ userInfo.location }}
             <br />
-            {{ t.userParticular.buyerRating }}{{ (userInfo.buyerRanking || 0)
-            }}分
+            {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }}分
             <br />
-            {{ t.userParticular.serviceRating }}{{ userInfo.serviceRanking }} 分
+            {{ t.serviceRating }}{{ userInfo.serviceRanking }} 分
             <br />
-            {{ t.userParticular.serviceCount }}{{ userInfo.orderCount }} 次
+            {{ t.serviceCount }}{{ userInfo.orderCount }} 次
           </p>
           <p class="user-introduction">
-            {{ t.userParticular.personalIntro }}{{ userInfo.introduction ||
-            t.userParticular.noIntroduction }}
+            {{ t.personalIntro }}{{ userInfo.introduction || t.noIntroduction }}
           </p>
         </div>
         <!-- 关注/编辑按钮 -->
@@ -62,7 +60,7 @@
           @if (isCurrentUser) {
           <ion-button fill="outline" size="small" (click)="goToEditProfile()">
             <ion-icon slot="start" name="create-outline"></ion-icon>
-            {{ t.userParticular.edit }}
+            {{ t.edit }}
           </ion-button>
           } @else {
           <ion-button
@@ -75,8 +73,7 @@
               slot="start"
               [name]="isFollowing ? 'heart' : 'heart-outline'"
             ></ion-icon>
-            {{ isFollowing ? t.userParticular.followed : t.userParticular.follow
-            }}
+            {{ isFollowing ? t.followed : t.follow }}
           </ion-button>
           }
         </div>
@@ -91,21 +88,21 @@
           [class.active]="activeTab === 'active-events'"
           (click)="switchTab('active-events')"
         >
-          {{ t.userParticular.publishedEvents }}
+          {{ t.publishedEvents }}
         </div>
         <div
           class="tab-item"
           [class.active]="activeTab === 'comments'"
           (click)="switchTab('comments')"
         >
-          {{ t.userParticular.reviews }}
+          {{ t.reviews }}
         </div>
         <div
           class="tab-item"
           [class.active]="activeTab === 'activity-feed'"
           (click)="switchTab('activity-feed')"
         >
-          {{ t.userParticular.history }}
+          {{ t.history }}
         </div>
       </div>
 
@@ -116,11 +113,11 @@
         <!-- 发布的活动栏 -->
         @if (activeTab === 'active-events') {
         <div class="tab-pane">
-          <h3>{{ t.userParticular.activeEvents }}</h3>
+          <h3>{{ t.activeEvents }}</h3>
           @if (activeEvents.length === 0) {
           <div class="empty-state">
             <ion-icon name="calendar-outline"></ion-icon>
-            <p>{{ t.userParticular.noActiveEvents }}</p>
+            <p>{{ t.noActiveEvents }}</p>
           </div>
           } @for (event of activeEvents; track event.EventId) {
           <div class="event-item" (click)="goToEventDetail(event)">
@@ -157,11 +154,11 @@
         <!-- 评价栏 -->
         @if (activeTab === 'comments') {
         <div class="tab-pane">
-          <h3>{{ t.userParticular.userReviews }}</h3>
+          <h3>{{ t.userReviews }}</h3>
           @if (userComments.length === 0) {
           <div class="empty-state">
             <ion-icon name="chatbubble-outline"></ion-icon>
-            <p>{{ t.userParticular.noReviews }}</p>
+            <p>{{ t.noReviews }}</p>
           </div>
           } @for (comment of userComments; track comment.id) {
           <div class="comment-item">
@@ -195,11 +192,11 @@
         <!-- 动态栏 -->
         @if (activeTab === 'activity-feed') {
         <div class="tab-pane">
-          <h3>{{ t.userParticular.activityFeed }}</h3>
+          <h3>{{ t.activityFeed }}</h3>
           @if (activityFeed.length === 0) {
           <div class="empty-state">
             <ion-icon name="time-outline"></ion-icon>
-            <p>{{ t.userParticular.noActivity }}</p>
+            <p>{{ t.noActivity }}</p>
           </div>
           } @for (activity of activityFeed; track activity.id) {
           <div class="activity-item" (click)="goToEventDetail(activity)">

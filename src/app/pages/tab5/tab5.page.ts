@@ -14,7 +14,11 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { NavController, ToastController, AlertController } from '@ionic/angular';
+import {
+  NavController,
+  ToastController,
+  AlertController,
+} from '@ionic/angular';
 import {
   IonButton,
   IonButtons,
@@ -264,18 +268,18 @@ export class Tab5Page implements OnInit, OnDestroy {
     const existingDetails = form.get('EventDetails')?.value?.trim();
 
     if (!input || input.length < 2) {
-      await this.toast('请先在标题中输入需求关键词（至少2个字）');
+      await this.toast(this.t.aiKeywordHint);
       return;
     }
 
     // 如果详细描述已有内容，确认是否覆盖
     if (existingDetails) {
       const alert = await this.alertCtrl.create({
-        header: '确认覆盖？',
-        message: 'AI 将重新生成详细描述，覆盖已填写的内容。',
+        header: this.t.aiConfirmOverwrite,
+        message: this.t.aiConfirmOverwriteMsg,
         buttons: [
-          { text: '取消', role: 'cancel' },
-          { text: '确认覆盖', role: 'destructive' },
+          { text: this.t.aiCancel, role: 'cancel' },
+          { text: this.t.aiConfirmOverwriteBtn, role: 'destructive' },
         ],
       });
       await alert.present();
@@ -294,10 +298,10 @@ export class Tab5Page implements OnInit, OnDestroy {
           EventDetails: result.details,
         });
       } else {
-        await this.toast('AI 填表失败，请稍后重试');
+        await this.toast(this.t.aiFailed);
       }
     } catch {
-      await this.toast('AI 填表失败，请稍后重试');
+      await this.toast(this.t.aiFailed);
     } finally {
       this.isAiGenerating = false;
     }
@@ -306,26 +310,27 @@ export class Tab5Page implements OnInit, OnDestroy {
   /** 手动添加自定义标签 */
   async addManualTag(formType: 'request' | 'help') {
     const alert = await this.alertCtrl.create({
-      header: '添加标签',
+      header: this.t.addTagTitle,
       inputs: [
-        { name: 'tag', type: 'text', placeholder: '输入标签名称，如：紧急' },
+        { name: 'tag', type: 'text', placeholder: this.t.addTagPlaceholder },
       ],
       buttons: [
-        { text: '取消', role: 'cancel' },
+        { text: this.t.aiCancel, role: 'cancel' },
         {
-          text: '添加',
+          text: this.t.addTagBtn,
           handler: (data) => {
             const tag = data.tag?.trim();
             if (!tag || tag.length < 1) {
-              this.toast('请输入标签名称');
+              this.toast(this.t.tagRequired);
               return false;
             }
             if (tag.length > 10) {
-              this.toast('标签最多10个字');
+              this.toast(this.t.tagTooLong);
               return false;
             }
             this.aiTags.push(tag);
-            const form = formType === 'request' ? this.requestForm : this.helpForm;
+            const form =
+              formType === 'request' ? this.requestForm : this.helpForm;
             form.patchValue({ EventCategory: this.aiTags.join('、') });
             return true;
           },
@@ -349,36 +354,34 @@ export class Tab5Page implements OnInit, OnDestroy {
 
     if (formType === 'request') {
       const f = this.requestForm;
-      if (f.get('EventTitle')?.invalid) msgs.push('标题必填');
-      if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim()) msgs.push('标签必填，请使用智能填表生成');
-      if (f.get('Location')?.invalid) msgs.push('位置必填');
-      if (f.get('EventDetails')?.invalid) msgs.push('详细描述必填');
-      if (f.get('Price')?.invalid)
-        msgs.push('期望价格必填且必须在 0 ~ 1000000 之间');
+      if (f.get('EventTitle')?.invalid) msgs.push(this.t.titleRequired);
+      if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim())
+        msgs.push(this.t.tagsRequired);
+      if (f.get('Location')?.invalid) msgs.push(this.t.locationRequired);
+      if (f.get('EventDetails')?.invalid) msgs.push(this.t.detailsRequired);
+      if (f.get('Price')?.invalid) msgs.push(this.t.priceInvalid);
     }
 
     if (formType === 'help') {
       const f = this.helpForm;
-      if (f.get('EventTitle')?.invalid) msgs.push('标题必填');
-      if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim()) msgs.push('标签必填，请使用智能填表生成');
-      if (f.get('Location')?.invalid) msgs.push('服务区域必填');
-      if (f.get('EventDetails')?.invalid) msgs.push('服务详情必填');
-      if (f.get('Price')?.invalid)
-        msgs.push('服务价格必填且必须在 0 ~ 1000000 之间');
+      if (f.get('EventTitle')?.invalid) msgs.push(this.t.titleRequired);
+      if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim())
+        msgs.push(this.t.tagsRequired);
+      if (f.get('Location')?.invalid) msgs.push(this.t.serviceLocationRequired);
+      if (f.get('EventDetails')?.invalid)
+        msgs.push(this.t.serviceDetailsRequired);
+      if (f.get('Price')?.invalid) msgs.push(this.t.servicePriceInvalid);
     }
 
     if (formType === 'identity') {
       const f = this.identityForm;
-      if (f.get('RealName')?.invalid) msgs.push('真实姓名必填');
-      if (f.get('IdCardNumber')?.invalid)
-        msgs.push('身份证号必填且格式正确（18位，末位可为X）');
-      if (f.get('Location')?.invalid) msgs.push('所在区域必填');
-      if (f.get('ProviderRole')?.invalid)
-        msgs.push('身份类型必填（请选择热心群众、专业人士或商家）');
+      if (f.get('RealName')?.invalid) msgs.push(this.t.realNameRequired);
+      if (f.get('IdCardNumber')?.invalid) msgs.push(this.t.idCardRequired);
+      if (f.get('Location')?.invalid) msgs.push(this.t.areaRequired);
+      if (f.get('ProviderRole')?.invalid) msgs.push(this.t.roleRequired);
 
-      if (this.idCardFiles.length === 0)
-        msgs.push('请上传身份证照片（正反面）');
-      if (this.certFiles.length === 0) msgs.push('请上传职业证书照片');
+      if (this.idCardFiles.length === 0) msgs.push(this.t.uploadIdCardRequired);
+      if (this.certFiles.length === 0) msgs.push(this.t.uploadCertRequired);
     }
 
     return msgs;
@@ -396,7 +399,7 @@ export class Tab5Page implements OnInit, OnDestroy {
 
     const msgs = this.collectInvalidMessages(formType);
     if (msgs.length === 0) {
-      await this.toast('请完善必填项后再提交');
+      await this.toast(this.t.completeRequired);
       return;
     }
 
@@ -407,7 +410,7 @@ export class Tab5Page implements OnInit, OnDestroy {
     const uid = this.auth.currentUserId;
     if (uid) return uid;
 
-    await this.toast('请先登录后再发布');
+    await this.toast(this.t.loginRequired);
     this.router.navigate(['/tabs/tab4']);
     return null;
   }
@@ -499,7 +502,7 @@ export class Tab5Page implements OnInit, OnDestroy {
     }
 
     if (photos.length >= max) {
-      void this.toast(`最多只能上传 ${max} 张图片`);
+      void this.toast(this.t.maxPhotos.replace('{max}', String(max)));
       return;
     }
 
@@ -591,7 +594,12 @@ export class Tab5Page implements OnInit, OnDestroy {
       // JWT 化后不再传 CreatorId（后端从 token 取）
       fd.append('EventTitle', String(v.EventTitle ?? ''));
       fd.append('EventType', String(v.EventType ?? 0));
-      fd.append('EventCategory', this.aiTags.length > 0 ? this.aiTags.join('、') : String(v.EventCategory ?? ''));
+      fd.append(
+        'EventCategory',
+        this.aiTags.length > 0
+          ? this.aiTags.join('、')
+          : String(v.EventCategory ?? ''),
+      );
       fd.append('Location', String(v.Location ?? ''));
       this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
@@ -602,7 +610,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       const data = await this.postFormData('/events', fd);
       if (!data) return;
 
-      await this.toast('发布成功');
+      await this.toast(this.t.publishSuccess);
 
       for (const u of this.requestPhotos) URL.revokeObjectURL(u);
       this.requestPhotos = [];
@@ -644,7 +652,12 @@ export class Tab5Page implements OnInit, OnDestroy {
       // JWT 化后不再传 CreatorId（后端从 token 取）
       fd.append('EventTitle', String(v.EventTitle ?? ''));
       fd.append('EventType', String(v.EventType ?? 1));
-      fd.append('EventCategory', this.aiTags.length > 0 ? this.aiTags.join('、') : String(v.EventCategory ?? ''));
+      fd.append(
+        'EventCategory',
+        this.aiTags.length > 0
+          ? this.aiTags.join('、')
+          : String(v.EventCategory ?? ''),
+      );
       fd.append('Location', String(v.Location ?? ''));
       this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
@@ -655,7 +668,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       const data = await this.postFormData('/events', fd);
       if (!data) return;
 
-      await this.toast('发布成功');
+      await this.toast(this.t.publishSuccess);
 
       for (const u of this.helpPhotos) URL.revokeObjectURL(u);
       this.helpPhotos = [];
@@ -712,7 +725,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       const data = await this.postFormData('/verifications', fd);
       if (!data) return;
 
-      await this.toast('认证提交成功，等待审核');
+      await this.toast(this.t.verifySubmitSuccess);
 
       for (const u of this.idCardPhotos) URL.revokeObjectURL(u);
       for (const u of this.certPhotos) URL.revokeObjectURL(u);

@@ -35,8 +35,19 @@ export class ListVerifyPostComponent implements OnInit {
   showWarningDialog = false;
   warningMessage = '';
 
+  // 图片预览
+  showPreview = false;
+  previewImageUrl = '';
+
   private api = inject(ServeAPIService);
   public baseUrl: string = this.api.getBaseUrl();
+
+  // 获取带token的图片URL（用于访问需要认证的敏感文件）
+  getSecureImageUrl(photoPath: string): string {
+    const token = this.api.getToken();
+    if (!token) return '';
+    return `${this.baseUrl}${photoPath}?token=${token}`;
+  }
 
   ngOnInit(): void {
     this.loadVerifyList();
@@ -221,5 +232,16 @@ export class ListVerifyPostComponent implements OnInit {
   closeWarning() {
     this.showWarningDialog = false;
     this.warningMessage = '';
+  }
+
+  // 图片预览相关
+  openPreview(imageUrl: string) {
+    this.previewImageUrl = imageUrl;
+    this.showPreview = true;
+  }
+
+  closePreview() {
+    this.showPreview = false;
+    this.previewImageUrl = '';
   }
 }

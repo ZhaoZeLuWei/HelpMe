@@ -1,38 +1,38 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>{{ t.login.title }}</ion-title>
+    <ion-title>{{ t.title }}</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="closeModal()">{{ t.login.close }}</ion-button>
+      <ion-button (click)="closeModal()">{{ t.close }}</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="login-content" [fullscreen]="true">
   <div class="step-container">
-    <h2>{{ t.login.welcome }}</h2>
-    <p class="step-desc">{{ t.login.desc }}</p>
+    <h2>{{ t.welcome }}</h2>
+    <p class="step-desc">{{ t.desc }}</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()">
       <ion-list>
         <ion-item>
-          <ion-label position="floating">{{ t.login.phoneLabel }}</ion-label>
+          <ion-label position="floating">{{ t.phoneLabel }}</ion-label>
           <ion-input
             type="tel"
             inputmode="numeric"
             formControlName="phone"
             [maxlength]="11"
-            [placeholder]="t.login.phonePlaceholder"
+            [placeholder]="t.phonePlaceholder"
           ></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating">{{ t.login.codeLabel }}</ion-label>
+          <ion-label position="floating">{{ t.codeLabel }}</ion-label>
           <ion-input
             type="tel"
             inputmode="numeric"
             formControlName="code"
             [maxlength]="4"
-            [placeholder]="t.login.codePlaceholder"
+            [placeholder]="t.codePlaceholder"
           ></ion-input>
           <ion-button
             slot="end"
@@ -40,22 +40,20 @@
             (click)="sendCode()"
             [disabled]="sendCooldown() > 0"
           >
-            @if (sendCooldown() === 0) { {{ t.login.sendCode }} } @if
-            (sendCooldown() > 0) { {{ sendCooldown() }}s }
+            @if (sendCooldown() === 0) { {{ t.sendCode }} } @if (sendCooldown()
+            > 0) { {{ sendCooldown() }}s }
           </ion-button>
         </ion-item>
       </ion-list>
 
       <div class="actions">
-        <ion-button expand="block" type="submit"
-          >{{ t.login.submit }}</ion-button
-        >
+        <ion-button expand="block" type="submit">{{ t.submit }}</ion-button>
         <ion-button expand="block" fill="outline" (click)="goToRegister()"
-          >{{ t.login.goToRegister }}</ion-button
+          >{{ t.goToRegister }}</ion-button
         >
       </div>
     </form>
 
-    <div class="hint">{{ t.login.hint }}</div>
+    <div class="hint">{{ t.hint }}</div>
   </div>
 </ion-content>

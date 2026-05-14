@@ -57,7 +57,8 @@ export class UserParticularPage implements OnInit {
   private languageService = inject(LanguageService);
   readonly apiBase = environment.apiBase;
 
-  t: any;
+  // 翻译对象 - 声明时就初始化
+  t = this.languageService.getTranslations('zh').userParticular;
 
   isCurrentUser: boolean = false;
   isFollowing: boolean = false;
@@ -99,11 +100,9 @@ export class UserParticularPage implements OnInit {
   }
 
   ngOnInit() {
-    this.t = this.languageService.getTranslations(
-      this.languageService.getCurrentLang(),
-    );
+    // 监听语言变化
     this.languageService.currentLang$.subscribe((lang) => {
-      this.t = this.languageService.getTranslations(lang);
+      this.t = this.languageService.getTranslations(lang).userParticular;
     });
     this.route.queryParams.subscribe((params) => {
       this.userInfo.name = params['name'] || '';
@@ -194,7 +193,7 @@ export class UserParticularPage implements OnInit {
             .map((event) => ({
               id: event.EventId,
               title: event.EventTitle,
-              description: event.EventDetails || '暂无描述',
+              description: event.EventDetails || this.t.noDescription,
               activityType: this.getActivityType(event.status),
               date: event.CreateTime,
               EventType: event.EventType,
@@ -208,12 +207,12 @@ export class UserParticularPage implements OnInit {
 
   getActivityType(status: string): string {
     const map: Record<string, string> = {
-      published: '发布活动',
-      inProgress: '活动进行中',
-      completed: '活动完成',
-      review: '待评价',
+      published: this.t.activityPublished,
+      inProgress: this.t.activityInProgress,
+      completed: this.t.activityCompleted,
+      review: this.t.activityReview,
     };
-    return map[status] || '活动';
+    return map[status] || this.t.activityDefault;
   }
 
   formatDate(dateString: string): string {
@@ -252,13 +251,13 @@ export class UserParticularPage implements OnInit {
   getServiceRoleText(providerRole: number): string {
     switch (providerRole) {
       case 1:
-        return '热心用户';
+        return this.t.roleEnthusiast;
       case 2:
-        return '服务达人';
+        return this.t.roleProfessional;
       case 3:
-        return '商家';
+        return this.t.roleMerchant;
       default:
-        return '普通用户';
+        return this.t.roleRegular;
     }
   }
 
@@ -280,7 +279,7 @@ export class UserParticularPage implements OnInit {
   }
 
   getTypeText(eventType: number): string {
-    return eventType === 1 ? '帮助' : '求助';
+    return eventType === 1 ? this.t.typeHelp : this.t.typeRequest;
   }
 
   getTypeColor(eventType: number): string {
@@ -342,7 +341,7 @@ export class UserParticularPage implements OnInit {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       const toast = await this.toastController.create({
-        message: '请先登录后使用',
+        message: this.t.loginRequired,
         duration: 2000,
         position: 'bottom',
       });
@@ -371,7 +370,7 @@ export class UserParticularPage implements OnInit {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
       const toast = await this.toastController.create({
-        message: '请先登录后使用',
+        message: this.t.loginRequired,
         duration: 2000,
         position: 'bottom',
       });
@@ -384,7 +383,7 @@ export class UserParticularPage implements OnInit {
     if (result !== null) {
       this.isFollowing = result;
       const toast = await this.toastController.create({
-        message: result ? '已关注' : '已取消关注',
+        message: result ? this.t.followed : this.t.unfollowed,
         duration: 2000,
         position: 'bottom',
       });

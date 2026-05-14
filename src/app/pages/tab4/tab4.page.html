@@ -382,6 +382,22 @@
               <strong>{{ t.orderTime }}</strong>{{ currentOrderDetail.createdAt
               }}
             </p>
+            @if (currentOrderDetail.confirmedAt) {
+            <p>
+              <strong>{{ t.confirmTime }}</strong>{{ currentOrderDetail.confirmedAt
+              }}
+            </p>
+            } @if (currentOrderDetail.completedAt) {
+            <p>
+              <strong>{{ t.completeTime }}</strong>{{ currentOrderDetail.completedAt
+              }}
+            </p>
+            } @if (currentOrderDetail.cancelledAt) {
+            <p>
+              <strong>{{ t.cancelTime }}</strong>{{ currentOrderDetail.cancelledAt
+              }}
+            </p>
+            }
             <p>
               <strong>{{ t.orderRole }}</strong>{{ currentOrderDetail.role ===
               'buyer' ? t.buyer : t.seller }}

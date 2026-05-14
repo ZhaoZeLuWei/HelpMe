@@ -27,6 +27,11 @@ export class ServeAPIService {
     return this.baseUrl;
   }
 
+  // 获取当前登录用户的token（用于图片等需要认证的资源请求）
+  getToken(): string | null {
+    return localStorage.getItem('admin_token');
+  }
+
   // ========== 认证审核相关 ==========
 
   // 获取所有providers及其认证状态（用于人员管理列表）

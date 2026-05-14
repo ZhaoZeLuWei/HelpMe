@@ -39,6 +39,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { environment } from '../../../environments/environment';
+import { LanguageService } from '../../services/language.service';
 
 export interface EventEditData {
   id: string | number;
@@ -107,8 +108,16 @@ export class EditEventModalComponent implements OnChanges {
   newPhotos: Array<{ file: File; preview: string }> = [];
 
   private toastController = inject(ToastController);
+  private langService = inject(LanguageService);
+
+  // 翻译对象
+  t = this.langService.getTranslations('zh').shared.editEventModal;
 
   constructor(private fb: FormBuilder) {
+    // 监听语言变化
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = this.langService.getTranslations(lang).shared.editEventModal;
+    });
     addIcons({ closeCircle, imageOutline, addCircleOutline });
     this.editForm = this.fb.group({
       EventTitle: ['', Validators.required],
@@ -208,9 +217,7 @@ export class EditEventModalComponent implements OnChanges {
     }
 
     if (oversized.length > 0) {
-      await this.showToast(
-        `以下文件超过10MB限制，无法上传：${oversized.join('、')}`,
-      );
+      await this.showToast(`${this.t.fileTooLarge}${oversized.join('、')}`);
     }
 
     for (const f of valid) {
@@ -272,12 +279,12 @@ export class EditEventModalComponent implements OnChanges {
       });
       const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.success || !Array.isArray(data.paths)) {
-        await this.showToast(data?.error || '图片上传失败，请重试');
+        await this.showToast(data?.error || this.t.uploadFailed);
         return null;
       }
       return data.paths;
     } catch {
-      await this.showToast('网络错误，图片上传失败');
+      await this.showToast(this.t.networkError);
       return null;
     }
   }

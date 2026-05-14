@@ -22,10 +22,13 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.0.0",
+    "mongoose": "^9.6.2",
     "multer": "^2.0.2",
     "mysql2": "^3.22.2",
-    "nodemon": "^3.1.11",
     "socket.io": "^4.8.1",
     "tencentcloud-sdk-nodejs": "^4.1.221"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
   }
 }
