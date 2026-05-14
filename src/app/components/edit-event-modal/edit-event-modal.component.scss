@@ -137,3 +137,50 @@
     }
   }
 }
+
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) .edit-modal-content {
+  .form-section {
+    .section-title {
+      font-size: 18px;
+      font-weight: 800;
+    }
+    ion-item {
+      --padding-start: 16px;
+      --padding-end: 16px;
+      margin-bottom: 12px;
+    }
+    ion-label {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    ion-input,
+    ion-textarea,
+    ion-select {
+      font-size: 18px;
+    }
+  }
+  .photo-preview,
+  .upload-placeholder {
+    width: 120px;
+    height: 120px;
+  }
+  .upload-placeholder {
+    ion-icon {
+      font-size: 32px;
+    }
+    p {
+      font-size: 16px;
+    }
+  }
+  .upload-hint {
+    font-size: 16px;
+  }
+  .modal-actions ion-button {
+    font-size: 20px;
+    height: 52px;
+    font-weight: 700;
+  }
+}

@@ -55,11 +55,19 @@ export class Tab1Page implements OnInit {
   showLangConfirmModal = false;
   t = this.langService.getTranslations('zh').tab1;
 
+  // --- 翻译与适老化功能变量 ---
+  public dynamicSourceText: string = '你好，这是测试翻译的文本';
+  public translatedText: string = '';
+  public sourceLang: string = 'zh';
+  public targetLang: string = 'en';
+  public isElderlyMode: boolean = false; // 长辈模式开关
+
   get currentLangBtnText() {
     return this.t.btnText;
   }
 
   ngOnInit() {
+    this.isElderlyMode = document.body.classList.contains('elderly-mode');
     let isFirstEmit = true;
     // 语言监听：切换语言时重新拉取数据（服务端根据 ?lang= 返回译文）
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
@@ -207,6 +215,15 @@ export class Tab1Page implements OnInit {
 
   cancelSwitchLanguage() {
     this.showLangConfirmModal = false;
+  }
+
+  toggleElderlyMode() {
+    this.isElderlyMode = !this.isElderlyMode;
+    if (this.isElderlyMode) {
+      document.body.classList.add('elderly-mode');
+    } else {
+      document.body.classList.remove('elderly-mode');
+    }
   }
 
   cardClickFeedback(item: CardItem) {

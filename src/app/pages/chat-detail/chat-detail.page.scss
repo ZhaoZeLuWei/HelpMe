@@ -48,7 +48,7 @@
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: #999;
+  color: var(--ion-color-medium);
 }
 
 .message-group.me .message-meta {
@@ -60,11 +60,11 @@
   max-width: 100%; /* 这里设为100%是因为它的父级 message-row 已经限制了 90% */
   padding: 10px 14px;
   border-radius: 14px;
-  background-color: #f1f0f0;
+  background-color: var(--ion-color-step-100, #f1f0f0);
   word-wrap: break-word;
   overflow-wrap: break-word;
   line-height: 1.5;
-  color: #333;
+  color: var(--ion-text-color);
 }
 
 /* 我发的消息气泡颜色 */
@@ -435,4 +435,156 @@
   --padding-start: 0;
   --padding-end: 0;
   --icon-font-size: 20px;
+}
+
+/* =========================================================================
+   Elderly Mode CSS Overrides (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .message-avatar {
+    width: 56px;
+    height: 56px;
+    flex: 0 0 56px;
+  }
+  .message-bubble {
+    padding: 16px 20px;
+    font-size: 20px;
+    border-radius: 20px;
+  }
+  .message-meta {
+    font-size: 14px;
+  }
+
+  .order-info-bar {
+    --min-height: 72px;
+  }
+  .order-event-title {
+    font-size: 20px;
+    font-weight: 800;
+  }
+  .order-status-line {
+    font-size: 16px;
+  }
+  .order-status-badge,
+  .event-category-badge {
+    font-size: 14px;
+    padding: 4px 12px;
+  }
+  .event-type-icon {
+    font-size: 32px !important;
+  }
+
+  .order-detail-content {
+    font-size: 18px;
+    line-height: 1.8;
+  }
+  .order-actions ion-button {
+    font-size: 16px;
+    height: 44px;
+  }
+
+  .order-status-card {
+    padding: 24px;
+    .order-title {
+      font-size: 24px;
+    }
+    .order-price {
+      font-size: 36px;
+    }
+    .status-label {
+      font-size: 16px;
+    }
+    .status-badge {
+      font-size: 16px;
+      padding: 4px 12px;
+    }
+  }
+
+  .order-info-section .info-row {
+    .info-label {
+      font-size: 18px;
+    }
+    .info-value {
+      font-size: 18px;
+    }
+  }
+
+  .order-actions-section ion-button {
+    font-size: 20px;
+    height: 56px;
+  }
+
+  .system-message-text {
+    font-size: 16px;
+    padding: 8px 16px;
+  }
+  .system-message-time {
+    font-size: 14px;
+  }
+
+  /* Footer */
+  ion-footer {
+    ion-item {
+      --padding-start: 16px;
+      --padding-end: 16px;
+    }
+    ion-input {
+      font-size: 20px;
+      --padding-top: 16px;
+      --padding-bottom: 16px;
+    }
+    .chat-action-btn {
+      width: 48px;
+      height: 48px;
+      --icon-font-size: 28px;
+    }
+    ion-button[slot="end"] {
+      font-size: 20px;
+      font-weight: 800;
+    }
+  }
+}
+
+/* =========================================================================
+   Dark Mode Overrides (深色模式适配)
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  /* 系统消息气泡 */
+  .system-message-text {
+    background-color: var(--ion-color-step-100, #2a2a2a);
+  }
+
+  /* 订单预览弹窗内容区 */
+  .order-preview-content {
+    --background: var(--ion-background-color, #121212);
+  }
+
+  /* 订单信息详情区 */
+  .order-info-section {
+    background: var(--ion-card-background, #1e1e1e);
+  }
+
+  /* 订单信息详情行分隔线 */
+  .order-detail-bar {
+    border-top-color: var(--ion-color-step-100, #2a2a2a);
+  }
+
+  .order-info-section .info-row {
+    border-bottom-color: var(--ion-color-step-100, #2a2a2a);
+  }
+
+  /* 消息气泡（对方）在深色模式下的可读性 */
+  .message-bubble {
+    background-color: var(--ion-color-step-100, #2a2a2a);
+  }
+
+  /* 定位消息地址文字 */
+  .loc-address {
+    color: var(--ion-text-color, #ffffff);
+  }
+
+  /* 图片消息标题文字 */
+  .msg-image-caption {
+    color: var(--ion-text-color, #ffffff);
+  }
 }

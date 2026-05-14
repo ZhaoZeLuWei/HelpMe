@@ -44,18 +44,17 @@
 .publisher-info {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  background-color: var(
-    --ion-item-background,
-    var(--ion-background-color-step-50)
-  );
-  padding: 16px;
-  border-radius: 8px;
+  gap: 16px;
+  background-color: var(--ion-card-background, #ffffff);
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background-color: var(--ion-color-step-150, rgba(0, 0, 0, 0.05));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
   }
 
   h3 {
@@ -80,10 +79,10 @@
 
 /* 任务核心信息 */
 .event-info {
-  background-color: var(--ion-card-background, var(--ion-background-color));
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: var(--ion-card-background, #ffffff);
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 
   .event-title {
     margin: 0 0 16px 0;
@@ -160,12 +159,10 @@
 
 /* 任务图片区 */
 .event-photos-section {
-  background-color: var(
-    --ion-item-background,
-    var(--ion-background-color-step-50)
-  );
-  border-radius: 12px;
-  padding: 12px;
+  background-color: var(--ion-card-background, #ffffff);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
 .event-no-photos {
@@ -395,11 +392,75 @@
     cursor: not-allowed;
   }
 
-  &.prev {
-    left: 12px;
-  }
-
   &.next {
     right: 12px;
+  }
+}
+
+/* =========================================================================
+   Elderly Mode CSS Overrides (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  /* 发布者卡片放大 */
+  .publisher-info {
+    padding: 24px;
+    gap: 20px;
+
+    .user-avatar {
+      width: 64px;
+      height: 64px;
+    }
+    h3 {
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .publisher-meta {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* 关注按钮放大 */
+    ion-button {
+      --padding-start: 16px;
+      --padding-end: 16px;
+      font-size: 16px;
+      height: 44px;
+    }
+  }
+
+  /* 任务核心信息放大 */
+  .event-info {
+    padding: 24px;
+
+    .event-title {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.4;
+      margin-bottom: 24px;
+    }
+
+    .event-details p {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 12px 0;
+      ion-icon {
+        font-size: 24px;
+      }
+    }
+
+    .event-description {
+      font-size: 20px;
+      line-height: 1.6;
+      margin-top: 24px;
+      color: var(--ion-text-color);
+    }
+  }
+
+  /* 底部栏按钮放大 */
+  ion-footer ion-button {
+    font-size: 18px;
+    font-weight: 700;
+    height: 54px;
+    margin: 8px 0;
   }
 }

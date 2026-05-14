@@ -1,5 +1,5 @@
 .review-detail-content {
-  --background: var(--ion-color-light, #f4f5f8);
+  --background: var(--ion-color-step-50, #f4f5f8);
 }
 
 .empty-state {
@@ -31,7 +31,7 @@
 }
 
 .review-card {
-  background: var(--ion-background-color, #fff);
+  background: var(--ion-card-background, var(--ion-background-color, #fff));
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
@@ -104,5 +104,40 @@
 
   .review-card {
     padding: 12px;
+  }
+}
+
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .review-header ion-avatar {
+    width: 56px;
+    height: 56px;
+  }
+  .review-meta .author-name {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .review-meta .review-time {
+    font-size: 14px;
+  }
+  .score-badge .star-icon {
+    font-size: 20px;
+  }
+  .score-badge .score-text {
+    font-size: 18px;
+  }
+  .review-content {
+    font-size: 18px;
+    line-height: 1.7;
+  }
+  .empty-state {
+    .empty-icon {
+      font-size: 64px;
+    }
+    p {
+      font-size: 20px;
+    }
   }
 }

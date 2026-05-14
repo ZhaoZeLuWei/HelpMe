@@ -1,55 +1,115 @@
-/*
- * App Global CSS
- * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
- */
+/* App Global CSS */
 
-/* Core CSS required for Ionic components to work properly */
 @import "@ionic/angular/css/core.css";
-
-/* Basic CSS for apps built with Ionic */
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
 
-/* Optional CSS utils that can be commented out */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
+@import "@ionic/angular/css/palettes/dark.system.css";
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* =========================================================================
+   Global Utilities & Dual Mode Overrides
+   ========================================================================= */
 
-/* ===== Location Picker Modal 桌面端尺寸 ===== */
-ion-modal.location-picker-modal {
-  --border-radius: 0;
+body {
+  font-family: var(--ion-font-family);
+  font-size: 14px;
+}
 
-  @media (min-width: 768px) {
-    --width: 600px;
-    --height: 85vh;
-    --border-radius: 16px;
-    --box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+/* 长辈模式全局字号放大 */
+body.elderly-mode {
+  font-size: 16px;
+
+  /* Ionic 全局组件覆盖 */
+  ion-title {
+    font-size: 24px;
+    font-weight: 800;
   }
-
-  @media (min-width: 1200px) {
-    --width: 680px;
-    --height: 80vh;
+  ion-back-button {
+    font-size: 18px;
+  }
+  ion-toolbar ion-button {
+    font-size: 16px;
+  }
+  ion-alert .alert-title {
+    font-size: 22px;
+  }
+  ion-alert .alert-message {
+    font-size: 18px;
+  }
+  ion-alert .alert-button {
+    font-size: 18px;
+  }
+  ion-toast {
+    font-size: 18px;
+  }
+  ion-segment-button {
+    font-size: 18px;
+    font-weight: 700;
   }
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--ion-text-color);
+}
+
+.hover-scale {
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease;
+}
+.hover-scale:active {
+  transform: scale(0.96);
+}
+
+/* Modals */
+ion-modal.location-picker-modal {
+  --border-radius: 0;
+  @media (min-width: 768px) {
+    --width: 600px;
+    --height: 85vh;
+    --border-radius: 12px;
+  }
+}
+
+/* =========================================================================
+   Dark Mode Toast Styling
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  ion-toast {
+    --background: #323232 !important;
+    --color: #ffffff !important;
+  }
+
+  ion-toast.toast-success {
+    --background: #2e7d32 !important;
+    --color: #ffffff !important;
+  }
+
+  ion-toast.toast-error {
+    --background: #c62828 !important;
+    --color: #ffffff !important;
+  }
+
+  ion-toast.toast-warning {
+    --background: #f57f17 !important;
+    --color: #ffffff !important;
+  }
+
+  ion-toast.toast-info {
+    --background: #0277bd !important;
+    --color: #ffffff !important;
+  }
+}

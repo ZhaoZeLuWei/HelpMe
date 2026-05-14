@@ -1,70 +1,42 @@
-<div
-  class="small-card clickable-card"
-  [ngClass]="{
-    'type-request': event.eventType === 0,
-    'type-help': event.eventType === 1
-  }"
-  (click)="onCardClick()"
->
+<div class="x-card clickable-card hover-scale" (click)="onCardClick()">
   <!-- 图片区域 -->
-  <div class="card-image-wrapper">
+  <div class="x-card-image">
     <img
       [src]="imgUrl(event.cardImage)"
       (error)="onImageError($event)"
-      class="card-image-img"
+      class="x-card-img"
       [alt]="t.eventImage"
     />
-    <!-- 类型标识条（整合距离信息在右下角） -->
-    <div
-      class="card-type-strip"
-      [class.strip-request]="event.eventType === 0"
-      [class.strip-help]="event.eventType === 1"
-    >
-      <span class="strip-left">
-        @if (event.eventType === 0) {
-          <span class="type-icon material-icons">handyman</span>
-          <span class="type-text">{{ t.requestLabel }}</span>
-        } @else if (event.eventType === 1) {
-          <span class="type-icon material-icons">volunteer_activism</span>
-          <span class="type-text">{{ t.helpLabel }}</span>
-        }
-      </span>
-      @if (!isOnline && event.distance) {
-      <span class="strip-right">
+    @if (!isOnline && event.distance) {
+      <div class="x-distance">
         <span class="material-icons">location_on</span>
         <span>{{ event.distance }}</span>
-      </span>
-      }
-    </div>
-  </div>
-
-  <div class="user-info-row">
-    <div class="user-avatar">
-      <img
-        [src]="avatarUrl(event.avatar)"
-        (error)="onAvatarError($event)"
-        [alt]="t.userAvatar"
-        class="avatar-img-small"
-      />
-    </div>
-    <div class="name-address-wrapper">
-
-      <div class="user-info">
-        <span class="user-name">{{ event.name | tText }}</span>
-        <span class="user-address">{{ event.address | tText }}</span>
       </div>
-    </div>
-  </div>
-
-  <div class="event-title">{{ event.title | tText }}</div>
-  @if (event.tags) {
-  <div class="card-tags">
-    @for (tag of event.tags.split(',').slice(0, 3); track $index) {
-    <span class="card-tag">#{{ tag }}</span>
     }
   </div>
-  }
-  <div class="card-footer">
-    <span class="price">{{ event.price }}</span>
+
+  <!-- 内容区域 -->
+  <div class="x-card-content">
+    <div class="x-event-title">{{ event.title }}</div>
+
+    <div class="x-card-bottom">
+      <div class="x-user">
+        <img
+          [src]="avatarUrl(event.avatar)"
+          (error)="onAvatarError($event)"
+          class="x-avatar"
+          [alt]="t.userAvatar"
+        />
+        <div class="x-user-text">
+          <span class="x-name">{{ event.name }}</span>
+          <span class="x-address">{{ event.address }}</span>
+        </div>
+      </div>
+      <div class="x-price-action">
+        <span class="x-price">{{ event.price }}</span>
+        <!-- 这个按钮只在长辈模式下显示 -->
+        <button class="x-view-btn">查看详情</button>
+      </div>
+    </div>
   </div>
 </div>

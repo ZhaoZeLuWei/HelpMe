@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
 
 /* 替换内部的 ion-content（已移除嵌套的 ion-content，用普通容器替代） */
 .universal-search-wrapper {
@@ -9,7 +9,8 @@
 .material-icons {
   display: inline-block;
   font-size: 1em;
-  width: 1em; height: 1em;
+  width: 1em;
+  height: 1em;
   line-height: 1;
   vertical-align: middle;
 }
@@ -47,7 +48,9 @@
   background: var(--ion-card-background, var(--ion-background-color));
   padding: 10px 0;
   border-bottom: 1px solid var(--ion-background-color-step-150);
-  ion-col { padding: 0 5px; }
+  ion-col {
+    padding: 0 5px;
+  }
 }
 
 /* ===== 列表容器 – 同队友网格 ===== */
@@ -76,7 +79,11 @@
     color: var(--ion-background-color-step-200);
     margin-bottom: 10px;
   }
-  p { font-size: 15px; margin: 0; font-weight: 500; }
+  p {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 500;
+  }
 }
 
 /* ===== 小卡片网格布局 – 与首页保持一致 ===== */
@@ -92,6 +99,13 @@
   }
 }
 
+/* 长辈模式下强制单列，防止卡片被挤碎 */
+:host-context(body.elderly-mode) .small-card-grid,
+body.elderly-mode .small-card-grid {
+  grid-template-columns: 1fr !important;
+  gap: 16px;
+}
+
 .card-item {
   width: 100%;
 }
@@ -99,7 +113,8 @@
 /* ===== 模态框 – 与队友自定义弹窗同风格 ===== */
 ion-modal {
   --border-radius: 20px;
-  --box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  --box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* ===== 筛选弹窗公共样式 ===== */

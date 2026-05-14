@@ -528,15 +528,27 @@
   }
 
   .request-card {
-    background: linear-gradient(135deg, rgba(234, 88, 12, 0.1), rgba(234, 88, 12, 0.05));
+    background: linear-gradient(
+      135deg,
+      rgba(234, 88, 12, 0.1),
+      rgba(234, 88, 12, 0.05)
+    );
   }
 
   .help-card {
-    background: linear-gradient(135deg, rgba(2, 132, 199, 0.1), rgba(2, 132, 199, 0.05));
+    background: linear-gradient(
+      135deg,
+      rgba(2, 132, 199, 0.1),
+      rgba(2, 132, 199, 0.05)
+    );
   }
 
   .identity-card {
-    background: linear-gradient(135deg, rgba(29, 78, 216, 0.08), rgba(29, 78, 216, 0.03));
+    background: linear-gradient(
+      135deg,
+      rgba(29, 78, 216, 0.08),
+      rgba(29, 78, 216, 0.03)
+    );
   }
 
   .tag {
@@ -553,5 +565,96 @@
 
   .tag-chip {
     border-color: rgba(15, 118, 110, 0.5);
+  }
+}
+
+/* =========================================================================
+   Elderly Mode CSS Overrides (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .hero {
+    font-size: 36px;
+    font-weight: 800;
+    margin: 32px 0;
+  }
+
+  .action-card {
+    padding: 24px 20px;
+  }
+  .icon-bubble {
+    width: 80px;
+    height: 80px;
+    font-size: 40px;
+  }
+  .tag {
+    font-size: 24px;
+    font-weight: 800;
+  }
+  .desc {
+    font-size: 18px;
+    color: var(--ion-text-color);
+    margin-top: 8px;
+  }
+
+  /* 弹窗与表单适老化 */
+  .form-section-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ion-text-color);
+    padding-top: 16px;
+  }
+  .form-row {
+    padding: 8px 16px;
+    min-height: 64px;
+  }
+  .form-row-label {
+    font-size: 18px;
+    font-weight: 800;
+    min-width: 80px;
+  }
+  .form-input,
+  .location-btn,
+  .textarea-input {
+    font-size: 18px;
+  }
+  .textarea-input {
+    min-height: 120px;
+  }
+
+  .ai-btn {
+    font-size: 16px;
+    padding: 8px 16px;
+    border-radius: 24px;
+  }
+  .ai-btn ion-icon {
+    font-size: 18px;
+  }
+
+  .tag-chip,
+  .add-tag-btn {
+    font-size: 16px;
+    padding: 8px 16px;
+    border-radius: 24px;
+  }
+  .tag-chip ion-icon,
+  .add-tag-btn ion-icon {
+    font-size: 18px;
+  }
+
+  .upload-btn {
+    width: 120px;
+    height: 120px;
+  }
+  .upload-btn ion-icon {
+    font-size: 32px;
+  }
+  .upload-btn span {
+    font-size: 16px;
+  }
+
+  .modal-btn {
+    font-size: 20px;
+    font-weight: 800;
+    padding: 16px 24px;
   }
 }
