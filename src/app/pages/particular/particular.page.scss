@@ -116,6 +116,35 @@
     color: var(--ion-color-medium);
     line-height: 1.5;
   }
+
+  /* 标签区域 */
+  .event-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--ion-background-color-step-150);
+  }
+
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    background: rgba(15, 118, 110, 0.08);
+    border: 1px solid rgba(15, 118, 110, 0.2);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0f766e;
+    transition: all 0.2s ease;
+    cursor: default;
+
+    &:hover {
+      background: rgba(15, 118, 110, 0.12);
+      border-color: rgba(15, 118, 110, 0.35);
+    }
+  }
 }
 
 /* 任务图片区 */

@@ -170,6 +170,7 @@ export class ParticularPage implements OnInit {
 
   event: EventCardData | null = null;
   eventPhotos: string[] = [];
+  eventTags: string[] = [];
   previewImageUrl: string | null = null;
   previewPhotoIndex = 0;
 
@@ -226,6 +227,14 @@ export class ParticularPage implements OnInit {
           this.canCreateOrder = rawEvent.canCreateOrder ?? true;
           this.activeOrder = rawEvent.activeOrder || null;
           this.favoriteCount = rawEvent.FavoriteCount ?? 0;
+          // 解析标签：优先从 EventTags 表取，兼容旧数据从 EventCategory 字段解析
+          if (rawEvent.Tags) {
+            this.eventTags = String(rawEvent.Tags).split(',').filter(Boolean);
+          } else if (rawEvent.EventCategory) {
+            this.eventTags = String(rawEvent.EventCategory).split('、').filter(Boolean);
+          } else {
+            this.eventTags = [];
+          }
           if (this.event?.creatorId) {
             this.loadUserFromStorage(this.event.creatorId);
           }

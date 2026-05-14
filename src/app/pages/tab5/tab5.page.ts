@@ -635,6 +635,10 @@ export class Tab5Page implements OnInit, OnDestroy {
       if (!v.isOnlineService) this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
       fd.append('EventDetails', String(v.EventDetails ?? ''));
+      // 将标签以 JSON 数组形式传给后端，写入 EventTags 表
+      if (this.aiTags.length > 0) {
+        fd.append('Tags', JSON.stringify(this.aiTags));
+      }
 
       for (const f of this.requestFiles) fd.append('images', f);
 
@@ -695,6 +699,10 @@ export class Tab5Page implements OnInit, OnDestroy {
       if (!v.isOnlineService) this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
       fd.append('EventDetails', String(v.EventDetails ?? ''));
+      // 将标签以 JSON 数组形式传给后端，写入 EventTags 表
+      if (this.aiTags.length > 0) {
+        fd.append('Tags', JSON.stringify(this.aiTags));
+      }
 
       for (const f of this.helpFiles) fd.append('images', f);
 

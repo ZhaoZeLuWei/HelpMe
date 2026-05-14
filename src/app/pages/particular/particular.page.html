@@ -87,6 +87,15 @@
           </p>
         </div>
         <p class="event-description">{{ event?.demand }}</p>
+
+        <!-- 标签区域 -->
+        @if (eventTags.length > 0) {
+        <div class="event-tags">
+          @for (tag of eventTags; track $index) {
+          <span class="tag-chip">#{{ tag }}</span>
+          }
+        </div>
+        }
       </div>
 
       <!-- 任务图片区 -->

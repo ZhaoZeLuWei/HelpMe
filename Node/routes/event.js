@@ -331,7 +331,13 @@ router.get("/events/:id", async (req, res) => {
 
   try {
     const selectSql =
-      "SELECT EventId, CreatorId, EventTitle, EventType, EventCategory, Photos, Location, LocationPlaceId, Price, EventDetails, Status, FavoriteCount, CreateTime FROM Events WHERE EventId = ? LIMIT 1";
+      `SELECT e.EventId, e.CreatorId, e.EventTitle, e.EventType, e.EventCategory, e.Photos, e.Location, e.LocationPlaceId, e.Price, e.EventDetails, e.Status, e.FavoriteCount, e.CreateTime,
+       GROUP_CONCAT(et.Tag SEPARATOR ',') AS Tags
+       FROM Events e
+       LEFT JOIN EventTags et ON e.EventId = et.EventId
+       WHERE e.EventId = ?
+       GROUP BY e.EventId
+       LIMIT 1`;
 
     const [rows] = await pool.query(selectSql, [eventId]);
 
