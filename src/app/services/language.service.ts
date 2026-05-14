@@ -1509,7 +1509,13 @@ export class LanguageService {
     },
   };
 
-  constructor() {}
+  constructor() {
+    // 初始化时从 localStorage 读取保存的语言设置
+    const savedLang = localStorage.getItem('app_lang') as 'zh' | 'en' | null;
+    if (savedLang && (savedLang === 'zh' || savedLang === 'en')) {
+      this.currentLangSubject.next(savedLang);
+    }
+  }
 
   getTranslations(lang: 'zh' | 'en') {
     return this.translations[lang];
