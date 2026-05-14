@@ -134,6 +134,7 @@ export class ParticularPage implements OnInit {
   isCurrentUserCreator: boolean = false;
   isFavorited: boolean = false;
   isFollowingCreator: boolean = false;
+  favoriteCount: number = 0;
   get currentUserId(): number | null {
     return this.authService.currentUserId;
   }
@@ -224,6 +225,7 @@ export class ParticularPage implements OnInit {
           };
           this.canCreateOrder = rawEvent.canCreateOrder ?? true;
           this.activeOrder = rawEvent.activeOrder || null;
+          this.favoriteCount = rawEvent.FavoriteCount ?? 0;
           if (this.event?.creatorId) {
             this.loadUserFromStorage(this.event.creatorId);
           }
@@ -250,6 +252,7 @@ export class ParticularPage implements OnInit {
           this.userInfo.providerRole = data.user.ProviderRole ?? 0;
           this.userInfo.orderCount = data.user.OrderCount ?? 0;
           this.userInfo.serviceRanking = data.user.ServiceRanking ?? 0;
+          this.userInfo.followerCount = data.user.FollowerCount ?? 0;
           this.userInfo.CreateTime = data.user.CreateTime || '';
         }
       }
@@ -418,6 +421,7 @@ export class ParticularPage implements OnInit {
     const result = await this.authService.toggleFollow(this.event.creatorId);
     if (result !== null) {
       this.isFollowingCreator = result;
+      this.userInfo.followerCount = Math.max(0, (this.userInfo.followerCount || 0) + (result ? 1 : -1));
       this.showToast(result ? this.t.followed : this.t.unfollowed);
     }
   }
@@ -435,6 +439,7 @@ export class ParticularPage implements OnInit {
     const result = await this.authService.toggleFavorite(Number(this.event.id));
     if (result !== null) {
       this.isFavorited = result;
+      this.favoriteCount = Math.max(0, this.favoriteCount + (result ? 1 : -1));
       this.showToast(result ? this.t.favorited : this.t.unfavorited);
     }
   }

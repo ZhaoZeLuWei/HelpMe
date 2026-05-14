@@ -40,11 +40,13 @@
             </ion-badge>
           </h3>
           <p class="publisher-meta">
-            {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }} 分
+            {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }}{{ t.scoreUnit }}
             <br />
-            {{ t.serviceRating }}{{ (userInfo.serviceRanking || 0) }} 分
+            {{ t.serviceRating }}{{ (userInfo.serviceRanking || 0) }}{{ t.scoreUnit }}
             <br />
-            {{ t.serviceCount }}{{ (userInfo.orderCount || 0) }} 次
+            {{ t.serviceCount }}{{ (userInfo.orderCount || 0) }}{{ t.countUnit }}
+            <br />
+            {{ t.followerCount }}{{ (userInfo.followerCount || 0) }}
             <br />
             {{ t.registerTime }}{{ userInfo.CreateTime }}
           </p>
@@ -127,6 +129,7 @@
             [name]="isFavorited ? 'star' : 'star-outline'"
           ></ion-icon>
           {{ isFavorited ? t.favorited : t.favorite }}
+          @if (favoriteCount > 0) { ({{ favoriteCount }}) }
         </ion-button>
       </ion-col>
       @if (!isCurrentUserCreator) {

@@ -51,6 +51,8 @@
             {{ t.serviceRating }}{{ userInfo.serviceRanking }} {{ t.scoreUnit }}
             <br />
             {{ t.serviceCount }}{{ userInfo.orderCount }} {{ t.countUnit }}
+            <br />
+            {{ t.followerCount }}{{ (userInfo.followerCount || 0) }}
           </p>
           <p class="user-introduction">
             {{ t.personalIntro }}{{ userInfo.introduction || t.noIntroduction }}

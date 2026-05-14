@@ -247,6 +247,7 @@ export class UserParticularPage implements OnInit {
           this.userInfo.providerRole = data.user.ProviderRole ?? 0;
           this.userInfo.orderCount = data.user.OrderCount ?? 0;
           this.userInfo.serviceRanking = data.user.ServiceRanking ?? 0;
+          this.userInfo.followerCount = data.user.FollowerCount ?? 0;
           this.userInfo.CreateTime = data.user.CreateTime || '';
         }
       }
@@ -461,6 +462,7 @@ export class UserParticularPage implements OnInit {
     const result = await this.authService.toggleFollow(this.userId);
     if (result !== null) {
       this.isFollowing = result;
+      this.userInfo.followerCount = Math.max(0, (this.userInfo.followerCount || 0) + (result ? 1 : -1));
       const toast = await this.toastController.create({
         message: result ? this.t.followed : this.t.unfollowed,
         duration: 2000,

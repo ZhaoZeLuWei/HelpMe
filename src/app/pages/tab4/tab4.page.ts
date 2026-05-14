@@ -652,6 +652,7 @@ export class Tab4Page implements OnDestroy {
     this.userInfo.providerRole =
       Number(data.ProviderRole || data.providerRole) || 0;
     this.userInfo.orderCount = Number(data.OrderCount || data.orderCount) || 0;
+    this.userInfo.followerCount = Number(data.FollowerCount || data.followerCount) || 0;
     this.userInfo.serviceRanking =
       Number(data.ServiceRanking || data.serviceRanking) || 0;
     this.userInfo.realName = data.RealName || data.realName || '';
@@ -1548,7 +1549,9 @@ export class Tab4Page implements OnDestroy {
   onFavoriteCardClick(event: EventCardData) {
     this.isFavoritesModalOpen = false;
     this.cdr.detectChanges();
-    this.goToEventDetail(Number(event.id));
+    setTimeout(() => {
+      this.goToEventDetail(Number(event.id));
+    }, 150);
   }
 
   // ---- 关注弹窗 ----
@@ -1589,8 +1592,10 @@ export class Tab4Page implements OnDestroy {
   goToUserFromFollow(user: any) {
     this.isFollowsModalOpen = false;
     this.cdr.detectChanges();
-    this.router.navigate(['/user-particular'], {
-      queryParams: { name: user.UserName, userId: user.UserId },
-    });
+    setTimeout(() => {
+      this.router.navigate(['/user-particular'], {
+        queryParams: { name: user.UserName, userId: user.UserId },
+      });
+    }, 150);
   }
 }

@@ -38,16 +38,38 @@ router.post("/favorites", authRequired, async (req, res) => {
 
     if (existing.length > 0) {
       // 已收藏 → 取消
-      await pool.query("DELETE FROM Favorites WHERE FavoriteId = ?", [
-        existing[0].FavoriteId,
-      ]);
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        await conn.query("DELETE FROM Favorites WHERE FavoriteId = ?", [
+          existing[0].FavoriteId,
+        ]);
+        await conn.query(
+          "UPDATE Events SET FavoriteCount = GREATEST(0, FavoriteCount - 1) WHERE EventId = ?",
+          [eventId]
+        );
+        await conn.commit();
+      } finally {
+        conn.release();
+      }
       return res.json({ success: true, favorited: false });
     } else {
       // 未收藏 → 添加
-      await pool.query(
-        "INSERT INTO Favorites (UserId, EventId) VALUES (?, ?)",
-        [userId, eventId]
-      );
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        await conn.query(
+          "INSERT INTO Favorites (UserId, EventId) VALUES (?, ?)",
+          [userId, eventId]
+        );
+        await conn.query(
+          "UPDATE Events SET FavoriteCount = FavoriteCount + 1 WHERE EventId = ?",
+          [eventId]
+        );
+        await conn.commit();
+      } finally {
+        conn.release();
+      }
       return res.json({ success: true, favorited: true });
     }
   } catch (err) {
@@ -164,16 +186,38 @@ router.post("/follows", authRequired, async (req, res) => {
 
     if (existing.length > 0) {
       // 已关注 → 取消
-      await pool.query("DELETE FROM Follows WHERE FollowId = ?", [
-        existing[0].FollowId,
-      ]);
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        await conn.query("DELETE FROM Follows WHERE FollowId = ?", [
+          existing[0].FollowId,
+        ]);
+        await conn.query(
+          "UPDATE Users SET FollowerCount = GREATEST(0, FollowerCount - 1) WHERE UserId = ?",
+          [followingId]
+        );
+        await conn.commit();
+      } finally {
+        conn.release();
+      }
       return res.json({ success: true, following: false });
     } else {
       // 未关注 → 添加
-      await pool.query(
-        "INSERT INTO Follows (FollowerId, FollowingId) VALUES (?, ?)",
-        [followerId, followingId]
-      );
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        await conn.query(
+          "INSERT INTO Follows (FollowerId, FollowingId) VALUES (?, ?)",
+          [followerId, followingId]
+        );
+        await conn.query(
+          "UPDATE Users SET FollowerCount = FollowerCount + 1 WHERE UserId = ?",
+          [followingId]
+        );
+        await conn.commit();
+      } finally {
+        conn.release();
+      }
       return res.json({ success: true, following: true });
     }
   } catch (err) {
@@ -220,7 +264,8 @@ router.get("/follows", authRequired, async (req, res) => {
               u.UserId, u.UserName, u.UserAvatar, u.Location, u.Introduction,
               IFNULL(p.ServiceRanking, 0) AS ServiceRanking,
               IFNULL(p.OrderCount, 0) AS OrderCount,
-              IFNULL(p.ProviderRole, 0) AS ProviderRole
+              IFNULL(p.ProviderRole, 0) AS ProviderRole,
+              u.FollowerCount
        FROM Follows fl
        JOIN Users u ON fl.FollowingId = u.UserId
        LEFT JOIN Providers p ON p.ProviderId = u.UserId

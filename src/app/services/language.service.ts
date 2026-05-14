@@ -77,6 +77,7 @@ export class LanguageService {
         buyerRating: '买家评分',
         serviceRating: '服务评分',
         orderCount: '服务单数',
+        followerCount: '粉丝',
         // 按钮
         editProfile: '编辑资料',
         logout: '登出',
@@ -454,6 +455,7 @@ export class LanguageService {
         serviceRating: '服务评分：',
         serviceCount: '服务次数：',
         registerTime: '注册时间：',
+        followerCount: '粉丝',
         followed: '已关注',
         follow: '关注',
         unfollowed: '已取消关注',
@@ -495,6 +497,8 @@ export class LanguageService {
         editSuccess: '修改成功',
         editFailed: '修改失败',
         networkError: '网络错误，请稍后重试',
+        scoreUnit: '分',
+        countUnit: '次',
       },
       // 用户详情页
       userParticular: {
@@ -505,6 +509,7 @@ export class LanguageService {
         buyerRating: '买家评分:',
         serviceRating: '服务评分：',
         serviceCount: '服务次数：',
+        followerCount: '粉丝',
         noIntroduction: '暂无介绍',
         personalIntro: '个人介绍:',
         edit: '编辑',
@@ -807,6 +812,7 @@ export class LanguageService {
         buyerRating: 'Buyer Rating',
         serviceRating: 'Service Rating',
         orderCount: 'Orders',
+        followerCount: 'Followers',
         // 按钮
         editProfile: 'Edit Profile',
         logout: 'Logout',
@@ -1186,6 +1192,7 @@ export class LanguageService {
         serviceRating: 'Service Rating: ',
         serviceCount: 'Orders: ',
         registerTime: 'Registered: ',
+        followerCount: 'Followers',
         followed: 'Following',
         follow: 'Follow',
         unfollowed: 'Unfollowed',
@@ -1227,6 +1234,8 @@ export class LanguageService {
         editSuccess: 'Edit successful',
         editFailed: 'Edit failed',
         networkError: 'Network error, please try again later',
+        scoreUnit: '',
+        countUnit: 'times',
       },
       // User Particular Page
       userParticular: {
@@ -1237,8 +1246,9 @@ export class LanguageService {
         buyerRating: 'Buyer Rating: ',
         serviceRating: 'Service Rating: ',
         serviceCount: 'Orders: ',
-        noIntroduction: 'No introduction',
+        followerCount: 'Followers',
         personalIntro: 'Bio: ',
+        noIntroduction: 'No introduction',
         edit: 'Edit',
         followed: 'Following',
         follow: 'Follow',

@@ -338,8 +338,9 @@
               <h4>{{ user.UserName }}</h4>
               <p>{{ user.Location || t.noLocation }}</p>
               <p class="follow-meta">
-                {{ t.serviceRatingLabel }}{{ user.ServiceRanking || 0 }} · {{
-                t.followers }}{{ user.OrderCount || 0 }}
+                {{ t.followers }}{{ user.FollowerCount || 0 }} · {{
+                t.serviceRatingLabel }}{{ user.ServiceRanking || 0 }} · {{
+                t.orderCount }}{{ user.OrderCount || 0 }}
               </p>
             </div>
             <ion-button
