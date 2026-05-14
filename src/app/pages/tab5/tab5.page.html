@@ -129,16 +129,29 @@
               <label class="form-row-label"
                 >{{ t.form.location }} <span class="required">*</span></label
               >
-              <div class="form-row-content">
+              <div class="form-row-content form-row-location">
                 <button
                   type="button"
                   class="location-btn"
-                  [class.has-value]="requestForm.value.Location"
+                  [class.has-value]="requestForm.value.Location && !requestForm.value.isOnlineService"
                   (click)="openLocationPicker('request')"
+                  [disabled]="requestForm.value.isOnlineService"
                 >
                   <ion-icon name="location-outline"></ion-icon>
-                  {{ requestForm.value.Location || t.placeholder.reqLoc }}
+                  {{ requestForm.value.isOnlineService ? t.form.onlineService : (requestForm.value.Location || t.placeholder.reqLoc) }}
                 </button>
+                <button
+                  type="button"
+                  class="online-toggle-btn"
+                  [class.active]="requestForm.value.isOnlineService"
+                  (click)="toggleOnlineService('request')"
+                >
+                  <ion-icon name="globe-outline"></ion-icon>
+                  <span>{{ t.form.onlineService }}</span>
+                </button>
+                @if (requestForm.value.isOnlineService) {
+                  <div class="online-hint">{{ t.form.onlineServiceHint }}</div>
+                }
               </div>
             </div>
 
@@ -317,16 +330,29 @@
               <label class="form-row-label"
                 >{{ t.form.location }} <span class="required">*</span></label
               >
-              <div class="form-row-content">
+              <div class="form-row-content form-row-location">
                 <button
                   type="button"
                   class="location-btn"
-                  [class.has-value]="helpForm.value.Location"
+                  [class.has-value]="helpForm.value.Location && !helpForm.value.isOnlineService"
                   (click)="openLocationPicker('help')"
+                  [disabled]="helpForm.value.isOnlineService"
                 >
                   <ion-icon name="location-outline"></ion-icon>
-                  {{ helpForm.value.Location || t.placeholder.helpLoc }}
+                  {{ helpForm.value.isOnlineService ? t.form.onlineService : (helpForm.value.Location || t.placeholder.helpLoc) }}
                 </button>
+                <button
+                  type="button"
+                  class="online-toggle-btn"
+                  [class.active]="helpForm.value.isOnlineService"
+                  (click)="toggleOnlineService('help')"
+                >
+                  <ion-icon name="globe-outline"></ion-icon>
+                  <span>{{ t.form.onlineService }}</span>
+                </button>
+                @if (helpForm.value.isOnlineService) {
+                  <div class="online-hint">{{ t.form.onlineServiceHint }}</div>
+                }
               </div>
             </div>
 
