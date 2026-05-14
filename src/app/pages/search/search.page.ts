@@ -2,10 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  IonButton,
   IonContent,
-  IonHeader,
-  IonSearchbar,
   IonIcon,
 } from '@ionic/angular/standalone';
 import { ToastController, AlertController } from '@ionic/angular';
@@ -23,6 +20,9 @@ import {
   searchOutline,
   sparklesOutline,
   chevronBackOutline,
+  timeOutline,
+  closeCircle,
+  trashOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -34,10 +34,7 @@ import {
     CommonModule,
     FormsModule,
     HttpClientModule,
-    IonHeader,
     IonContent,
-    IonButton,
-    IonSearchbar,
     IonIcon,
   ],
 })
@@ -58,9 +55,12 @@ export class SearchPage implements OnInit {
   keyword = '';
   returnTo = '';
   aiSearching = false;
+  searchHistory: string[] = [];
+  private readonly HISTORY_KEY = 'search_history';
+  private readonly MAX_HISTORY = 10;
 
   constructor() {
-    addIcons({ searchOutline, sparklesOutline, chevronBackOutline });
+    addIcons({ searchOutline, sparklesOutline, chevronBackOutline, timeOutline, closeCircle, trashOutline });
 
     // 监听语言变化
     this.langService.currentLang$.subscribe((lang) => {
@@ -70,12 +70,53 @@ export class SearchPage implements OnInit {
 
   ngOnInit() {
     this.returnTo = this.route.snapshot.queryParams['returnTo'] || 'tabs/tab2';
+    this.loadHistory();
+  }
+
+  private loadHistory() {
+    const stored = localStorage.getItem(this.HISTORY_KEY);
+    if (stored) {
+      try {
+        this.searchHistory = JSON.parse(stored);
+      } catch {
+        this.searchHistory = [];
+      }
+    }
+  }
+
+  private saveHistory() {
+    localStorage.setItem(this.HISTORY_KEY, JSON.stringify(this.searchHistory));
+  }
+
+  private addToHistory(kw: string) {
+    // 去重：如果已存在，移到最前面
+    const idx = this.searchHistory.indexOf(kw);
+    if (idx !== -1) {
+      this.searchHistory.splice(idx, 1);
+    }
+    this.searchHistory.unshift(kw);
+    // 限制数量
+    if (this.searchHistory.length > this.MAX_HISTORY) {
+      this.searchHistory = this.searchHistory.slice(0, this.MAX_HISTORY);
+    }
+    this.saveHistory();
+  }
+
+  selectHistory(kw: string) {
+    this.keyword = kw;
+    this.onSearch();
+  }
+
+  clearHistory() {
+    this.searchHistory = [];
+    localStorage.removeItem(this.HISTORY_KEY);
   }
 
   async onSearch() {
     const kw = this.keyword.trim();
     if (!kw) return;
 
+    this.addToHistory(kw);
     this.aiSearching = true;
     try {
       const res = await fetch(
@@ -134,6 +175,7 @@ export class SearchPage implements OnInit {
       await toast.present();
       return;
     }
+    this.addToHistory(kw);
     await this.executeAiSearch(kw);
   }
 

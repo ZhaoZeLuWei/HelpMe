@@ -1,36 +1,584 @@
-ion-content ion-searchbar {
-  max-width: 500px;
-  margin: 0 auto;
+// ========================================
+// 搜索页面样式 — 对齐 Tab1 设计语言
+// 页面底色：#F2F3F5 · 卡片底色：#FFFFFF
+// Banner 渐变：#3B82F6 → #14B8A6
+// 圆角体系 · 细腻阴影 · 桌面端适配
+// ========================================
+
+// —— 页面容器（底色对齐 Tab1：#F2F3F5） ——
+.search-page {
+  --background: #f2f3f5;
 }
 
-.button-container {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 20px;
-  flex-wrap: wrap;
+// —— 顶部 Banner 渐变条（对齐 Tab1 Banner：#3B82F6 → #14B8A6） ——
+.banner-strip {
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #14b8a6);
+  opacity: 0.8;
 }
 
-ion-button {
-  flex: 1;
-  min-width: 120px;
-  max-width: 200px;
+// —— 搜索主卡片（对齐 Tab1 内容卡片：#FFFFFF） ——
+.search-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin: 24px 16px 0;
+  padding: 24px 20px 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+
+  // 左侧茶绿色强调线（对齐标题第一行）
+  &::before {
+    content: '';
+    position: absolute;
+    top: 62px;
+    left: 0;
+    width: 4px;
+    height: 24px;
+    background: #0f766e;
+    border-radius: 0 2px 2px 0;
+  }
 }
 
-/* AI 辅助按钮使用青绿色 */
-ion-button[color="tertiary"] {
-  --background: #0f766e;
-  --background-hover: #115e59;
-}
+// 顶部返回按钮
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 4px 10px 4px 4px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 
-/* 响应式设计 */
-@media (max-width: 576px) {
-  .button-container {
-    flex-direction: column;
-    align-items: stretch;
+  ion-icon {
+    font-size: 18px;
+    transition: transform 0.2s ease;
   }
 
-  ion-button {
-    max-width: none;
+  &:hover {
+    background: #f3f4f6;
+    color: #0f766e;
+
+    ion-icon {
+      transform: translateX(-2px);
+    }
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+// 卡片标题行
+.search-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding-left: 4px;
+
+  ion-icon {
+    font-size: 20px;
+    color: #0f766e;
+    flex-shrink: 0;
+  }
+
+  .search-card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: 0.3px;
+  }
+}
+
+// —— 搜索输入框（对齐 Tab1 搜索框：#FFFFFF / #9CA3AF） ——
+.search-input-group {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f8f9fa;
+  transition: all 0.25s ease;
+  overflow: hidden;
+
+  &:focus-within {
+    border-color: #0f766e;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+  }
+
+  .input-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 14px;
+    color: #9ca3af;
+    flex-shrink: 0;
+    transition: color 0.25s ease;
+
+    ion-icon {
+      font-size: 18px;
+    }
+  }
+
+  &:focus-within .input-icon {
+    color: #0f766e;
+  }
+
+  .input-field {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0 10px;
+    height: 100%;
+    font-size: 15px;
+    color: #111827;
+    outline: none;
+    min-width: 0;
+
+    &::placeholder {
+      color: #9ca3af;
+      opacity: 1;
+    }
+  }
+
+  .input-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-right: 6px;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+
+    &:hover {
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    ion-icon {
+      font-size: 16px;
+    }
+  }
+}
+
+// —— 操作按钮行 ——
+.action-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+
+  ion-icon {
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+
+  // 返回按钮（次要 — 浅灰背景）
+  &.btn-secondary {
+    flex: 0 0 auto;
+    background: #f3f4f6;
+    color: #6b7280;
+
+    &:hover {
+      background: #e5e7eb;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  // 搜索按钮（主要 — 茶绿色）
+  &.btn-primary {
+    background: #0f766e;
+    color: #fff;
+    box-shadow: 0 4px 8px rgba(15, 118, 110, 0.3);
+
+    &:hover {
+      background: #115e59;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(15, 118, 110, 0.35);
+    }
+
+    &:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);
+    }
+  }
+
+  // AI 搜索按钮（渐变 — 亮蓝 → 青绿，对齐 Tab1 Banner）
+  &.btn-accent {
+    background: linear-gradient(135deg, #3b82f6, #14b8a6);
+    color: #fff;
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.25);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(59, 130, 246, 0.35);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// —— 搜索记录卡片 ——
+.history-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin: 16px 16px 0;
+  padding: 18px 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  animation: fadeInUp 0.35s ease-out;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+
+  .history-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+
+    ion-icon {
+      font-size: 16px;
+    }
+  }
+
+  .clear-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+
+    ion-icon {
+      font-size: 14px;
+    }
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.06);
+      color: #ef4444;
+    }
+  }
+}
+
+.history-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #111827;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  ion-icon {
+    font-size: 13px;
+    color: #9ca3af;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+  }
+
+  &:hover {
+    background: rgba(15, 118, 110, 0.06);
+    border-color: rgba(15, 118, 110, 0.25);
+    color: #0f766e;
+    transform: translateY(-1px);
+
+    ion-icon {
+      color: #0f766e;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// —— 空状态（对齐 Tab1 虚线边框空状态） ——
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  margin: 16px 16px 0;
+  background: #ffffff;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  text-align: center;
+  animation: fadeIn 0.3s ease-out;
+
+  .empty-icon-circle {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    border-radius: 50%;
+    margin-bottom: 14px;
+
+    ion-icon {
+      font-size: 26px;
+      color: #9ca3af;
+    }
+  }
+
+  .empty-main {
+    font-size: 15px;
+    font-weight: 500;
+    color: #6b7280;
+    margin-bottom: 4px;
+  }
+
+  .empty-sub {
+    font-size: 13px;
+    color: #9ca3af;
+  }
+}
+
+// —— 动画 ——
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// —— 暗色模式兼容 ——
+@media (prefers-color-scheme: dark) {
+  .search-page {
+    --background: #1c1c1e;
+  }
+
+  .search-card,
+  .history-section,
+  .empty-state {
+    background: #2c2c2e;
+    border-color: #3a3a3c;
+  }
+
+  .search-card-header .search-card-title,
+  .input-field,
+  .history-chip {
+    color: #f1f1f3;
+  }
+
+  .search-card::before {
+    opacity: 0.85;
+  }
+
+  .search-input-group {
+    background: #3a3a3c;
+    border-color: #48484a;
+
+    &:focus-within {
+      background: #2c2c2e;
+      border-color: #0f766e;
+    }
+
+    .input-field::placeholder {
+      color: #8e8e93;
+    }
+  }
+
+  .input-clear:hover {
+    background: #3a3a3c;
+    color: #f1f1f3;
+  }
+
+  .action-btn.btn-secondary {
+    background: #3a3a3c;
+    color: #a1a1a6;
+
+    &:hover {
+      background: #48484a;
+    }
+  }
+
+  .history-chip {
+    background: #3a3a3c;
+    border-color: #48484a;
+
+    &:hover {
+      background: rgba(15, 118, 110, 0.15);
+      border-color: rgba(15, 118, 110, 0.35);
+    }
+  }
+
+  .empty-state {
+    border-color: #3a3a3c;
+
+    .empty-icon-circle {
+      background: #3a3a3c;
+    }
+  }
+}
+
+// ========================================
+// 桌面端适配
+// ========================================
+@media (min-width: 768px) {
+  .banner-strip {
+    height: 4px;
+  }
+
+  .search-card {
+    max-width: 600px;
+    margin: 48px auto 0;
+    padding: 32px 28px 24px;
+    border-radius: 14px;
+
+    &::before {
+      top: 76px;
+      height: 28px;
+    }
+  }
+
+  .search-card-header {
+    margin-bottom: 22px;
+
+    ion-icon { font-size: 22px; }
+    .search-card-title { font-size: 19px; }
+  }
+
+  .search-input-group {
+    height: 50px;
+    border-radius: 12px;
+
+    .input-icon { padding-left: 16px; }
+    .input-field {
+      font-size: 16px;
+      padding: 0 12px;
+    }
+  }
+
+  .action-row {
+    gap: 12px;
+    margin-top: 22px;
+  }
+
+  .action-btn {
+    height: 46px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+
+  .history-section {
+    max-width: 600px;
+    margin: 20px auto 0;
+    padding: 20px 24px;
+    border-radius: 14px;
+  }
+
+  .history-chip {
+    padding: 8px 18px;
+    font-size: 14px;
+  }
+
+  .empty-state {
+    max-width: 600px;
+    margin: 20px auto 0;
+    padding: 48px 28px;
+    border-radius: 14px;
+
+    .empty-icon-circle {
+      width: 60px;
+      height: 60px;
+
+      ion-icon { font-size: 30px; }
+    }
+
+    .empty-main { font-size: 16px; }
+    .empty-sub { font-size: 14px; }
+  }
+}
+
+// 大屏增强
+@media (min-width: 1200px) {
+  .search-card {
+    max-width: 680px;
+    margin-top: 64px;
+    padding: 36px 32px 28px;
+  }
+
+  .history-section {
+    max-width: 680px;
+  }
+
+  .empty-state {
+    max-width: 680px;
   }
 }

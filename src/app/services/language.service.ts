@@ -728,6 +728,9 @@ export class LanguageService {
         cancel: '取消',
         aiAssistSearch: 'AI 辅助搜索',
         inputKeyword: '请输入搜索关键词',
+        searchHistory: '搜索记录',
+        clearHistory: '清除记录',
+        noHistory: '暂无搜索记录',
       },
       // 地点选择器组件
       locationPicker: {
@@ -1471,6 +1474,9 @@ export class LanguageService {
         cancel: 'Cancel',
         aiAssistSearch: 'AI Search',
         inputKeyword: 'Please enter search keyword',
+        searchHistory: 'Search History',
+        clearHistory: 'Clear',
+        noHistory: 'No search history',
       },
       // Location Picker Component
       locationPicker: {

@@ -1,29 +1,82 @@
-<ion-header> </ion-header>
+<ion-content class="search-page">
+  <!-- 顶部渐变装饰条 -->
+  <div class="banner-strip"></div>
 
-<ion-content class="ion-padding">
-  <ion-searchbar
-    [(ngModel)]="keyword"
-    [placeholder]="t.searchPlaceholder"
-    (keyup.enter)="onSearch()"
-  ></ion-searchbar>
+  <!-- 搜索主卡片 -->
+  <div class="search-card">
+    <!-- 顶部返回按钮 -->
+    <button class="back-btn" (click)="goBack()">
+      <ion-icon name="chevron-back-outline"></ion-icon>
+      <span>{{ t.back }}</span>
+    </button>
 
-  <div class="button-container">
-    <ion-button size="large" fill="outline" (click)="goBack()">
-      <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
-      {{ t.back }}
-    </ion-button>
-    <ion-button size="large" (click)="onSearch()">
-      <ion-icon slot="start" name="search-outline"></ion-icon>
-      {{ t.searchBtn }}
-    </ion-button>
-    <ion-button
-      size="large"
-      color="tertiary"
-      (click)="aiSearch()"
-      [disabled]="aiSearching"
-    >
-      <ion-icon slot="start" name="sparkles-outline"></ion-icon>
-      {{ aiSearching ? t.searching : t.aiAssist }}
-    </ion-button>
+    <div class="search-card-header">
+      <ion-icon name="search-outline"></ion-icon>
+      <span class="search-card-title">{{ t.searchPlaceholder }}</span>
+    </div>
+
+    <div class="search-input-group">
+      <div class="input-icon">
+        <ion-icon name="search-outline"></ion-icon>
+      </div>
+      <input
+        class="input-field"
+        [(ngModel)]="keyword"
+        [placeholder]="t.searchPlaceholder"
+        (keyup.enter)="onSearch()"
+      />
+      @if (keyword) {
+      <button class="input-clear" (click)="keyword = ''">
+        <ion-icon name="close-circle"></ion-icon>
+      </button>
+      }
+    </div>
+
+    <div class="action-row">
+      <button class="action-btn btn-primary" (click)="onSearch()">
+        <ion-icon name="search-outline"></ion-icon>
+        {{ t.searchBtn }}
+      </button>
+      <button
+        class="action-btn btn-accent"
+        (click)="aiSearch()"
+        [disabled]="aiSearching"
+      >
+        <ion-icon name="sparkles-outline"></ion-icon>
+        {{ aiSearching ? t.searching : t.aiAssist }}
+      </button>
+    </div>
   </div>
+
+  <!-- 搜索记录 -->
+  @if (searchHistory.length > 0) {
+  <div class="history-section">
+    <div class="history-header">
+      <span class="history-title">
+        <ion-icon name="time-outline"></ion-icon>
+        {{ t.searchHistory }}
+      </span>
+      <button class="clear-btn" (click)="clearHistory()">
+        <ion-icon name="trash-outline"></ion-icon>
+        {{ t.clearHistory }}
+      </button>
+    </div>
+    <div class="history-tags">
+      @for (item of searchHistory; track item) {
+      <span class="history-chip" (click)="selectHistory(item)">
+        <ion-icon name="time-outline"></ion-icon>
+        <span>{{ item }}</span>
+      </span>
+      }
+    </div>
+  </div>
+  } @else {
+  <div class="empty-state">
+    <div class="empty-icon-circle">
+      <ion-icon name="search-outline"></ion-icon>
+    </div>
+    <span class="empty-main">{{ t.noHistory }}</span>
+    <span class="empty-sub">{{ t.searchPlaceholder }}</span>
+  </div>
+  }
 </ion-content>
