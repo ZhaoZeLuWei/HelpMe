@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/tabs/tab3"></ion-back-button>
     </ion-buttons>
-    <ion-title>聊天详情</ion-title>
+    <ion-title>{{ t.pageTitle }}</ion-title>
   </ion-toolbar>
   @if (isOrderRoom && orderInfo) {
   <ion-toolbar
@@ -35,8 +35,10 @@
   @if (showOrderInfo) {
   <ion-toolbar color="light" class="order-detail-bar">
     <div class="order-detail-content">
-      <p><strong>地点：</strong>{{ orderInfo.Location }}</p>
-      <p><strong>描述：</strong>{{ orderInfo.EventDetails }}</p>
+      <p><strong>{{ t.locationLabel }}</strong>{{ orderInfo.Location }}</p>
+      <p>
+        <strong>{{ t.descriptionLabel }}</strong>{{ orderInfo.EventDetails }}
+      </p>
       <p>
         <strong>{{ t.orderTime }}：</strong>{{ orderInfo.OrderCreateTime |
         date:'yyyy-MM-dd HH:mm' }}
@@ -47,7 +49,7 @@
           fill="outline"
           (click)="goToEventDetail(); $event.stopPropagation()"
         >
-          查看事件
+          {{ t.viewEvent }}
         </ion-button>
         <ion-button
           size="small"
@@ -55,7 +57,7 @@
           color="success"
           (click)="openOrderPreview(); $event.stopPropagation()"
         >
-          查看订单
+          {{ t.viewOrder }}
         </ion-button>
       </div>
     </div>
@@ -93,11 +95,13 @@
   @if (showEventInfo) {
   <ion-toolbar color="light" class="order-detail-bar">
     <div class="order-detail-content">
-      <p><strong>地点：</strong>{{ eventInfo.Location }}</p>
-      <p><strong>描述：</strong>{{ eventInfo.EventDetails }}</p>
+      <p><strong>{{ t.locationLabel }}</strong>{{ eventInfo.Location }}</p>
       <p>
-        <strong>发布时间：</strong>{{ eventInfo.CreateTime | date:'yyyy-MM-dd
-        HH:mm' }}
+        <strong>{{ t.descriptionLabel }}</strong>{{ eventInfo.EventDetails }}
+      </p>
+      <p>
+        <strong>{{ t.publishTime }}：</strong>{{ eventInfo.CreateTime |
+        date:'yyyy-MM-dd HH:mm' }}
       </p>
       <div class="order-actions">
         <ion-button
@@ -105,7 +109,7 @@
           fill="outline"
           (click)="goToEventDetail(); $event.stopPropagation()"
         >
-          查看事件详情
+          {{ t.viewEventDetails }}
         </ion-button>
       </div>
     </div>
@@ -117,7 +121,7 @@
   <div class="chat-container">
     @for (msg of messages(); track $index) {
     <!-- 系统消息居中显示 -->
-    @if (msg.userName === '系统通知') {
+    @if (msg.userName === t.systemNotification) {
     <div class="system-message">
       <span class="system-message-text">{{ msg.text }}</span>
       <span class="system-message-time">{{ msg.sendTime | date:'HH:mm' }}</span>
@@ -128,15 +132,15 @@
         <ion-avatar class="message-avatar">
           <img
             [src]="getMessageAvatar(msg)"
-            alt="用户头像"
+            [alt]="t.userAvatar || 'User Avatar'"
             (error)="onAvatarError($event)"
           />
         </ion-avatar>
         <div class="message-main">
           <div class="message-meta">
             <span class="user-name"
-              >{{ isMyMessage(msg) ? (myself?.name || '我') : (msg.userName ||
-              roomInfoTab3?.name || '对方') }}</span
+              >{{ isMyMessage(msg) ? (myself?.name || t.me) : (msg.userName ||
+              roomInfoTab3?.name || t.otherParty) }}</span
             >
             <span class="timestamp"> {{ msg.sendTime | date:'HH:mm' }}</span>
           </div>
@@ -145,7 +149,7 @@
             <div class="msg-image-wrap">
               <img
                 [src]="env.apiBase + msg.imageUrl"
-                alt="图片消息"
+                [alt]="t.imageMessage || 'Image'"
                 class="msg-image"
                 (click)="previewImage(env.apiBase + msg.imageUrl)"
               />
@@ -208,12 +212,12 @@
       </ion-button>
       <ion-input
         [formControl]="messageInput"
-        placeholder="输入消息..."
+        [placeholder]="t.inputMessage"
         (keyup.enter)="sendMessage()"
       >
       </ion-input>
       <ion-button slot="end" fill="clear" (click)="sendMessage()">
-        发送
+        {{ t.send }}
       </ion-button>
     </ion-item>
   </ion-toolbar>
@@ -225,10 +229,10 @@
   <ng-template>
     <ion-header>
       <ion-toolbar>
-        <ion-title>订单详情</ion-title>
+        <ion-title>{{ t.orderPreviewTitle }}</ion-title>
         <ion-buttons slot="end">
           <ion-button fill="clear" (click)="closeOrderPreview()"
-            >关闭</ion-button
+            >{{ t.close }}</ion-button
           >
         </ion-buttons>
       </ion-toolbar>
@@ -238,12 +242,12 @@
       <!-- 订单状态卡片 -->
       <div class="order-status-card">
         <div class="status-header">
-          <span class="status-label">订单状态</span>
+          <span class="status-label">{{ t.orderStatus }}</span>
           <ion-badge
             [color]="orderColorMap[orderInfo.OrderStatus] || 'medium'"
             class="status-badge"
           >
-            {{ orderStatusMap[orderInfo.OrderStatus] || '未知' }}
+            {{ orderStatusMap[orderInfo.OrderStatus] || t.unknown }}
           </ion-badge>
         </div>
         <div class="order-title">{{ orderInfo.EventTitle }}</div>
@@ -253,32 +257,32 @@
       <!-- 订单信息 -->
       <div class="order-info-section">
         <div class="info-row">
-          <span class="info-label">买家</span>
+          <span class="info-label">{{ t.buyer }}</span>
           <span class="info-value">{{ orderInfo.ConsumerName }}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">卖家</span>
+          <span class="info-label">{{ t.seller }}</span>
           <span class="info-value">{{ orderInfo.ProviderName }}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">事件地点</span>
+          <span class="info-label">{{ t.eventLocation }}</span>
           <span class="info-value"
             >{{ orderInfo.EventLocation || orderInfo.Location }}</span
           >
         </div>
         @if (orderInfo.DeliveryAddress) {
         <div class="info-row">
-          <span class="info-label">交付地址</span>
+          <span class="info-label">{{ t.deliveryAddress }}</span>
           <span class="info-value">{{ orderInfo.DeliveryAddress }}</span>
         </div>
         } @if (orderInfo.DeliverySpecific) {
         <div class="info-row">
-          <span class="info-label">门牌号</span>
+          <span class="info-label">{{ t.doorNumber }}</span>
           <span class="info-value">{{ orderInfo.DeliverySpecific }}</span>
         </div>
         } @if (orderInfo.DeliveryAdditionalInfo) {
         <div class="info-row">
-          <span class="info-label">补充信息</span>
+          <span class="info-label">{{ t.additionalInfo }}</span>
           <span class="info-value">{{ orderInfo.DeliveryAdditionalInfo }}</span>
         </div>
         }
@@ -311,7 +315,7 @@
         </div>
         } @if (orderInfo.EventDetails) {
         <div class="info-row">
-          <span class="info-label">事件描述</span>
+          <span class="info-label">{{ t.eventDescription }}</span>
           <span class="info-value description"
             >{{ orderInfo.EventDetails }}</span
           >
@@ -323,7 +327,7 @@
       <div class="order-actions-section">
         @if (orderInfo.OrderStatus === 0 && isCurrentUserSeller) {
         <ion-button expand="block" color="success" (click)="confirmOrder()">
-          确认订单
+          {{ t.confirmOrder }}
         </ion-button>
         } @if (orderInfo.OrderStatus === 0) {
         <ion-button
@@ -332,20 +336,20 @@
           color="danger"
           (click)="cancelOrder()"
         >
-          取消订单
+          {{ t.cancelOrder }}
         </ion-button>
         } @if (orderInfo.OrderStatus === 1 && isCurrentUserBuyer) {
         <ion-button expand="block" color="primary" (click)="completeOrder()">
-          确认完成
+          {{ t.confirmComplete }}
         </ion-button>
         } @if (orderInfo.OrderStatus === 2 && !hasReviewed) {
         <ion-button expand="block" color="tertiary" (click)="openReviewModal()">
-          去评价
+          {{ t.goReview }}
         </ion-button>
         } @if (orderInfo.OrderStatus === 2 && hasReviewed && !otherHasReviewed)
         {
         <ion-button expand="block" fill="outline" color="medium" disabled>
-          已评价，等待对方
+          {{ t.reviewPending }}
         </ion-button>
         } @if (orderInfo.OrderStatus === 2 && hasReviewed && otherHasReviewed) {
         <ion-button
@@ -354,22 +358,22 @@
           color="medium"
           (click)="openReviewDetail()"
         >
-          查看评价
+          {{ t.viewReview }}
         </ion-button>
         } @if (orderInfo.OrderStatus === 3 && !hasReviewed && !otherHasReviewed)
         {
         <ion-button expand="block" color="tertiary" (click)="openReviewModal()">
-          去评价
+          {{ t.goReview }}
         </ion-button>
         } @if (orderInfo.OrderStatus === 3 && hasReviewed && !otherHasReviewed)
         {
         <ion-button expand="block" fill="outline" color="medium" disabled>
-          已评价，等待对方
+          {{ t.reviewPending }}
         </ion-button>
         } @if (orderInfo.OrderStatus === 3 && !hasReviewed && otherHasReviewed)
         {
         <ion-button expand="block" color="tertiary" (click)="openReviewModal()">
-          去评价
+          {{ t.goReview }}
         </ion-button>
         } @if (orderInfo.OrderStatus === 3 && hasReviewed && otherHasReviewed) {
         <ion-button
@@ -378,11 +382,11 @@
           color="medium"
           (click)="openReviewDetail()"
         >
-          查看评价
+          {{ t.viewReview }}
         </ion-button>
         }
         <ion-button expand="block" fill="outline" (click)="goToEventDetail()">
-          查看事件详情
+          {{ t.viewEventDetails }}
         </ion-button>
       </div>
       }

@@ -1,11 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit, inject, signal, AfterViewInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnInit,
+  inject,
+  signal,
+  AfterViewInit,
+  OnDestroy,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ToastController } from '@ionic/angular';
 import { ModalController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { checkmark, locate, map, close, save } from 'ionicons/icons';
 import { environment } from '../../../environments/environment';
+import { LanguageService } from '../../services/language.service';
 
 declare const AMap: any;
 
@@ -56,7 +65,9 @@ interface AddressDetail {
   styleUrls: ['./location-picker.component.scss'],
   imports: [CommonModule, FormsModule, IonicModule],
 })
-export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy {
+export class LocationPickerComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
   @Input() selectedPlaceId?: string;
   @Input() selectedText?: string;
   @Input() centerLng = 109.41318;
@@ -65,6 +76,10 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   private readonly apiBase = environment.apiBase;
   private readonly modalCtrl = inject(ModalController);
   private readonly toastCtrl = inject(ToastController);
+  private readonly langService = inject(LanguageService);
+
+  // 翻译对象
+  t = this.langService.getTranslations('zh').locationPicker;
 
   keyword = '';
   loading = signal(false);
@@ -72,7 +87,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   selectedMapLocation = signal<{ lng: number; lat: number } | null>(null);
   currentAddress = signal<string>('');
   isLocating = signal(false);
-    // 👇 加上这个，用来暂存列表选中的完整数据
+  // 👇 加上这个，用来暂存列表选中的完整数据
   pendingConfirmLocation = signal<PickedLocation | null>(null);
   nearbyLocations = signal<LocationOption[]>([]);
   addressDetail = signal<AddressDetail | null>(null);
@@ -89,7 +104,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   constructor() {
     addIcons({ checkmark, locate, map, close, save });
   }
-    // 点击“搜索”按钮执行
+  // 点击“搜索”按钮执行
   doSearchAction() {
     if (!this.keyword) return;
     if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
@@ -98,6 +113,10 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   ngOnInit(): void {
+    // 监听语言变化
+    this.langService.currentLang$.subscribe((lang) => {
+      this.t = this.langService.getTranslations(lang).locationPicker;
+    });
     this.clearExpiredCache();
     this.loadAddressBook();
   }
@@ -134,7 +153,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
 
     // 3. 更新地图坐标
     this.selectedMapLocation.set({ lng, lat });
-    
+
     // 4. 直接把列表的地址显示在顶部卡片里（不用再等逆地理编码，秒显示）
     this.currentAddress.set(item.address || text);
 
@@ -144,7 +163,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
       this.map.setZoom(18);
       this.addMapMarker(lng, lat);
     }
-    
+
     // 注意：这里绝对不要写 this.modalCtrl.dismiss 了！
   }
 
@@ -178,7 +197,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
       const cached: any[] = JSON.parse(data);
       const lowerKeyword = keyword.toLowerCase();
 
-      const matched = cached.filter(item => {
+      const matched = cached.filter((item) => {
         const name = (item.text || '').toLowerCase();
         const address = (item.address || '').toLowerCase();
         return name.includes(lowerKeyword) || address.includes(lowerKeyword);
@@ -211,7 +230,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
     const doSearch = () => {
       const detail = this.addressDetail();
       const currentCity = detail?.city || detail?.province || '';
-      
+
       const center = this.map ? this.map.getCenter() : null;
       const currentLng = center ? center.getLng() : this.centerLng;
       const currentLat = center ? center.getLat() : this.centerLat;
@@ -222,7 +241,11 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
       });
 
       // 处理结果的通用函数
-      const handleResult = (status: string, result: any, needCalcDistance: boolean) => {
+      const handleResult = (
+        status: string,
+        result: any,
+        needCalcDistance: boolean,
+      ) => {
         this.loading.set(false);
         if (status === 'complete' && result.poiList?.pois) {
           let list = result.poiList.pois.map((poi: any) => ({
@@ -231,7 +254,8 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
             address: poi.address || poi.name || '',
             lng: poi.location?.lng || 0,
             lat: poi.location?.lat || 0,
-            district: (poi.pname || '') + (poi.cityname || '') + (poi.adname || ''),
+            district:
+              (poi.pname || '') + (poi.cityname || '') + (poi.adname || ''),
             distanceMeters: poi.distance ? Math.round(poi.distance) : null,
           }));
 
@@ -242,29 +266,38 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
             list = list.map((item: any) => {
               // 1. 算距离
               if (item.lng && item.lat) {
-                item.distanceMeters = Math.round(this.calculateDistance(currentLng, currentLat, item.lng, item.lat));
+                item.distanceMeters = Math.round(
+                  this.calculateDistance(
+                    currentLng,
+                    currentLat,
+                    item.lng,
+                    item.lat,
+                  ),
+                );
               }
-              
+
               // 2. 算相关度得分（名字越精确，分越高）
               const lowerName = (item.name || '').toLowerCase();
               if (lowerName === lowerKeyword) {
                 item._score = 9000; // 完全匹配
               } else if (lowerName.startsWith(lowerKeyword)) {
-                item._score = 800;  // 前缀匹配
+                item._score = 800; // 前缀匹配
               } else if (lowerName.includes(lowerKeyword)) {
-                item._score = 500;  // 包含匹配
+                item._score = 500; // 包含匹配
               } else {
-                item._score = 0;    // 名字不匹配
+                item._score = 0; // 名字不匹配
               }
-              
+
               return item;
             });
 
             // 3. 综合排序
             list.sort((a: any, b: any) => {
               const scoreDiff = (b._score || 0) - (a._score || 0);
-              if (scoreDiff !== 0) return scoreDiff; 
-              return (a.distanceMeters || Infinity) - (b.distanceMeters || Infinity); 
+              if (scoreDiff !== 0) return scoreDiff;
+              return (
+                (a.distanceMeters || Infinity) - (b.distanceMeters || Infinity)
+              );
             });
           }
 
@@ -278,7 +311,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
               this.map.setCenter([first.lng, first.lat]);
               this.map.setZoom(16);
               this.addMapMarker(first.lng, first.lat);
-              
+
               // 同步更新顶部地址卡片和暂存坐标
               this.selectedMapLocation.set({ lng: first.lng, lat: first.lat });
               this.currentAddress.set(first.address || first.name);
@@ -286,7 +319,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
             }
           }
         } else {
-          this.locations.set([]); 
+          this.locations.set([]);
         }
       };
 
@@ -294,29 +327,29 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
       const hasExactMatch = (pois: any[]) => {
         if (!pois || pois.length === 0) return false;
         const lowerKeyword = keyword.toLowerCase();
-        return pois.some((poi: any) => 
-          (poi.name || '').toLowerCase().includes(lowerKeyword)
+        return pois.some((poi: any) =>
+          (poi.name || '').toLowerCase().includes(lowerKeyword),
         );
       };
 
       if (currentCity) {
         // 1. 第一轮：严格限制在当前城市搜
         placeSearch.setCity(currentCity);
-        placeSearch.setCityLimit(true); 
-        
+        placeSearch.setCityLimit(true);
+
         placeSearch.search(keyword, (status: any, result: any) => {
           const pois = result?.poiList?.pois || [];
-          
+
           if (status === 'complete' && hasExactMatch(pois)) {
             handleResult(status, result, false);
           } else {
             // 2. 第二轮：本地没精确匹配到，放开到全国搜
             placeSearch.setCity('全国');
             placeSearch.setCityLimit(false);
-            
+
             placeSearch.search(keyword, (status2: any, result2: any) => {
               let finalPois = result2?.poiList?.pois || [];
-              
+
               if (finalPois.length > 0 && pois.length > 0) {
                 const localList = pois.map((poi: any) => ({
                   id: poi.id,
@@ -324,8 +357,18 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
                   address: poi.address,
                   lng: poi.location?.lng,
                   lat: poi.location?.lat,
-                  district: (poi.pname || '') + (poi.cityname || '') + (poi.adname || ''),
-                  distanceMeters: Math.round(this.calculateDistance(currentLng, currentLat, poi.location?.lng, poi.location?.lat)),
+                  district:
+                    (poi.pname || '') +
+                    (poi.cityname || '') +
+                    (poi.adname || ''),
+                  distanceMeters: Math.round(
+                    this.calculateDistance(
+                      currentLng,
+                      currentLat,
+                      poi.location?.lng,
+                      poi.location?.lat,
+                    ),
+                  ),
                 }));
 
                 finalPois = [...finalPois, ...localList];
@@ -335,7 +378,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
               }
 
               const mockResult = { poiList: { pois: finalPois } };
-              handleResult('complete', mockResult, true); 
+              handleResult('complete', mockResult, true);
             });
           }
         });
@@ -357,26 +400,38 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   }
 
   // 👇 新增工具方法：根据两点经纬度计算直线距离（米）
-  private calculateDistance(lng1: number, lat1: number, lng2: number, lat2: number): number {
+  private calculateDistance(
+    lng1: number,
+    lat1: number,
+    lng2: number,
+    lat2: number,
+  ): number {
     const radLat1 = (lat1 * Math.PI) / 180.0;
     const radLat2 = (lat2 * Math.PI) / 180.0;
     const a = radLat1 - radLat2;
     const b = ((lng1 - lng2) * Math.PI) / 180.0;
-    const s = 2 * Math.asin(
-      Math.sqrt(Math.pow(Math.sin(a / 2), 2) + Math.cos(radLat1) * Math.cos(radLat2) * Math.pow(Math.sin(b / 2), 2))
-    );
+    const s =
+      2 *
+      Math.asin(
+        Math.sqrt(
+          Math.pow(Math.sin(a / 2), 2) +
+            Math.cos(radLat1) *
+              Math.cos(radLat2) *
+              Math.pow(Math.sin(b / 2), 2),
+        ),
+      );
     return s * 6378137.0; // 地球半径，返回米
   }
 
   private cacheAMapResults(list: LocationOption[]) {
     try {
       const cachedLocations = this.getCachedLocations();
-      
-      list.forEach(poi => {
+
+      list.forEach((poi) => {
         if (!poi.address || poi.address === poi.name) return;
 
         const existingIndex = cachedLocations.findIndex(
-          (item: any) => item.placeId === poi.id
+          (item: any) => item.placeId === poi.id,
         );
 
         if (existingIndex > -1) {
@@ -442,7 +497,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
         city: '全国',
         radius: 1000,
       });
-      
+
       // 👇 关键：插件加载完后，立刻主动去查一次当前坐标的周边和地址
       this.reverseGeocode(this.centerLng, this.centerLat).then(() => {
         this.autoLocateOnOpen();
@@ -476,19 +531,21 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
     this.isLocating.set(true);
 
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000
-        });
-      });
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000,
+          });
+        },
+      );
 
       const lng = position.coords.longitude;
       const lat = position.coords.latitude;
 
       this.selectedMapLocation.set({ lng, lat });
-      
+
       if (this.map) {
         this.map.setCenter([lng, lat]);
         this.map.setZoom(16);
@@ -510,11 +567,11 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
     if (!this.map) return;
 
     this.isSatelliteMode = !this.isSatelliteMode;
-    
+
     if (this.isSatelliteMode) {
       this.map.setLayers([
         new AMap.TileLayer.Satellite(),
-        new AMap.TileLayer.RoadNet()
+        new AMap.TileLayer.RoadNet(),
       ]);
     } else {
       this.map.setLayers([new AMap.TileLayer()]);
@@ -565,10 +622,17 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
     params.append('limit', '10');
 
     try {
-      const resp = await fetch(`${this.apiBase}/locations/suggest?${params.toString()}&_t=${Date.now()}`);
+      const resp = await fetch(
+        `${this.apiBase}/locations/suggest?${params.toString()}&_t=${Date.now()}`,
+      );
       const data = await resp.json().catch(() => null);
 
-      if (resp.ok && data?.success && Array.isArray(data.locations) && data.locations.length > 0) {
+      if (
+        resp.ok &&
+        data?.success &&
+        Array.isArray(data.locations) &&
+        data.locations.length > 0
+      ) {
         this.nearbyLocations.set(data.locations);
       }
     } catch (err) {}
@@ -588,7 +652,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
         this.showToast('请先在地图上选择一个位置');
         return;
       }
-      
+
       // 用地图当前的坐标和解析出来的地址现拼一个
       payload = {
         placeId: `map_${Date.now()}`,
@@ -604,7 +668,6 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
     this.saveToCache(payload);
   }
 
-
   // private async loadNearbyLocations(lng: number, lat: number) {
   //   const params = new URLSearchParams();
   //   params.append('lng', String(lng));
@@ -614,7 +677,7 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
   //   try {
   //     const resp = await fetch(`${this.apiBase}/locations/suggest?${params.toString()}&_t=${Date.now()}`);
   //     const data = await resp.json().catch(() => null);
-      
+
   //     // 如果后端有你们自己的私有数据，直接用
   //     if (resp.ok && data?.success && Array.isArray(data.locations) && data.locations.length > 0) {
   //       this.nearbyLocations.set(data.locations);
@@ -653,40 +716,41 @@ export class LocationPickerComponent implements OnInit, AfterViewInit, OnDestroy
           lat: poi.location?.lat || 0,
           distanceMeters: poi.distance ? Math.round(poi.distance) : null,
         }));
-        
+
         this.nearbyLocations.set(list);
-         // ✅ 保存到后端数据库
+        // ✅ 保存到后端数据库
         //this.saveNearbyToBackend(list);
       }
     });
   }
   // 新增：保存附近地点到后端数据库
-private async saveNearbyToBackend(locations: LocationOption[]) {
-  try {
-    const resp = await fetch(`${this.apiBase}/locations/save`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ locations }),
-    });
-    const data = await resp.json();
-    if (data.success) {
-      console.log(`成功保存 ${data.count} 个地点到数据库`);
+  private async saveNearbyToBackend(locations: LocationOption[]) {
+    try {
+      const resp = await fetch(`${this.apiBase}/locations/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locations }),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        console.log(`成功保存 ${data.count} 个地点到数据库`);
+      }
+    } catch (err) {
+      console.error('保存地点到后端失败:', err);
     }
-  } catch (err) {
-    console.error('保存地点到后端失败:', err);
   }
-}
   // ================= 缓存方法 =================
 
   private saveToCache(location: PickedLocation): void {
     try {
       const cachedLocations = this.getCachedLocations();
       const existingIndex = cachedLocations.findIndex(
-        (item: any) => item.placeId === location.placeId
+        (item: any) => item.placeId === location.placeId,
       );
 
       if (existingIndex > -1) {
-        cachedLocations[existingIndex].useCount = (cachedLocations[existingIndex].useCount || 0) + 1;
+        cachedLocations[existingIndex].useCount =
+          (cachedLocations[existingIndex].useCount || 0) + 1;
         cachedLocations[existingIndex].timestamp = Date.now();
       } else {
         cachedLocations.push({
@@ -758,7 +822,7 @@ private async saveNearbyToBackend(locations: LocationOption[]) {
 
   removeFromAddressBook(placeId: string): void {
     const locations = this.getCachedLocations().filter(
-      (item: any) => item.placeId !== placeId
+      (item: any) => item.placeId !== placeId,
     );
     localStorage.setItem(this.CACHE_KEY, JSON.stringify(locations));
     this.loadAddressBook();
@@ -792,13 +856,15 @@ private async saveNearbyToBackend(locations: LocationOption[]) {
     if (!navigator.geolocation) return;
 
     try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000,
-        });
-      });
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000,
+          });
+        },
+      );
 
       const lng = position.coords.longitude;
       const lat = position.coords.latitude;
@@ -818,9 +884,13 @@ private async saveNearbyToBackend(locations: LocationOption[]) {
   }
 
   // ================= 工具方法 =================
-  
+
   private async showToast(message: string) {
-    const t = await this.toastCtrl.create({ message, duration: 2000, position: 'bottom' });
+    const t = await this.toastCtrl.create({
+      message,
+      duration: 2000,
+      position: 'bottom',
+    });
     await t.present();
   }
 }

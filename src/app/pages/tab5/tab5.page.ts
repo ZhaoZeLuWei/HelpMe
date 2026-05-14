@@ -403,7 +403,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       return;
     }
 
-    await this.toast(`请先完善：${msgs.join('、')}`);
+    await this.toast(`${this.t.completeRequired}：${msgs.join('、')}`);
   }
 
   private async requireLogin(): Promise<number | null> {
@@ -435,11 +435,11 @@ export class Tab5Page implements OnInit, OnDestroy {
         return null;
       }
       if (resp.status === 404) {
-        await this.toast(`接口不存在（404）：${endpoint}`);
+        await this.toast(this.t.apiNotFound + ` (${endpoint})`);
         return null;
       }
 
-      const msg = data?.error || data?.msg || '请求失败';
+      const msg = data?.error || data?.msg || this.t.requestFailed;
       await this.toast(String(msg));
       return null;
     }

@@ -315,7 +315,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
 
     // 监听内容审核失败
     this.socket.on('moderationFailed', (data: any) => {
-      this.showToast(data.message || '消息包含违规内容，请修改后重试');
+      this.showToast(data.message || this.t.moderationFailed);
     });
   }
 

@@ -164,7 +164,7 @@ export class Tab3Page implements OnInit {
               return {
                 roomId: room.roomId,
                 name,
-                lastMsg: room.lastMsg || '暂无消息',
+                lastMsg: room.lastMsg || this.t.noMessage,
                 count: unreadCount,
                 avatar,
                 type: room.type || 'user',

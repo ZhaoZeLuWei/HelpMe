@@ -25,11 +25,20 @@ import {
 
 // 引入展示组件
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
-import { SearchStateService, AiSearchResults } from '../../services/search-state.service';
+import {
+  SearchStateService,
+  AiSearchResults,
+} from '../../services/search-state.service';
 import { LanguageService } from '../../services/language.service';
 import { addIcons } from 'ionicons';
 import { sparklesOutline } from 'ionicons/icons';
-import { getUserPosition, calculateDistance, formatDistance, resolveAddress, isOnlineService } from '../../components/show-event/show-event.component';
+import {
+  getUserPosition,
+  calculateDistance,
+  formatDistance,
+  resolveAddress,
+  isOnlineService,
+} from '../../components/show-event/show-event.component';
 
 @Component({
   selector: 'app-tab2',
@@ -170,7 +179,8 @@ export class Tab2Page implements OnInit, AfterViewInit {
         // 按类型过滤（如果 URL 指定了 type）
         if (realType) {
           matched = matched.filter((item: any) => {
-            const t = item.eventType != null ? Number(item.eventType) : item.EventType;
+            const t =
+              item.eventType != null ? Number(item.eventType) : item.EventType;
             return t === (realType === 'help' ? 1 : 0);
           });
         }
@@ -247,15 +257,31 @@ export class Tab2Page implements OnInit, AfterViewInit {
         continue;
       }
       if (card.lng != null && card.lat != null) {
-        const meters = calculateDistance(userPos.lng, userPos.lat, card.lng, card.lat);
-        card.distance = formatDistance(meters);
+        const meters = calculateDistance(
+          userPos.lng,
+          userPos.lat,
+          card.lng,
+          card.lat,
+        );
+        card.distance = formatDistance(
+          meters,
+          this.langService.getCurrentLang(),
+        );
       } else if (card.address) {
         const coords = await resolveAddress(card.address);
         if (coords) {
           card.lng = coords.lng;
           card.lat = coords.lat;
-          const meters = calculateDistance(userPos.lng, userPos.lat, coords.lng, coords.lat);
-          card.distance = formatDistance(meters);
+          const meters = calculateDistance(
+            userPos.lng,
+            userPos.lat,
+            coords.lng,
+            coords.lat,
+          );
+          card.distance = formatDistance(
+            meters,
+            this.langService.getCurrentLang(),
+          );
         }
       }
     }

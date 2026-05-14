@@ -189,12 +189,13 @@
               detail="true"
               (click)="openLocationPicker('profileEdit')"
             >
-              <ion-label>所在地 *</ion-label>
+              <ion-label>{{ t.locationLabelProfile }} *</ion-label>
               <ion-note
                 slot="end"
                 [color]="editProfileForm.value.Location ? 'primary' : 'medium'"
               >
-                {{ editProfileForm.value.Location || '请选择地点' }}
+                {{ editProfileForm.value.Location ||
+                t.locationPlaceholderProfile }}
               </ion-note>
             </ion-item>
 

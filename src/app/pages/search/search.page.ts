@@ -1,7 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonButton, IonContent, IonHeader, IonSearchbar, IonIcon } from '@ionic/angular/standalone';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonSearchbar,
+  IonIcon,
+} from '@ionic/angular/standalone';
 import { ToastController, AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -9,10 +15,15 @@ import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import { SearchStateService } from '../../services/search-state.service';
 import { AiService } from '../../services/ai.service';
+import { LanguageService } from '../../services/language.service';
 import { environment } from '../../../environments/environment';
 import { HttpClientModule } from '@angular/common/http';
 import { addIcons } from 'ionicons';
-import { searchOutline, sparklesOutline, chevronBackOutline } from 'ionicons/icons';
+import {
+  searchOutline,
+  sparklesOutline,
+  chevronBackOutline,
+} from 'ionicons/icons';
 
 @Component({
   selector: 'app-search',
@@ -39,6 +50,10 @@ export class SearchPage implements OnInit {
   private route = inject(ActivatedRoute);
   private toastCtrl = inject(ToastController);
   private alertCtrl = inject(AlertController);
+  private langService = inject(LanguageService);
+
+  // 翻译对象
+  t = this.langService.getTranslations('zh').search;
 
   keyword = '';
   returnTo = '';
@@ -46,6 +61,11 @@ export class SearchPage implements OnInit {
 
   constructor() {
     addIcons({ searchOutline, sparklesOutline, chevronBackOutline });
+
+    // 监听语言变化
+    this.langService.currentLang$.subscribe((lang) => {
+      this.t = this.langService.getTranslations(lang).search;
+    });
   }
 
   ngOnInit() {
@@ -58,7 +78,9 @@ export class SearchPage implements OnInit {
 
     this.aiSearching = true;
     try {
-      const res = await fetch(`${environment.apiBase}/api/cards?search=${encodeURIComponent(kw)}`);
+      const res = await fetch(
+        `${environment.apiBase}/api/cards?search=${encodeURIComponent(kw)}`,
+      );
       const list = await res.json();
 
       if (list && list.length > 0) {
@@ -69,12 +91,12 @@ export class SearchPage implements OnInit {
       } else {
         // 无结果，弹出确认框询问是否使用 AI 搜索
         const alert = await this.alertCtrl.create({
-          header: '没有找到相关结果',
-          message: `未找到与"${kw}"相关的内容，是否使用AI辅助搜索？`,
+          header: this.t.noResults,
+          message: this.t.aiSearchConfirmMsg,
           buttons: [
-            { text: '取消', role: 'cancel' },
+            { text: this.t.cancel, role: 'cancel' },
             {
-              text: 'AI 辅助搜索',
+              text: this.t.aiAssistSearch,
               handler: () => {
                 this.executeAiSearch(kw);
               },
@@ -105,7 +127,7 @@ export class SearchPage implements OnInit {
     const kw = this.keyword.trim();
     if (!kw) {
       const toast = await this.toastCtrl.create({
-        message: '请输入搜索关键词',
+        message: this.t.inputKeyword,
         duration: 1500,
         position: 'bottom',
       });

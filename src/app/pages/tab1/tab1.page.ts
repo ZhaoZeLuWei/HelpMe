@@ -7,7 +7,13 @@ import { map, firstValueFrom } from 'rxjs';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
-import { getUserPosition, calculateDistance, formatDistance, resolveAddress, isOnlineService } from '../../components/show-event/show-event.component';
+import {
+  getUserPosition,
+  calculateDistance,
+  formatDistance,
+  resolveAddress,
+  isOnlineService,
+} from '../../components/show-event/show-event.component';
 import { LanguageService } from '../../services/language.service';
 import { TranslateService } from '../../services/translate.service';
 
@@ -46,7 +52,6 @@ export class Tab1Page implements OnInit {
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
   eventData: CardItem[] = [];
-  currentLang = '中文';
   showLangConfirmModal = false;
   t = this.langService.getTranslations('zh').tab1;
 
@@ -103,7 +108,7 @@ export class Tab1Page implements OnInit {
           name: item.name,
           address: item.address,
           demand: item.demand,
-          price: item.price ? item.price.toString() : '0.00元',
+          price: item.price ? item.price.toString() : '0.00',
           avatar: item.avatar,
           createTime: item.createTime,
           title: item.title,
@@ -132,15 +137,31 @@ export class Tab1Page implements OnInit {
       }
 
       if (card.lng != null && card.lat != null) {
-        const meters = calculateDistance(userPos.lng, userPos.lat, card.lng, card.lat);
-        card.distance = formatDistance(meters);
+        const meters = calculateDistance(
+          userPos.lng,
+          userPos.lat,
+          card.lng,
+          card.lat,
+        );
+        card.distance = formatDistance(
+          meters,
+          this.langService.getCurrentLang(),
+        );
       } else if (card.address) {
         const coords = await resolveAddress(card.address);
         if (coords) {
           card.lng = coords.lng;
           card.lat = coords.lat;
-          const meters = calculateDistance(userPos.lng, userPos.lat, coords.lng, coords.lat);
-          card.distance = formatDistance(meters);
+          const meters = calculateDistance(
+            userPos.lng,
+            userPos.lat,
+            coords.lng,
+            coords.lat,
+          );
+          card.distance = formatDistance(
+            meters,
+            this.langService.getCurrentLang(),
+          );
         }
       }
     }

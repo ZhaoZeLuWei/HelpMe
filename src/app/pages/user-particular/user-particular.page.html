@@ -45,11 +45,12 @@
           <p class="publisher-meta">
             {{ t.address }}{{ userInfo.location }}
             <br />
-            {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }}分
+            {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }}{{ t.scoreUnit
+            }}
             <br />
-            {{ t.serviceRating }}{{ userInfo.serviceRanking }} 分
+            {{ t.serviceRating }}{{ userInfo.serviceRanking }} {{ t.scoreUnit }}
             <br />
-            {{ t.serviceCount }}{{ userInfo.orderCount }} 次
+            {{ t.serviceCount }}{{ userInfo.orderCount }} {{ t.countUnit }}
           </p>
           <p class="user-introduction">
             {{ t.personalIntro }}{{ userInfo.introduction || t.noIntroduction }}
@@ -199,7 +200,9 @@
                   class="comment-avatar"
                 />
                 <span class="comment-author">{{ comment.authorName }}</span>
-                <span class="comment-score">{{ comment.rating }}分</span>
+                <span class="comment-score"
+                  >{{ comment.rating }}{{ t.scoreUnit }}</span
+                >
               </div>
               <p class="comment-content">{{ comment.content }}</p>
             </div>
