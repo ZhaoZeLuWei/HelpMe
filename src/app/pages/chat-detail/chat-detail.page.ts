@@ -51,6 +51,8 @@ import { ChatHistory } from '../../models/chatHistory.model';
 //import Service
 import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
+import { DynamicTranslationService } from '../../services/dynamic-translation.service';
+import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 import {
   ReviewModalComponent,
   ReviewSubmitPayload,
@@ -88,6 +90,7 @@ import {
     IonBadge,
     ReviewModalComponent,
     ReviewDetailModalComponent,
+    TranslateTextPipe,
     IonSpinner,
   ],
 })
@@ -109,6 +112,7 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   private alertCtrl = inject(AlertController);
   private modalCtrl = inject(ModalController);
   private langService = inject(LanguageService);
+  private dynTrans = inject(DynamicTranslationService);
   private zone = inject(NgZone);
 
   // 翻译对象
@@ -183,11 +187,22 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       heart,
     });
 
-    // 监听语言变化
+    // 监听语言变化：重新拉取数据（服务端根据 ?lang= 返回译文）
+    let isFirstLangEmit = true;
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
       this.t = this.langService.getTranslations(lang).chatDetail;
-      // 更新订单状态映射
       this.updateOrderStatusMap();
+      if (isFirstLangEmit) {
+        isFirstLangEmit = false;
+        return;
+      }
+      // 重新加载消息历史和订单信息
+      if (this.roomId) {
+        this.loadHistory(this.roomId);
+        if (this.isOrderRoom) {
+          this.loadOrderInfo(this.roomId);
+        }
+      }
     });
 
     //get user from Node server first
@@ -277,6 +292,9 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       setTimeout(() => {
         this.chatContent?.scrollToBottom(300);
       }, 50);
+
+      // 触发动态翻译（新消息可能包含中文）
+      setTimeout(() => this.dynTrans.translateAll().subscribe(), 300);
     });
 
     //tell user the connnection with this room chat finally success!!~~
@@ -351,6 +369,9 @@ export class ChatDetailPage implements OnInit, OnDestroy {
           setTimeout(() => {
             this.chatContent?.scrollToBottom(0);
           }, 100);
+
+          // 触发动态翻译
+          setTimeout(() => this.dynTrans.translateAll().subscribe(), 200);
         },
         error: (err) => {
           console.error('加载历史消息失败', err);

@@ -38,7 +38,7 @@
       </ion-avatar>
       <ion-label>
         <div class="chat-header">
-          <h2>{{user.name}}</h2>
+          <h2>{{user.name | tText}}</h2>
           @if (user.orderId) {
           <ion-badge color="primary" class="order-tag"
             >{{ t.tab3Extra.orderTag }}</ion-badge
@@ -48,7 +48,7 @@
             {{ formatChatTime(user.updatedAt)}}
           </ion-note>
         </div>
-        <p>{{user.lastMsg}}</p>
+        <p>{{user.lastMsg | tText}}</p>
       </ion-label>
       @if (user.count > 0) {
       <ion-badge slot="end" color="danger"> {{user.count}} </ion-badge>

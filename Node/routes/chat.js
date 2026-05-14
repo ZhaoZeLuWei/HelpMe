@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require("../help_me_db.js");
 const Room = require("../models/Room.js");
 const { authRequired } = require("./auth.js");
+const { translateFields, translateBatch } = require("./translateHelper.js");
 
 const { getChatHistory, getRoomList } = require("../chatHandler.js");
 
@@ -18,6 +19,9 @@ router.get("/api/messages/history", authRequired, async (req, res) => {
     const query = { ...req.query, userId: userId.toString() };
     const result = await getChatHistory(query, userId);
     if (result.success) {
+      if (res.locals.targetLang && result.data?.messages) {
+        await translateFields(result.data.messages, ['text', 'userName'], res.locals.targetLang);
+      }
       res.status(200).json(result);
     } else {
       res.status(400).json(result);
@@ -44,6 +48,25 @@ router.get("/api/rooms/list", authRequired, async (req, res) => {
     };
     const result = await getRoomList(query);
     if (result.success) {
+      if (res.locals.targetLang && result.data?.rooms) {
+        // 收集所有需要翻译的文本
+        const translatableItems = [];
+        for (const room of result.data.rooms) {
+          if (room.lastMsg) translatableItems.push({ obj: room, field: 'lastMsg' });
+          if (room.userA?.name) translatableItems.push({ obj: room.userA, field: 'name' });
+          if (room.userB?.name) translatableItems.push({ obj: room.userB, field: 'name' });
+          if (room.event?.name) translatableItems.push({ obj: room.event, field: 'name' });
+        }
+        // 收集所有文本批量翻译
+        const allTexts = translatableItems.map((t) => t.obj[t.field]).filter(Boolean);
+        const translations = await translateBatch(allTexts, res.locals.targetLang);
+        // 应用翻译结果
+        for (const { obj, field } of translatableItems) {
+          if (obj[field] && translations[obj[field]] && translations[obj[field]] !== obj[field]) {
+            obj[field] = translations[obj[field]];
+          }
+        }
+      }
       res.status(200).json(result);
     } else {
       res.status(400).json(result);
@@ -101,12 +124,17 @@ router.get("/api/rooms/:roomId/order-info", authRequired, async (req, res) => {
       return res.json({ success: false, error: "订单不存在" });
     }
 
+    const order = orders[0];
+    if (res.locals.targetLang) {
+      await translateFields(order, [
+        'EventTitle', 'EventDetails', 'Location', 'EventLocation',
+        'ConsumerName', 'ProviderName', 'CancelledByName',
+        'DeliveryAddress', 'DeliverySpecific', 'DeliveryAdditionalInfo',
+      ], res.locals.targetLang);
+    }
     return res.json({
       success: true,
-      data: {
-        order: orders[0],
-        eventId: room.eventId,
-      },
+      data: { order, eventId: room.eventId },
     });
   } catch (err) {
     console.error("获取订单信息失败:", err);
