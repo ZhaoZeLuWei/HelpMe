@@ -1,10 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  IonContent,
-  IonIcon,
-} from '@ionic/angular/standalone';
+import { IonContent, IonIcon } from '@ionic/angular/standalone';
 import { ToastController, AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -29,13 +26,7 @@ import {
   templateUrl: './search.page.html',
   styleUrls: ['./search.page.scss'],
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    IonHeader,
-    IonContent,
-    IonIcon,
-  ],
+  imports: [CommonModule, FormsModule, IonContent, IonIcon],
 })
 export class SearchPage implements OnInit {
   private searchState = inject(SearchStateService);
@@ -59,7 +50,14 @@ export class SearchPage implements OnInit {
   private readonly MAX_HISTORY = 10;
 
   constructor() {
-    addIcons({ searchOutline, sparklesOutline, chevronBackOutline, timeOutline, closeCircle, trashOutline });
+    addIcons({
+      searchOutline,
+      sparklesOutline,
+      chevronBackOutline,
+      timeOutline,
+      closeCircle,
+      trashOutline,
+    });
 
     // 监听语言变化
     this.langService.currentLang$.subscribe((lang) => {

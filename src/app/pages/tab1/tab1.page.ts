@@ -251,6 +251,10 @@ export class Tab1Page implements OnInit {
     this.showLangConfirmModal = true;
   }
 
+  toggleLanguage() {
+    this.showLangConfirmModal = true;
+  }
+
   // 静态翻译：切换整个应用的 UI 语言
   private handleStaticTranslate(): void {
     this.langService.toggleLanguage();

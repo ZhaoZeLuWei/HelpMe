@@ -199,7 +199,7 @@ export interface EventCardData {
   templateUrl: './show-event.component.html',
   styleUrls: ['./show-event.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, TranslateTextPipe],
+  imports: [IonicModule, CommonModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class ShowEventComponent {
