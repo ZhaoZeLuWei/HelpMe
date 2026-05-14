@@ -1467,6 +1467,9 @@ export class Tab4Page implements OnDestroy {
     try {
       const resp = await fetch(`${this.API_BASE}/upload/images`, {
         method: 'POST',
+        headers: {
+          ...this.auth.getAuthHeader(),
+        },
         body: fd,
       });
 
