@@ -295,6 +295,8 @@ export class LanguageService {
         eventCard: {
           eventImage: '事件图片',
           userAvatar: '用户头像',
+          requestLabel: '求助',
+          helpLabel: '帮助',
         },
         // edit-event-modal 组件
         editEventModal: {
@@ -1035,6 +1037,8 @@ export class LanguageService {
         eventCard: {
           eventImage: 'Event Image',
           userAvatar: 'User Avatar',
+          requestLabel: 'Request',
+          helpLabel: 'Help',
         },
         // edit-event-modal 组件
         editEventModal: {

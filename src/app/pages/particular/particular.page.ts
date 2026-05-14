@@ -17,6 +17,7 @@ import {
   starOutline,
   createOutline,
   chatbubbleOutline,
+  pricetagOutline,
 } from 'ionicons/icons';
 import {
   IonButton,
@@ -115,6 +116,7 @@ export class ParticularPage implements OnInit {
       starOutline,
       createOutline,
       chatbubbleOutline,
+      pricetagOutline,
     });
   }
 
@@ -245,6 +247,13 @@ export class ParticularPage implements OnInit {
     } catch (error) {
       console.error('加载事件详情失败:', error);
     }
+  }
+
+  /** 点击标签跳转到 tab2 搜索相同标签的内容 */
+  searchByTag(tag: string) {
+    this.router.navigate(['/tabs/tab2'], {
+      queryParams: { search: tag },
+    });
   }
 
   async loadUserFromStorage(userId: number): Promise<void> {

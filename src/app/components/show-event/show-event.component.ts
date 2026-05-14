@@ -189,6 +189,8 @@ export interface EventCardData {
   title: string;
   lng?: number | null;
   lat?: number | null;
+  tags?: string;
+  eventType?: number | null;
 }
 
 @Component({

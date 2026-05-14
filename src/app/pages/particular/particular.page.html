@@ -92,7 +92,10 @@
         @if (eventTags.length > 0) {
         <div class="event-tags">
           @for (tag of eventTags; track $index) {
-          <span class="tag-chip">#{{ tag }}</span>
+          <span class="tag-chip" (click)="searchByTag(tag)">
+            <ion-icon name="pricetag-outline"></ion-icon>
+            #{{ tag }}
+          </span>
           }
         </div>
         }

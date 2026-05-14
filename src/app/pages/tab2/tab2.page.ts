@@ -197,6 +197,8 @@ export class Tab2Page implements OnInit, AfterViewInit {
           price: item.price ? String(item.price) : '0.00',
           createTime: item.createTime,
           avatar: item.avatar || '/assets/icon/user.svg',
+          tags: item.tags || '',
+          eventType: item.eventType != null ? Number(item.eventType) : null,
           lng: item.lng != null ? Number(item.lng) : null,
           lat: item.lat != null ? Number(item.lat) : null,
         }));
@@ -235,6 +237,8 @@ export class Tab2Page implements OnInit, AfterViewInit {
         price: item.price ? String(item.price) : '0.00',
         createTime: item.createTime,
         avatar: item.avatar,
+        tags: item.tags || '',
+        eventType: item.eventType != null ? Number(item.eventType) : null,
         lng: item.lng != null ? Number(item.lng) : null,
         lat: item.lat != null ? Number(item.lat) : null,
       }));

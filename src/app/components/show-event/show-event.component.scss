@@ -11,6 +11,12 @@
   vertical-align: middle;
 }
 
+// ===== 卡片类型配色 =====
+$request-color: #ea580c;
+$request-bg: rgba(234, 88, 12, 0.04);
+$help-color: #0284c7;
+$help-bg: rgba(2, 132, 199, 0.04);
+
 // 小卡片基础
 .small-card {
   background-color: var(--ion-card-background, var(--ion-background-color));
@@ -18,13 +24,34 @@
   border-radius: 10px;
   padding: 10px;
   position: relative;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   width: 100%;
+  // 默认透明左边框占位
+  border-left: 4px solid transparent;
+
+  // 求助卡片：橙色左框 + 极浅橙色底
+  &.type-request {
+    border-left-color: $request-color;
+    background: linear-gradient(
+      to right,
+      $request-bg,
+      var(--ion-card-background, var(--ion-background-color)) 40%
+    );
+  }
+
+  // 帮助卡片：蓝色左框 + 极浅蓝色底
+  &.type-help {
+    border-left-color: $help-color;
+    background: linear-gradient(
+      to right,
+      $help-bg,
+      var(--ion-card-background, var(--ion-background-color)) 40%
+    );
+  }
 }
 
 .clickable-card {
   cursor: pointer;
-  transition: all 0.2s ease;
 
   &:hover {
     box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.12);
@@ -83,6 +110,43 @@
   }
 }
 
+// ===== 类型标识条（图片底部） =====
+.card-type-strip {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+
+  .type-icon {
+    font-size: 16px;
+    color: #fff;
+  }
+
+  .type-text {
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  // 各个类型的配色（直接 class 更可靠）
+  &.strip-request {
+    background: linear-gradient(90deg, rgba(234, 88, 12, 0.92), rgba(249, 115, 22, 0.85));
+  }
+
+  &.strip-help {
+    background: linear-gradient(90deg, rgba(2, 132, 199, 0.92), rgba(56, 189, 248, 0.85));
+  }
+}
+
 // 用户信息行：水平弹性，不换行
 .user-info-row {
   display: flex;
@@ -125,6 +189,27 @@
   text-overflow: ellipsis;
   margin-top: 0;
   line-height: 1.2;
+}
+
+// 卡片标签
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+  overflow: hidden;
+}
+
+.card-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  background: rgba(15, 118, 110, 0.08);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #0f766e;
+  white-space: nowrap;
 }
 
 .user-info {
@@ -174,4 +259,30 @@
   font-weight: 800;
   font-size: 16px;
   color: #d97706;
+}
+
+// ===== 暗色模式适配 =====
+@media (prefers-color-scheme: dark) {
+  .small-card {
+    &.type-request {
+      background: linear-gradient(
+        to right,
+        rgba(234, 88, 12, 0.08),
+        var(--ion-card-background, #2c2c2e) 40%
+      );
+    }
+
+    &.type-help {
+      background: linear-gradient(
+        to right,
+        rgba(2, 132, 199, 0.08),
+        var(--ion-card-background, #2c2c2e) 40%
+      );
+    }
+  }
+
+  .card-type-strip {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
 }

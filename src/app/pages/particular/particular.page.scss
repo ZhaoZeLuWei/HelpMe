@@ -130,6 +130,7 @@
   .tag-chip {
     display: inline-flex;
     align-items: center;
+    gap: 4px;
     padding: 4px 12px;
     background: rgba(15, 118, 110, 0.08);
     border: 1px solid rgba(15, 118, 110, 0.2);
@@ -138,11 +139,21 @@
     font-weight: 500;
     color: #0f766e;
     transition: all 0.2s ease;
-    cursor: default;
+    cursor: pointer;
+    user-select: none;
+
+    ion-icon {
+      font-size: 14px;
+    }
 
     &:hover {
       background: rgba(15, 118, 110, 0.12);
       border-color: rgba(15, 118, 110, 0.35);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
     }
   }
 }

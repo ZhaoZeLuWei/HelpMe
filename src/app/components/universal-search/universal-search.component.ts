@@ -170,13 +170,15 @@ export class UniversalSearchComponent implements OnInit {
     if (!Array.isArray(allEvents)) return [];
 
     return allEvents.filter((item) => {
-      // 1. 搜索词过滤
-      if (
-        term &&
-        !item.demand?.toLowerCase().includes(term.toLowerCase()) &&
-        !item.title?.toLowerCase().includes(term.toLowerCase())
-      ) {
-        return false;
+      // 1. 搜索词过滤（含标签匹配）
+      if (term) {
+        const termLow = term.toLowerCase();
+        const matchDemand = item.demand?.toLowerCase().includes(termLow);
+        const matchTitle = item.title?.toLowerCase().includes(termLow);
+        const matchTags = item.tags?.toLowerCase().includes(termLow);
+        if (!matchDemand && !matchTitle && !matchTags) {
+          return false;
+        }
       }
 
       // 2. 价格档次筛选

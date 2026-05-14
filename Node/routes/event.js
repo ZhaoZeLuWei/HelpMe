@@ -74,6 +74,7 @@ router.get("/api/cards", async (req, res) => {
         e.LocationLat AS lat,
         e.EventTitle AS title,
         e.EventDetails AS demand,
+        e.EventType AS eventType,
         e.Price AS price,
         e.CreateTime   AS createTime,
         u.UserName AS name,
@@ -118,6 +119,7 @@ router.get("/api/cards", async (req, res) => {
         creatorId: item.creatorId,
         title: item.title,
         tags: item.tags || "",
+        eventType: item.eventType != null ? Number(item.eventType) : null,
         icon: "navigate-outline",
         distance: "距500m",
       };
