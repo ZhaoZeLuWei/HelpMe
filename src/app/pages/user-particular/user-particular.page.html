@@ -224,7 +224,11 @@
             <p>{{ t.noActivity }}</p>
           </div>
           } @for (activity of activityFeed; track activity.id) {
-          <div class="activity-item" (click)="goToEventDetail(activity)">
+          <div
+            class="activity-item"
+            [class.event-deactivated]="activity.Status === 1"
+            (click)="goToEventDetail(activity)"
+          >
             <span
               class="type-badge"
               [style.background]="getTypeColor(activity.EventType) + '18'"
@@ -234,7 +238,14 @@
               {{ activity.activityType }}
             </span>
             <div class="list-item-main">
-              <div class="list-item-title">{{ activity.title }}</div>
+              <div class="list-item-title">
+                {{ activity.title }}
+                @if (activity.Status === 1) {
+                <ion-badge color="medium" class="status-badge"
+                  >{{ t.deactivated }}</ion-badge
+                >
+                }
+              </div>
               <div class="list-item-meta">{{ activity.description }}</div>
             </div>
             <div class="list-item-end">{{ formatDate(activity.date) }}</div>

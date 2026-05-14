@@ -1087,8 +1087,8 @@ export class Tab4Page implements OnDestroy {
 
       const data = await resp.json().catch(() => null);
       if (resp.ok && data?.success) {
-        // 更新本地数据
-        event.Status = newStatus;
+        // 使用后台返回的实际状态
+        event.Status = data.status;
 
         const toast = await this.toastController.create({
           message:

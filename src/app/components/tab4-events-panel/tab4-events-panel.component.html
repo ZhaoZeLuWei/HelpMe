@@ -17,7 +17,7 @@
         <ion-label>
           <h2 class="task-title">
             {{ event.title }}
-            @if (event.Status === 1) {
+            @if (event.Status !== 0) {
               <ion-badge color="medium" class="status-badge">{{
                 t.eventPanel.deactivated || "已下架"
               }}</ion-badge>
@@ -39,7 +39,7 @@
           <ion-button (click)="viewDetail.emit(event.id)">{{
             t.eventPanel.details
           }}</ion-button>
-          @if (event.Status === 1) {
+          @if (event.Status !== 0) {
             @if (blockedToggleIds.has(event.id)) {
               <ion-button disabled color="medium">{{
                 t.eventPanel.activeOrderToggleBlocked || "订单进行中，禁止上架"

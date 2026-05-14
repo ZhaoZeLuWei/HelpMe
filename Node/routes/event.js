@@ -572,6 +572,9 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
       .json({ success: false, error: "Status 必须为 0（上架）或 1（下架）" });
   }
 
+  // 手动下架存为 2（与订单完成自动下架的 Status=1 区分）
+  const dbStatus = newStatus === 1 ? 2 : 0;
+
   try {
     // 校验事件存在且属于当前用户
     const [checkRows] = await pool.query(
@@ -588,16 +591,16 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
     const currentStatus = Number(checkRows[0].Status);
 
     // 状态未变化时直接返回
-    if (currentStatus === newStatus) {
+    if (currentStatus === dbStatus) {
       return res.json({
         success: true,
-        status: newStatus,
-        message: newStatus === 0 ? "事件已处于上架状态" : "事件已处于下架状态",
+        status: dbStatus,
+        message: dbStatus === 0 ? "事件已处于上架状态" : "事件已处于下架状态",
       });
     }
 
     // 如果要上架，检查是否有进行中的订单（状态 0/1/2 的订单不允许上架）
-    if (newStatus === 0) {
+    if (dbStatus === 0) {
       const [activeOrders] = await pool.query(
         "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
         [eventId],
@@ -611,7 +614,7 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
     }
 
     // 如果要下架，同样检查是否有进行中的订单（状态 0/1/2 的订单不允许下架）
-    if (newStatus === 1) {
+    if (dbStatus === 2) {
       const [activeOrders] = await pool.query(
         "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
         [eventId],
@@ -625,11 +628,11 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
     }
 
     await pool.query("UPDATE Events SET Status = ? WHERE EventId = ?", [
-      newStatus,
+      dbStatus,
       eventId,
     ]);
 
-    const statusText = newStatus === 0 ? "上架" : "下架";
+    const statusText = dbStatus === 0 ? "上架" : "下架";
     await sendSystemMessage({
       roomId: `system_${creatorId}`,
       text: `您的事件"${checkRows[0].EventTitle}"已${statusText}。`,
@@ -638,7 +641,7 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
 
     return res.json({
       success: true,
-      status: newStatus,
+      status: dbStatus,
       message: `事件已${statusText}`,
     });
   } catch (err) {
