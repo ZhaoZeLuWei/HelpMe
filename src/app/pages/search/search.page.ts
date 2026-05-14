@@ -14,7 +14,6 @@ import { SearchStateService } from '../../services/search-state.service';
 import { AiService } from '../../services/ai.service';
 import { LanguageService } from '../../services/language.service';
 import { environment } from '../../../environments/environment';
-import { HttpClientModule } from '@angular/common/http';
 import { addIcons } from 'ionicons';
 import {
   searchOutline,
@@ -34,6 +33,7 @@ import {
     CommonModule,
     FormsModule,
     HttpClientModule,
+    IonHeader,
     IonContent,
     IonIcon,
   ],

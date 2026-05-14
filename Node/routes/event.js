@@ -3,6 +3,7 @@ const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 const { authRequired, adminRequired } = require("./auth.js");
+const { translateFields } = require("./translateHelper.js");
 const { sendSystemMessage } = require("../chatHandler.js");
 const {
   moderateContent,
@@ -125,6 +126,9 @@ router.get("/api/cards", async (req, res) => {
       };
     });
 
+    if (res.locals.targetLang) {
+      await translateFields(cardData, ['title', 'name', 'address', 'demand'], res.locals.targetLang);
+    }
     return res.status(200).json(cardData);
   } catch (error) {
     console.error("数据库查询错误：", error);
@@ -351,14 +355,11 @@ router.get("/events/:id", async (req, res) => {
 
     // 已解决的事件不可再下单
     if (Number(event.Status) === 1) {
-      return res.json({
-        success: true,
-        event: {
-          ...event,
-          canCreateOrder: false,
-          activeOrder: null,
-        },
-      });
+      const eventData = { ...event, canCreateOrder: false, activeOrder: null };
+      if (res.locals.targetLang) {
+        await translateFields(eventData, ['EventTitle', 'Location', 'EventDetails'], res.locals.targetLang);
+      }
+      return res.json({ success: true, event: eventData });
     }
 
     const [activeOrders] = await pool.query(
@@ -370,14 +371,15 @@ router.get("/events/:id", async (req, res) => {
       [eventId],
     );
 
-    return res.json({
-      success: true,
-      event: {
-        ...rows[0],
-        canCreateOrder: activeOrders.length === 0,
-        activeOrder: activeOrders[0] || null,
-      },
-    });
+    const eventData = {
+      ...rows[0],
+      canCreateOrder: activeOrders.length === 0,
+      activeOrder: activeOrders[0] || null,
+    };
+    if (res.locals.targetLang) {
+      await translateFields(eventData, ['EventTitle', 'Location', 'EventDetails'], res.locals.targetLang);
+    }
+    return res.json({ success: true, event: eventData });
   } catch (err) {
     console.error("查询事件详情失败:", err);
     return res.status(500).json({ success: false, error: "服务器内部错误" });

@@ -24,6 +24,7 @@ generateFrontendConfig();
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const corsMiddleware = require("./routes/cors.js");
+const { parseLang } = require("./routes/translateMiddleware.js");
 
 const { createServer } = require("node:http");
 const { Server } = require("socket.io");
@@ -51,6 +52,7 @@ const aiRoutes = require("./routes/ai.js");
 const app = express();
 app.use(express.json());
 app.use(corsMiddleware);
+app.use(parseLang); // 解析客户端语言偏好（?lang=en）
 app.use("/img", express.static(uploadDir));
 app.use("/test", testRoutes);
 app.use(userRoutes);

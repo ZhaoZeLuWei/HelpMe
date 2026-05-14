@@ -1511,6 +1511,7 @@ export class LanguageService {
 
   toggleLanguage() {
     const newLang = this.currentLangSubject.value === 'zh' ? 'en' : 'zh';
+    localStorage.setItem('app_lang', newLang);
     this.currentLangSubject.next(newLang);
   }
 

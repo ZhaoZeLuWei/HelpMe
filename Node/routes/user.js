@@ -4,6 +4,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const pool = require("../help_me_db.js");
 const { signToken, authRequired, adminRequired } = require("./auth.js");
+const { translateFields } = require("./translateHelper.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
 const {
   moderateContent,
@@ -540,6 +541,9 @@ router.get("/users/:id/events", async (req, res) => {
       "SELECT EventId, EventTitle, EventType, EventCategory, Location, LocationPlaceId, Price, Photos, EventDetails, Status, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50";
 
     const [rows] = await pool.query(selectSql, [userId]);
+    if (res.locals.targetLang) {
+      await translateFields(rows, ['EventTitle', 'EventCategory', 'Location'], res.locals.targetLang);
+    }
     return res.json(rows);
   } catch (err) {
     console.error("DB query error (user events):", err);
@@ -570,7 +574,11 @@ router.get("/users/:id/profile", async (req, res) => {
       return res.status(404).json({ error: "用户不存在" });
     }
 
-    return res.json({ success: true, user: rows[0] });
+    const user = rows[0];
+    if (res.locals.targetLang) {
+      await translateFields(user, ['UserName', 'RealName', 'Location', 'Introduction'], res.locals.targetLang);
+    }
+    return res.json({ success: true, user });
   } catch (err) {
     console.error("DB query error (profile):", err);
     return res.status(500).json({ error: "获取用户资料失败" });
@@ -745,6 +753,9 @@ router.get("/users/:id/comments", async (req, res) => {
       [userId],
     );
 
+    if (res.locals.targetLang) {
+      await translateFields(rows, ['authorName', 'content'], res.locals.targetLang);
+    }
     return res.json({
       success: true,
       comments: rows || [],

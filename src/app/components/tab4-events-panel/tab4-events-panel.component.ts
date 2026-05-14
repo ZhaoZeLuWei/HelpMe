@@ -10,6 +10,7 @@ import {
   IonLabel,
   IonText,
 } from '@ionic/angular/standalone';
+import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 
 @Component({
   selector: 'app-tab4-events-panel',
@@ -24,6 +25,7 @@ import {
     IonItem,
     IonLabel,
     IonText,
+    TranslateTextPipe,
   ],
   templateUrl: './tab4-events-panel.component.html',
   styleUrl: './tab4-events-panel.component.scss',

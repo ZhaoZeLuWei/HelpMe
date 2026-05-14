@@ -47,6 +47,8 @@ import { ToastController } from '@ionic/angular';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
 import { LanguageService } from 'src/app/services/language.service';
+import { DynamicTranslationService } from 'src/app/services/dynamic-translation.service';
+import { TranslateTextPipe } from 'src/app/pipes/translate-text.pipe';
 import { NavController } from '@ionic/angular';
 import {
   LocationPickerComponent,
@@ -91,10 +93,12 @@ import {
     IonTitle,
     EditEventModalComponent,
     ReactiveFormsModule,
+    TranslateTextPipe,
   ],
 })
 export class ParticularPage implements OnInit {
   private languageService = inject(LanguageService);
+  private dynTrans = inject(DynamicTranslationService);
 
   // 翻译对象 - 声明时就初始化
   t = this.languageService.getTranslations('zh').particular;
@@ -177,9 +181,17 @@ export class ParticularPage implements OnInit {
   previewPhotoIndex = 0;
 
   ngOnInit() {
-    // 监听语言变化
+    let isFirstEmit = true;
+    // 监听语言变化：切换语言时重新拉取数据（服务端返回译文）
     this.languageService.currentLang$.subscribe((lang) => {
       this.t = this.languageService.getTranslations(lang).particular;
+      if (isFirstEmit) {
+        isFirstEmit = false;
+        return;
+      }
+      if (this.event?.id) {
+        this.loadEventDetail(String(this.event.id));
+      }
     });
     this.route.queryParams.subscribe((params) => {
       const eventId = params['eventId'];
@@ -242,6 +254,9 @@ export class ParticularPage implements OnInit {
           }
           this.checkUserIsCreator();
           this.checkFavoriteAndFollowStatus();
+
+          // 触发动态文本翻译（管道已注册文本，此处批量调用API）
+          setTimeout(() => this.dynTrans.translateAll().subscribe(), 200);
         }
       }
     } catch (error) {

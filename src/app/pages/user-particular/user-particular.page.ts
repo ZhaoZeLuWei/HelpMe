@@ -17,6 +17,8 @@ import { Location } from '@angular/common';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
 import { LanguageService } from 'src/app/services/language.service';
+import { DynamicTranslationService } from 'src/app/services/dynamic-translation.service';
+import { TranslateTextPipe } from 'src/app/pipes/translate-text.pipe';
 import { ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
@@ -49,6 +51,7 @@ import {
     IonButtons,
     IonTitle,
     IonBadge,
+    TranslateTextPipe,
   ],
 })
 export class UserParticularPage implements OnInit {
@@ -60,6 +63,7 @@ export class UserParticularPage implements OnInit {
   private toastController = inject(ToastController);
   private alertCtrl = inject(AlertController);
   private languageService = inject(LanguageService);
+  private dynTrans = inject(DynamicTranslationService);
   readonly apiBase = environment.apiBase;
 
   // 翻译对象 - 声明时就初始化
@@ -108,21 +112,24 @@ export class UserParticularPage implements OnInit {
   }
 
   ngOnInit() {
-    // 监听语言变化
+    let isFirstEmit = true;
+    // 监听语言变化：切换语言时重新拉取数据（服务端返回译文）
     this.languageService.currentLang$.subscribe((lang) => {
       this.t = this.languageService.getTranslations(lang).userParticular;
+      if (isFirstEmit) {
+        isFirstEmit = false;
+        return;
+      }
+      if (this.userId) {
+        this.loadDataForUser(this.userId);
+      }
     });
-    this.route.queryParams.subscribe((params) => {
+    this.route.queryParams.subscribe(async (params) => {
       this.userInfo.name = params['name'] || '';
       this.userId = params['userId'] ? Number(params['userId']) : null;
 
       if (this.userId) {
-        this.loadUserFromStorage(this.userId);
-        this.loadActiveEvents(this.userId);
-        this.loadUserComments(this.userId);
-        this.loadActivityFeed(this.userId);
-        this.checkIsCurrentUser();
-        this.checkFollowStatus();
+        await this.loadDataForUser(this.userId);
       }
     });
   }
@@ -138,6 +145,17 @@ export class UserParticularPage implements OnInit {
   async checkFollowStatus() {
     if (this.isCurrentUser || !this.userId) return;
     this.isFollowing = await this.authService.checkFollow(this.userId);
+  }
+
+  private async loadDataForUser(userId: number) {
+    await Promise.all([
+      this.loadUserFromStorage(userId),
+      this.loadActiveEvents(userId),
+      this.loadUserComments(userId),
+      this.loadActivityFeed(userId),
+    ]);
+    this.checkIsCurrentUser();
+    this.checkFollowStatus();
   }
 
   switchTab(tab: string) {

@@ -18,7 +18,7 @@
       class="event-type-icon"
     ></ion-icon>
     <ion-label>
-      <h3 class="order-event-title">{{ orderInfo.EventTitle }}</h3>
+      <h3 class="order-event-title">{{ orderInfo.EventTitle | tText }}</h3>
       <p class="order-status-line">
         <span class="order-status-badge" [attr.color]="orderStatusColor"
           >{{ orderStatusText }}</span
@@ -35,9 +35,9 @@
   @if (showOrderInfo) {
   <ion-toolbar color="light" class="order-detail-bar">
     <div class="order-detail-content">
-      <p><strong>{{ t.locationLabel }}</strong>{{ orderInfo.Location }}</p>
+      <p><strong>{{ t.locationLabel }}</strong>{{ orderInfo.Location | tText }}</p>
       <p>
-        <strong>{{ t.descriptionLabel }}</strong>{{ orderInfo.EventDetails }}
+        <strong>{{ t.descriptionLabel }}</strong>{{ orderInfo.EventDetails | tText }}
       </p>
       <p>
         <strong>{{ t.orderTime }}：</strong>{{ orderInfo.OrderCreateTime |
@@ -75,7 +75,7 @@
       class="event-type-icon"
     ></ion-icon>
     <ion-label>
-      <h3 class="order-event-title">{{ eventInfo.EventTitle }}</h3>
+      <h3 class="order-event-title">{{ eventInfo.EventTitle | tText }}</h3>
       <p class="order-status-line">
         <span
           class="event-category-badge"
@@ -95,9 +95,9 @@
   @if (showEventInfo) {
   <ion-toolbar color="light" class="order-detail-bar">
     <div class="order-detail-content">
-      <p><strong>{{ t.locationLabel }}</strong>{{ eventInfo.Location }}</p>
+      <p><strong>{{ t.locationLabel }}</strong>{{ eventInfo.Location | tText }}</p>
       <p>
-        <strong>{{ t.descriptionLabel }}</strong>{{ eventInfo.EventDetails }}
+        <strong>{{ t.descriptionLabel }}</strong>{{ eventInfo.EventDetails | tText }}
       </p>
       <p>
         <strong>{{ t.publishTime }}：</strong>{{ eventInfo.CreateTime |
@@ -139,8 +139,7 @@
         <div class="message-main">
           <div class="message-meta">
             <span class="user-name"
-              >{{ isMyMessage(msg) ? (myself?.name || t.me) : (msg.userName ||
-              roomInfoTab3?.name || t.otherParty) }}</span
+              >{{ isMyMessage(msg) ? (myself?.name || t.me) : ((msg.userName || roomInfoTab3?.name) | tText) || t.otherParty }}</span
             >
             <span class="timestamp"> {{ msg.sendTime | date:'HH:mm' }}</span>
           </div>
@@ -155,7 +154,7 @@
               />
             </div>
             @if (msg.text) {
-            <p class="msg-image-caption">{{ msg.text }}</p>
+            <p class="msg-image-caption">{{ msg.text | tText }}</p>
             } } @else if (msg.messageType === 'location' && msg.location) {
             <div class="msg-location" (click)="openMapLocation(msg.location!)">
               <ion-icon name="location-outline" class="loc-icon"></ion-icon>
@@ -167,7 +166,7 @@
                 >
               </div>
             </div>
-            } @else { {{ msg.text }} }
+            } @else { {{ msg.text | tText }} }
           </div>
         </div>
       </div>
@@ -250,7 +249,7 @@
             {{ orderStatusMap[orderInfo.OrderStatus] || t.unknown }}
           </ion-badge>
         </div>
-        <div class="order-title">{{ orderInfo.EventTitle }}</div>
+        <div class="order-title">{{ orderInfo.EventTitle | tText }}</div>
         <div class="order-price">¥{{ orderInfo.TransactionPrice }}</div>
       </div>
 
@@ -258,32 +257,32 @@
       <div class="order-info-section">
         <div class="info-row">
           <span class="info-label">{{ t.buyer }}</span>
-          <span class="info-value">{{ orderInfo.ConsumerName }}</span>
+          <span class="info-value">{{ orderInfo.ConsumerName | tText }}</span>
         </div>
         <div class="info-row">
           <span class="info-label">{{ t.seller }}</span>
-          <span class="info-value">{{ orderInfo.ProviderName }}</span>
+          <span class="info-value">{{ orderInfo.ProviderName | tText }}</span>
         </div>
         <div class="info-row">
           <span class="info-label">{{ t.eventLocation }}</span>
           <span class="info-value"
-            >{{ orderInfo.EventLocation || orderInfo.Location }}</span
+            >{{ (orderInfo.EventLocation || orderInfo.Location) | tText }}</span
           >
         </div>
         @if (orderInfo.DeliveryAddress) {
         <div class="info-row">
           <span class="info-label">{{ t.deliveryAddress }}</span>
-          <span class="info-value">{{ orderInfo.DeliveryAddress }}</span>
+          <span class="info-value">{{ orderInfo.DeliveryAddress | tText }}</span>
         </div>
         } @if (orderInfo.DeliverySpecific) {
         <div class="info-row">
           <span class="info-label">{{ t.doorNumber }}</span>
-          <span class="info-value">{{ orderInfo.DeliverySpecific }}</span>
+          <span class="info-value">{{ orderInfo.DeliverySpecific | tText }}</span>
         </div>
         } @if (orderInfo.DeliveryAdditionalInfo) {
         <div class="info-row">
           <span class="info-label">{{ t.additionalInfo }}</span>
-          <span class="info-value">{{ orderInfo.DeliveryAdditionalInfo }}</span>
+          <span class="info-value">{{ orderInfo.DeliveryAdditionalInfo | tText }}</span>
         </div>
         }
         <div class="info-row">
@@ -317,7 +316,7 @@
         <div class="info-row">
           <span class="info-label">{{ t.eventDescription }}</span>
           <span class="info-value description"
-            >{{ orderInfo.EventDetails }}</span
+            >{{ orderInfo.EventDetails | tText }}</span
           >
         </div>
         }

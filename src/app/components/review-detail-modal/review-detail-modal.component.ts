@@ -25,6 +25,8 @@ import {
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
+import { DynamicTranslationService } from '../../services/dynamic-translation.service';
+import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 
 export interface ReviewDetail {
   id: number;
@@ -52,6 +54,7 @@ export interface ReviewDetail {
     IonAvatar,
     IonText,
     IonIcon,
+    TranslateTextPipe,
   ],
 })
 export class ReviewDetailModalComponent implements OnChanges {
@@ -62,6 +65,7 @@ export class ReviewDetailModalComponent implements OnChanges {
   private http = inject(HttpClient);
   private apiBase = environment.apiBase;
   private languageService = inject(LanguageService);
+  private dynTrans = inject(DynamicTranslationService);
 
   t: any;
   isLoading = false;
@@ -100,6 +104,7 @@ export class ReviewDetailModalComponent implements OnChanges {
       },
       complete: () => {
         this.isLoading = false;
+        setTimeout(() => this.dynTrans.translateAll().subscribe(), 200);
       },
     });
   }

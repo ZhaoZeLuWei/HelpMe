@@ -6,6 +6,7 @@ const {
   sendOrderSystemMessage,
 } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
+const { translateFields } = require("./translateHelper.js");
 const Room = require("../models/Room.js");
 const {
   moderateContent,
@@ -334,6 +335,9 @@ router.get("/orders", authRequired, async (req, res) => {
       [...params, userId, userId],
     );
 
+    if (res.locals.targetLang) {
+      await translateFields(rows, ['EventTitle', 'EventDetails', 'ConsumerName', 'ProviderName', 'CancelledByName'], res.locals.targetLang);
+    }
     return res.json({ success: true, orders: rows });
   } catch (err) {
     console.error("查询订单列表失败:", err);
@@ -359,6 +363,9 @@ router.get("/orders/:id", authRequired, async (req, res) => {
       return res.status(403).json({ success: false, error: "无权查看该订单" });
     }
 
+    if (res.locals.targetLang) {
+      await translateFields(order, ['EventTitle', 'EventDetails', 'EventLocation', 'ConsumerName', 'ProviderName', 'DeliveryAddress', 'DeliverySpecific', 'DeliveryAdditionalInfo', 'CancelledByName'], res.locals.targetLang);
+    }
     return res.json({ success: true, order });
   } catch (err) {
     console.error("查询订单详情失败:", err);

@@ -70,6 +70,7 @@ import { ToastController, AlertController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
+import { DynamicTranslationService } from '../../services/dynamic-translation.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Tab4ProfileCardComponent } from '../../components/tab4-profile-card/tab4-profile-card.component';
 import { Tab4EventsPanelComponent } from '../../components/tab4-events-panel/tab4-events-panel.component';
@@ -88,6 +89,7 @@ import {
   ReviewSubmitPayload,
 } from '../../components/review-modal/review-modal.component';
 import { ReviewDetailModalComponent } from '../../components/review-detail-modal/review-detail-modal.component';
+import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 
 @Component({
   selector: 'app-tab4',
@@ -122,6 +124,7 @@ import { ReviewDetailModalComponent } from '../../components/review-detail-modal
     EditEventModalComponent,
     ReviewModalComponent,
     ReviewDetailModalComponent,
+    TranslateTextPipe,
   ],
 })
 export class Tab4Page implements OnDestroy {
@@ -136,6 +139,7 @@ export class Tab4Page implements OnDestroy {
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly langService = inject(LanguageService);
+  private readonly dynTrans = inject(DynamicTranslationService);
 
   @ViewChild('editEventModal')
   editEventModal!: EditEventModalComponent;
@@ -339,11 +343,18 @@ export class Tab4Page implements OnDestroy {
       }
     });
 
-    // 监听语言变化
+    // 监听语言变化：切换语言时重新拉取数据（服务端返回译文）
+    let isFirstLangEmit = true;
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
       this.t = this.langService.getTranslations(lang).tab4;
-      // 更新删除按钮文本
       this.updateAlertButtons();
+      if (isFirstLangEmit) {
+        isFirstLangEmit = false;
+        return;
+      }
+      if (this.isLoggedIn) {
+        this.loadUserFromStorage();
+      }
     });
   }
 
@@ -696,6 +707,7 @@ export class Tab4Page implements OnDestroy {
 
               await this.loadUserEvents(data.user.UserId);
               await this.loadOrders(data.user.UserId);
+              this.triggerDynamicTranslation();
               return;
             }
           }
@@ -712,6 +724,7 @@ export class Tab4Page implements OnDestroy {
       if (fid) {
         await this.loadUserEvents(fid);
         await this.loadOrders(fid);
+        this.triggerDynamicTranslation();
       }
     } catch (e) {
       console.error('loadUserFromStorage error', e);
@@ -1471,6 +1484,9 @@ export class Tab4Page implements OnDestroy {
     try {
       const resp = await fetch(`${this.API_BASE}/upload/images`, {
         method: 'POST',
+        headers: {
+          ...this.auth.getAuthHeader(),
+        },
         body: fd,
       });
 
@@ -1546,6 +1562,7 @@ export class Tab4Page implements OnDestroy {
       console.error('loadFavorites error', e);
     } finally {
       this.isLoadingFavorites = false;
+      this.triggerDynamicTranslation();
     }
   }
 
@@ -1581,6 +1598,7 @@ export class Tab4Page implements OnDestroy {
       console.error('loadFollows error', e);
     } finally {
       this.isLoadingFollows = false;
+      this.triggerDynamicTranslation();
     }
   }
 
@@ -1637,5 +1655,9 @@ export class Tab4Page implements OnDestroy {
         queryParams: { name: user.UserName, userId: user.UserId },
       });
     }, 150);
+  }
+
+  private triggerDynamicTranslation() {
+    setTimeout(() => this.dynTrans.translateAll().subscribe(), 200);
   }
 }
