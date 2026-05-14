@@ -15,7 +15,14 @@
         (click)="viewDetail.emit(event.id)"
       >
         <ion-label>
-          <h2 class="task-title">{{ event.title }}</h2>
+          <h2 class="task-title">
+            {{ event.title }}
+            @if (event.Status === 1) {
+              <ion-badge color="medium" class="status-badge">{{
+                t.eventPanel.deactivated || "已下架"
+              }}</ion-badge>
+            }
+          </h2>
           <p class="task-meta">
             {{ event.location || t.eventPanel.noLocation }}
           </p>
@@ -32,6 +39,27 @@
           <ion-button (click)="viewDetail.emit(event.id)">{{
             t.eventPanel.details
           }}</ion-button>
+          @if (event.Status === 1) {
+            @if (blockedToggleIds.has(event.id)) {
+              <ion-button disabled color="medium">{{
+                t.eventPanel.activeOrderToggleBlocked || "订单进行中，禁止上架"
+              }}</ion-button>
+            } @else {
+              <ion-button color="success" (click)="toggleStatus.emit(event)">{{
+                t.eventPanel.activate || "上架"
+              }}</ion-button>
+            }
+          } @else {
+            @if (blockedToggleIds.has(event.id)) {
+              <ion-button disabled color="medium">{{
+                t.eventPanel.activeOrderToggleBlocked || "订单进行中，禁止下架"
+              }}</ion-button>
+            } @else {
+              <ion-button color="warning" (click)="toggleStatus.emit(event)">{{
+                t.eventPanel.deactivate || "下架"
+              }}</ion-button>
+            }
+          }
           @if (blockedEditOnlyIds.has(event.id)) {
             <ion-button disabled color="medium">{{
               t.eventPanel.editBlocked

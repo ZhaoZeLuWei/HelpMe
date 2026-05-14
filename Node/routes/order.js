@@ -104,7 +104,7 @@ router.post("/orders", authRequired, async (req, res) => {
 
     const [eventRows] = await conn.query(
       `SELECT e.EventId, e.CreatorId, e.EventTitle, e.EventType, e.EventCategory,
-              e.Photos, e.Location, e.Price, e.EventDetails,
+              e.Photos, e.Location, e.Price, e.EventDetails, e.Status,
               u.UserName AS ProviderName
        FROM Events e
        JOIN Users u ON e.CreatorId = u.UserId
@@ -119,6 +119,15 @@ router.post("/orders", authRequired, async (req, res) => {
     }
 
     const event = eventRows[0];
+
+    // 检查事件是否已下架/已解决
+    if (Number(event.Status) === 1) {
+      await conn.rollback();
+      return res.status(400).json({
+        success: false,
+        error: "该事件已解决，暂不可下单",
+      });
+    }
 
     // 检查发布者是否尝试下单自己的事件
     if (event.CreatorId === consumerId) {
@@ -466,11 +475,31 @@ router.put("/orders/:id/complete", authRequired, async (req, res) => {
       [orderId],
     );
 
-    // 增加卖家的服务单数
+    // 查询事件类型，确定实际服务提供者
+    const [eventRows] = await conn.query(
+      "SELECT EventType FROM Events WHERE EventId = ? LIMIT 1",
+      [order.EventId],
+    );
+    const eventType = eventRows.length ? Number(eventRows[0].EventType) : 1;
+
+    // 根据事件类型确定实际服务提供者：
+    // - 帮助事件(EventType=1)：ProviderId 是服务提供者（当前逻辑正确）
+    // - 求助事件(EventType=0)：ConsumerId 是服务提供者（帮助者下单帮助求助者）
+    const actualServiceProviderId =
+      eventType === 0 ? order.ConsumerId : order.ProviderId;
+
+    // 增加实际服务提供者的服务单数
     await conn.query(
       "UPDATE Providers SET OrderCount = OrderCount + 1 WHERE ProviderId = ?",
-      [order.ProviderId],
+      [actualServiceProviderId],
     );
+
+    // 求助事件完成后自动标记为已解决，不再展示
+    if (eventType === 0) {
+      await conn.query("UPDATE Events SET Status = 1 WHERE EventId = ?", [
+        order.EventId,
+      ]);
+    }
 
     await conn.commit();
 

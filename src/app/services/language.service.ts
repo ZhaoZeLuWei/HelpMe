@@ -217,6 +217,16 @@ export class LanguageService {
           deleting: '删除中...',
           delete: '删除',
           noEvents: '暂无事件',
+          activate: '上架',
+          deactivate: '下架',
+          deactivated: '已下架',
+          deactivateTitle: '确认下架',
+          deactivateMessage: '下架后该事件将不再展示给其他用户，确定要下架吗？',
+          activateTitle: '确认上架',
+          activateMessage: '上架后该事件将重新展示给其他用户，确定要上架吗？',
+          cancel: '取消',
+          confirm: '确认',
+          activeOrderToggleBlocked: '订单进行中，禁止上下架',
         },
         // 订单面板
         orderPanel: {
@@ -521,6 +531,20 @@ export class LanguageService {
         // Toast
         loginRequired: '请先登录后使用',
         noDescription: '暂无描述',
+        // 上下架
+        deactivateTitle: '确认下架',
+        deactivateMessage: '下架后该事件将不再展示给其他用户，确定要下架吗？',
+        activateTitle: '确认上架',
+        activateMessage: '上架后该事件将重新展示给其他用户，确定要上架吗？',
+        cancel: '取消',
+        confirm: '确认',
+        deactivate: '下架',
+        activate: '上架',
+        deactivated: '已下架',
+        eventActivated: '事件已上架',
+        eventDeactivated: '事件已下架',
+        toggleFailed: '操作失败',
+        networkError: '网络错误，请重试',
       },
       // 聊天详情页
       chatDetail: {
@@ -851,6 +875,18 @@ export class LanguageService {
           deleting: 'Deleting...',
           delete: 'Delete',
           noEvents: 'No events',
+          activate: 'Activate',
+          deactivate: 'Deactivate',
+          deactivated: 'Deactivated',
+          deactivateTitle: 'Deactivate Event',
+          deactivateMessage:
+            'This event will no longer be visible to others. Continue?',
+          activateTitle: 'Activate Event',
+          activateMessage:
+            'This event will be visible to others again. Continue?',
+          cancel: 'Cancel',
+          confirm: 'Confirm',
+          activeOrderToggleBlocked: 'Order in progress, toggle blocked',
         },
         // Order Panel
         orderPanel: {
@@ -1157,6 +1193,22 @@ export class LanguageService {
         // Toast
         loginRequired: 'Please login first',
         noDescription: 'No description',
+        // 上下架
+        deactivateTitle: 'Deactivate Event',
+        deactivateMessage:
+          'This event will no longer be visible to others. Continue?',
+        activateTitle: 'Activate Event',
+        activateMessage:
+          'This event will be visible to others again. Continue?',
+        cancel: 'Cancel',
+        confirm: 'Confirm',
+        deactivate: 'Deactivate',
+        activate: 'Activate',
+        deactivated: 'Deactivated',
+        eventActivated: 'Event activated',
+        eventDeactivated: 'Event deactivated',
+        toggleFailed: 'Operation failed',
+        networkError: 'Network error, please retry',
       },
       // Login Page
       login: {

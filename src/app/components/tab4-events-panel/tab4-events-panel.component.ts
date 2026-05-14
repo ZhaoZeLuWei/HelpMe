@@ -34,11 +34,13 @@ export class Tab4EventsPanelComponent {
   @Input() deletingIds = new Set<number>();
   @Input() blockedEditIds = new Set<number>();
   @Input() blockedEditOnlyIds = new Set<number>();
+  @Input() blockedToggleIds = new Set<number>();
   @Input() t: any;
 
   @Output() viewDetail = new EventEmitter<number>();
   @Output() edit = new EventEmitter<number>();
   @Output() remove = new EventEmitter<number>();
+  @Output() toggleStatus = new EventEmitter<any>();
 
   trackById(_: number, item: any) {
     return item.id;

@@ -120,7 +120,11 @@
             <p>{{ t.noActiveEvents }}</p>
           </div>
           } @for (event of activeEvents; track event.EventId) {
-          <div class="event-item" (click)="goToEventDetail(event)">
+          <div
+            class="event-item"
+            [class.event-deactivated]="event.Status === 1"
+            (click)="goToEventDetail(event)"
+          >
             <span
               class="type-badge"
               [style.background]="getTypeColor(event.EventType) + '18'"
@@ -130,7 +134,13 @@
               {{ getTypeText(event.EventType) }}
             </span>
             <div class="list-item-main">
-              <div class="list-item-title">{{ event.EventTitle }}</div>
+              <div class="list-item-title">
+                {{ event.EventTitle }} @if (event.Status === 1) {
+                <ion-badge color="medium" class="status-badge"
+                  >{{ t.deactivated }}</ion-badge
+                >
+                }
+              </div>
               <div class="list-item-meta">
                 <span class="price">¥{{ event.Price }}</span>
                 <span>{{ event.EventCategory }}</span>
@@ -138,6 +148,18 @@
             </div>
             <div class="list-item-end">{{ formatDate(event.CreateTime) }}</div>
             @if (isCurrentUser) {
+            <ion-button
+              fill="clear"
+              size="small"
+              [color]="event.Status === 1 ? 'success' : 'warning'"
+              [title]="event.Status === 1 ? t.activate : t.deactivate"
+              (click)="toggleEventStatus(event, $event)"
+            >
+              <ion-icon
+                slot="icon-only"
+                [name]="event.Status === 1 ? 'play-circle-outline' : 'pause-circle-outline'"
+              ></ion-icon>
+            </ion-button>
             <ion-button
               fill="clear"
               size="small"

@@ -473,6 +473,21 @@ export class Tab4Page implements OnDestroy {
     return blocked;
   }
 
+  // 获取有进行中订单的事件ID集合（用于禁止上下架操作）
+  getBlockedToggleIds(): Set<number> {
+    const blocked = new Set<number>();
+    for (const order of this.orders) {
+      if (
+        order.statusKey === 'pending' ||
+        order.statusKey === 'active' ||
+        order.statusKey === 'review'
+      ) {
+        blocked.add(order.eventId);
+      }
+    }
+    return blocked;
+  }
+
   // 打开删除确认弹窗
   openDeleteAlert(taskId: number) {
     if (this.deletingIds.has(taskId)) return;
@@ -737,6 +752,7 @@ export class Tab4Page implements OnDestroy {
         EventDetails: e.EventDetails || '',
         Photos: e.Photos || null,
         photos: e.Photos || null,
+        Status: Number(e.Status ?? 0),
       }));
     } catch (e) {
       console.warn('loadUserEvents failed', e);
@@ -1030,6 +1046,77 @@ export class Tab4Page implements OnDestroy {
   openReviewDetail(orderId: number) {
     this.reviewDetailOrderId = orderId;
     this.isReviewDetailOpen = true;
+  }
+
+  /** 切换事件上架/下架状态 */
+  async toggleEventStatus(event: any) {
+    const currentStatus = Number(event.Status ?? 0);
+    const willDeactivate = currentStatus === 0;
+
+    const alert = await this.alertController.create({
+      header: willDeactivate
+        ? this.t.eventPanel.deactivateTitle || '确认下架'
+        : this.t.eventPanel.activateTitle || '确认上架',
+      message: willDeactivate
+        ? this.t.eventPanel.deactivateMessage ||
+          '下架后该事件将不再展示给其他用户，确定要下架吗？'
+        : this.t.eventPanel.activateMessage ||
+          '上架后该事件将重新展示给其他用户，确定要上架吗？',
+      buttons: [
+        { text: this.t.eventPanel.cancel || '取消', role: 'cancel' },
+        {
+          text: this.t.eventPanel.confirm || '确认',
+          handler: () =>
+            this.doToggleEventStatus(event, willDeactivate ? 1 : 0),
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async doToggleEventStatus(event: any, newStatus: number) {
+    try {
+      const resp = await fetch(`${this.API_BASE}/events/${event.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.auth.getAuthHeader(),
+        },
+        body: JSON.stringify({ Status: newStatus }),
+      });
+
+      const data = await resp.json().catch(() => null);
+      if (resp.ok && data?.success) {
+        // 更新本地数据
+        event.Status = newStatus;
+
+        const toast = await this.toastController.create({
+          message:
+            data.message || (newStatus === 0 ? '事件已上架' : '事件已下架'),
+          duration: 2000,
+          color: 'success',
+          position: 'top',
+        });
+        await toast.present();
+      } else {
+        const toast = await this.toastController.create({
+          message: data?.error || '操作失败',
+          duration: 2000,
+          color: 'danger',
+          position: 'top',
+        });
+        await toast.present();
+      }
+    } catch (err) {
+      console.error('toggleEventStatus error', err);
+      const toast = await this.toastController.create({
+        message: '网络错误，请重试',
+        duration: 2000,
+        color: 'danger',
+        position: 'top',
+      });
+      await toast.present();
+    }
   }
 
   closeReviewDetail() {

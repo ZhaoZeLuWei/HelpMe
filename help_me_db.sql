@@ -67,6 +67,7 @@ CREATE TABLE Events (
   LocationLat    DECIMAL(10,7)  NULL,
   Price          DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
   EventDetails   TEXT           NOT NULL,
+  Status         TINYINT(1)     NOT NULL DEFAULT 0 COMMENT '0=上架中, 1=已解决/已下架',
   CreateTime     TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   KEY idx_events_creator (CreatorId),

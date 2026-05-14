@@ -53,10 +53,15 @@ router.get("/api/cards", async (req, res) => {
     const { search } = req.query;
     if (search) {
       sqlWhere += sqlWhere ? " AND" : " WHERE";
-      sqlWhere += " (e.EventDetails LIKE ? OR e.EventTitle LIKE ? OR e.EventId IN (SELECT EventId FROM EventTags WHERE Tag LIKE ?))";
+      sqlWhere +=
+        " (e.EventDetails LIKE ? OR e.EventTitle LIKE ? OR e.EventId IN (SELECT EventId FROM EventTags WHERE Tag LIKE ?))";
       const searchPattern = `%${search}%`;
       sqlParams.push(searchPattern, searchPattern, searchPattern);
     }
+
+    // 过滤已解决/已下架的事件（Status=1）
+    sqlWhere += sqlWhere ? " AND" : " WHERE";
+    sqlWhere += " e.Status = 0";
 
     const [rows] = await pool.query(
       `
@@ -229,7 +234,10 @@ router.post(
       try {
         tagsArray = JSON.parse(req.body.Tags);
       } catch {
-        tagsArray = String(req.body.Tags).split(",").map((t) => t.trim()).filter(Boolean);
+        tagsArray = String(req.body.Tags)
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
       }
     }
 
@@ -323,12 +331,26 @@ router.get("/events/:id", async (req, res) => {
 
   try {
     const selectSql =
-      "SELECT EventId, CreatorId, EventTitle, EventType, EventCategory, Photos, Location, LocationPlaceId, Price, EventDetails, CreateTime FROM Events WHERE EventId = ? LIMIT 1";
+      "SELECT EventId, CreatorId, EventTitle, EventType, EventCategory, Photos, Location, LocationPlaceId, Price, EventDetails, Status, CreateTime FROM Events WHERE EventId = ? LIMIT 1";
 
     const [rows] = await pool.query(selectSql, [eventId]);
 
     if (!rows || rows.length === 0) {
       return res.status(404).json({ success: false, error: "事件不存在" });
+    }
+
+    const event = rows[0];
+
+    // 已解决的事件不可再下单
+    if (Number(event.Status) === 1) {
+      return res.json({
+        success: true,
+        event: {
+          ...event,
+          canCreateOrder: false,
+          activeOrder: null,
+        },
+      });
     }
 
     const [activeOrders] = await pool.query(
@@ -533,6 +555,98 @@ router.put("/events/:id", authRequired, async (req, res) => {
   }
 });
 
+// 事件上下架切换（仅事件创建者可操作，不限制事件类型）
+router.patch("/events/:id/status", authRequired, async (req, res) => {
+  const eventId = Number(req.params.id);
+  const creatorId = Number(req.user?.id);
+
+  if (!Number.isInteger(eventId) || eventId <= 0) {
+    return res.status(400).json({ success: false, error: "无效的事件ID" });
+  }
+
+  const { Status } = req.body || {};
+  const newStatus = Number(Status);
+  if (![0, 1].includes(newStatus)) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Status 必须为 0（上架）或 1（下架）" });
+  }
+
+  try {
+    // 校验事件存在且属于当前用户
+    const [checkRows] = await pool.query(
+      "SELECT EventId, EventTitle, Status FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",
+      [eventId, creatorId],
+    );
+
+    if (!checkRows || checkRows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, error: "事件不存在或无权操作" });
+    }
+
+    const currentStatus = Number(checkRows[0].Status);
+
+    // 状态未变化时直接返回
+    if (currentStatus === newStatus) {
+      return res.json({
+        success: true,
+        status: newStatus,
+        message: newStatus === 0 ? "事件已处于上架状态" : "事件已处于下架状态",
+      });
+    }
+
+    // 如果要上架，检查是否有进行中的订单（状态 0/1/2 的订单不允许上架）
+    if (newStatus === 0) {
+      const [activeOrders] = await pool.query(
+        "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
+        [eventId],
+      );
+      if (activeOrders && activeOrders.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: "事件存在进行中的订单，无法重新上架",
+        });
+      }
+    }
+
+    // 如果要下架，同样检查是否有进行中的订单（状态 0/1/2 的订单不允许下架）
+    if (newStatus === 1) {
+      const [activeOrders] = await pool.query(
+        "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
+        [eventId],
+      );
+      if (activeOrders && activeOrders.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: "事件存在进行中的订单，无法下架",
+        });
+      }
+    }
+
+    await pool.query("UPDATE Events SET Status = ? WHERE EventId = ?", [
+      newStatus,
+      eventId,
+    ]);
+
+    const statusText = newStatus === 0 ? "上架" : "下架";
+    await sendSystemMessage({
+      roomId: `system_${creatorId}`,
+      text: `您的事件"${checkRows[0].EventTitle}"已${statusText}。`,
+      senderId: creatorId,
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    return res.json({
+      success: true,
+      status: newStatus,
+      message: `事件已${statusText}`,
+    });
+  } catch (err) {
+    console.error("切换事件状态失败:", err);
+    return res.status(500).json({ success: false, error: "服务器内部错误" });
+  }
+});
+
 // 删除事件（要求登录，并校验只能删自己的）
 router.delete("/events/:id", authRequired, async (req, res) => {
   const eventId = Number(req.params.id);
@@ -623,6 +737,7 @@ router.get("/admin/events", adminRequired, async (_req, res) => {
         e.Location,
         e.Price,
         e.EventDetails,
+        e.Status,
         e.CreateTime,
         u.UserName AS CreatorName,
         (SELECT COUNT(*) FROM Orders o WHERE o.EventId = e.EventId) AS OrderCount

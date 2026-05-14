@@ -56,10 +56,12 @@
     [deletingIds]="deletingIds"
     [blockedEditIds]="getBlockedEditIds()"
     [blockedEditOnlyIds]="getBlockedEditOnlyIds()"
+    [blockedToggleIds]="getBlockedToggleIds()"
     [t]="t"
     (viewDetail)="goToEventDetail($event)"
     (edit)="editTask($event)"
     (remove)="openDeleteAlert($event)"
+    (toggleStatus)="toggleEventStatus($event)"
   ></app-tab4-events-panel>
   } @else {
   <app-tab4-orders-panel
@@ -384,18 +386,18 @@
             </p>
             @if (currentOrderDetail.confirmedAt) {
             <p>
-              <strong>{{ t.confirmTime }}</strong>{{ currentOrderDetail.confirmedAt
-              }}
+              <strong>{{ t.confirmTime }}</strong>{{
+              currentOrderDetail.confirmedAt }}
             </p>
             } @if (currentOrderDetail.completedAt) {
             <p>
-              <strong>{{ t.completeTime }}</strong>{{ currentOrderDetail.completedAt
-              }}
+              <strong>{{ t.completeTime }}</strong>{{
+              currentOrderDetail.completedAt }}
             </p>
             } @if (currentOrderDetail.cancelledAt) {
             <p>
-              <strong>{{ t.cancelTime }}</strong>{{ currentOrderDetail.cancelledAt
-              }}
+              <strong>{{ t.cancelTime }}</strong>{{
+              currentOrderDetail.cancelledAt }}
             </p>
             }
             <p>

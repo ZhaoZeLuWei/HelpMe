@@ -10,6 +10,7 @@ import {
   IonTitle,
   IonBadge,
   ModalController,
+  AlertController,
 } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
@@ -28,6 +29,9 @@ import {
   createOutline,
   handLeftOutline,
   heart,
+  swapHorizontalOutline,
+  pauseCircleOutline,
+  playCircleOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -54,6 +58,7 @@ export class UserParticularPage implements OnInit {
   private authService = inject(AuthService);
   private modalCtrl = inject(ModalController);
   private toastController = inject(ToastController);
+  private alertCtrl = inject(AlertController);
   private languageService = inject(LanguageService);
   readonly apiBase = environment.apiBase;
 
@@ -96,6 +101,9 @@ export class UserParticularPage implements OnInit {
       createOutline,
       handLeftOutline,
       heart,
+      swapHorizontalOutline,
+      pauseCircleOutline,
+      playCircleOutline,
     });
   }
 
@@ -323,6 +331,78 @@ export class UserParticularPage implements OnInit {
     this.router.navigate(['/tabs/tab4'], {
       queryParams: { editEvent: eventId },
     });
+  }
+
+  /** 切换事件上架/下架状态 */
+  async toggleEventStatus(event: any, e: Event) {
+    e.stopPropagation();
+
+    const currentStatus = Number(event.Status ?? 0);
+    const willDeactivate = currentStatus === 0;
+
+    const alert = await this.alertCtrl.create({
+      header: willDeactivate ? this.t.deactivateTitle : this.t.activateTitle,
+      message: willDeactivate
+        ? this.t.deactivateMessage
+        : this.t.activateMessage,
+      buttons: [
+        { text: this.t.cancel, role: 'cancel' },
+        {
+          text: this.t.confirm,
+          handler: () => this.doToggleStatus(event, willDeactivate ? 1 : 0),
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async doToggleStatus(event: any, newStatus: number) {
+    try {
+      const resp = await fetch(
+        `${this.apiBase}/events/${event.EventId}/status`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...this.authService.getAuthHeader(),
+          },
+          body: JSON.stringify({ Status: newStatus }),
+        },
+      );
+
+      const data = await resp.json().catch(() => null);
+      if (resp.ok && data?.success) {
+        // 更新本地状态
+        event.Status = newStatus;
+
+        const toast = await this.toastController.create({
+          message:
+            data.message ||
+            (newStatus === 0 ? this.t.eventActivated : this.t.eventDeactivated),
+          duration: 2000,
+          color: 'success',
+          position: 'top',
+        });
+        await toast.present();
+      } else {
+        const toast = await this.toastController.create({
+          message: data?.error || this.t.toggleFailed,
+          duration: 2000,
+          color: 'danger',
+          position: 'top',
+        });
+        await toast.present();
+      }
+    } catch (err) {
+      console.error('toggleEventStatus error', err);
+      const toast = await this.toastController.create({
+        message: this.t.networkError,
+        duration: 2000,
+        color: 'danger',
+        position: 'top',
+      });
+      await toast.present();
+    }
   }
 
   goBack() {

@@ -537,7 +537,7 @@ router.get("/users/:id/events", async (req, res) => {
   const userId = req.params.id;
   try {
     const selectSql =
-      "SELECT EventId, EventTitle, EventType, EventCategory, Location, LocationPlaceId, Price, Photos, EventDetails, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50";
+      "SELECT EventId, EventTitle, EventType, EventCategory, Location, LocationPlaceId, Price, Photos, EventDetails, Status, CreateTime FROM Events WHERE CreatorId = ? ORDER BY CreateTime DESC LIMIT 50";
 
     const [rows] = await pool.query(selectSql, [userId]);
     return res.json(rows);
