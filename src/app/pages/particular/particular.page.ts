@@ -169,7 +169,7 @@ export class ParticularPage implements OnInit {
     providerRole: 0,
     orderCount: 0,
     serviceRanking: 0,
-    isVerified: '未认证',
+    isVerified: this.languageService.getTranslations('zh').tab4.notVerified,
     stats: { favorites: 0, views: 0, follows: 0 },
     CreateTime: '',
   };
@@ -245,10 +245,17 @@ export class ParticularPage implements OnInit {
           if (rawEvent.Tags) {
             this.eventTags = String(rawEvent.Tags).split(',').filter(Boolean);
           } else if (rawEvent.EventCategory) {
-            this.eventTags = String(rawEvent.EventCategory).split('、').filter(Boolean);
+            this.eventTags = String(rawEvent.EventCategory)
+              .split('、')
+              .filter(Boolean);
           } else {
             this.eventTags = [];
           }
+          // 主动向动态翻译服务注册并翻译标签，确保英文模式下能立刻显示译文
+          setTimeout(
+            () => this.dynTrans.translateAll(this.eventTags).subscribe(),
+            100,
+          );
           if (this.event?.creatorId) {
             this.loadUserFromStorage(this.event.creatorId);
           }
@@ -454,7 +461,10 @@ export class ParticularPage implements OnInit {
     const result = await this.authService.toggleFollow(this.event.creatorId);
     if (result !== null) {
       this.isFollowingCreator = result;
-      this.userInfo.followerCount = Math.max(0, (this.userInfo.followerCount || 0) + (result ? 1 : -1));
+      this.userInfo.followerCount = Math.max(
+        0,
+        (this.userInfo.followerCount || 0) + (result ? 1 : -1),
+      );
       this.showToast(result ? this.t.followed : this.t.unfollowed);
     }
   }

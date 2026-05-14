@@ -67,7 +67,13 @@ export class Tab1Page implements OnInit {
   }
 
   ngOnInit() {
-    this.isElderlyMode = document.body.classList.contains('elderly-mode');
+    const savedElderly = localStorage.getItem('elderly_mode');
+    if (savedElderly === 'true') {
+      this.isElderlyMode = true;
+      document.body.classList.add('elderly-mode');
+    } else {
+      this.isElderlyMode = document.body.classList.contains('elderly-mode');
+    }
     let isFirstEmit = true;
     // 语言监听：切换语言时重新拉取数据（服务端根据 ?lang= 返回译文）
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
@@ -224,6 +230,7 @@ export class Tab1Page implements OnInit {
     } else {
       document.body.classList.remove('elderly-mode');
     }
+    localStorage.setItem('elderly_mode', String(this.isElderlyMode));
   }
 
   cardClickFeedback(item: CardItem) {

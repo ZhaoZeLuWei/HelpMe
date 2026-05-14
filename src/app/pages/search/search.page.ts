@@ -19,6 +19,8 @@ import {
   timeOutline,
   closeCircle,
   trashOutline,
+  arrowForwardOutline,
+  hourglassOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -57,6 +59,8 @@ export class SearchPage implements OnInit {
       timeOutline,
       closeCircle,
       trashOutline,
+      arrowForwardOutline,
+      hourglassOutline,
     });
 
     // 监听语言变化
@@ -195,7 +199,7 @@ export class SearchPage implements OnInit {
         });
       } else {
         const toast = await this.toastCtrl.create({
-          message: 'AI 搜索暂不可用，使用普通搜索结果',
+          message: this.t.aiUnavailable,
           duration: 1500,
           position: 'bottom',
         });
@@ -206,7 +210,7 @@ export class SearchPage implements OnInit {
       }
     } catch {
       const toast = await this.toastCtrl.create({
-        message: '搜索出错，请重试',
+        message: this.t.searchError,
         duration: 1500,
         position: 'bottom',
       });

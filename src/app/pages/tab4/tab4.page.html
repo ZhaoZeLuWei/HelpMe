@@ -116,9 +116,12 @@
             <div class="avatar-upload-section">
               <div class="avatar-preview">
                 @if (profileAvatarPreview) {
-                <img [src]="profileAvatarPreview" alt="头像预览" />
+                <img [src]="profileAvatarPreview" alt="Avatar Preview" />
                 } @else if (!profileAvatarDeleted && userInfo.avatar) {
-                <img [src]="getAssetUrl(userInfo.avatar)" alt="当前头像" />
+                <img
+                  [src]="getAssetUrl(userInfo.avatar)"
+                  alt="Current Avatar"
+                />
                 } @else {
                 <ion-icon name="person-circle"></ion-icon>
                 }
@@ -284,8 +287,11 @@
         </div>
         } @else if (favoritesList.length === 0) {
         <div class="empty-state">
-          <ion-icon name="star-outline" class="empty-icon"></ion-icon>
-          <ion-text color="medium"><p>{{ t.noFavorites }}</p></ion-text>
+          <div class="empty-icon-wrapper">
+            <ion-icon name="star-outline" class="empty-icon"></ion-icon>
+          </div>
+          <p class="empty-title">{{ t.noFavorites }}</p>
+          <p class="empty-sub">{{ t.noFavoritesHint }}</p>
         </div>
         } @else {
         <div class="favorites-list">
@@ -321,8 +327,11 @@
         </div>
         } @else if (followsList.length === 0) {
         <div class="empty-state">
-          <ion-icon name="people-outline" class="empty-icon"></ion-icon>
-          <ion-text color="medium"><p>{{ t.noFollows }}</p></ion-text>
+          <div class="empty-icon-wrapper">
+            <ion-icon name="people-outline" class="empty-icon"></ion-icon>
+          </div>
+          <p class="empty-title">{{ t.noFollows }}</p>
+          <p class="empty-sub">{{ t.noFollowsHint }}</p>
         </div>
         } @else {
         <div class="follows-list">
@@ -331,7 +340,7 @@
             <div class="follow-avatar-container">
               <img
                 [src]="getAssetUrl(user.UserAvatar) || 'assets/icon/user.svg'"
-                alt="头像"
+                alt="Avatar"
                 class="follow-avatar"
               />
             </div>
@@ -361,7 +370,10 @@
   </ion-modal>
 
   <!-- 粉丝弹窗 -->
-  <ion-modal [isOpen]="isFollowersModalOpen" (didDismiss)="closeFollowersModal()">
+  <ion-modal
+    [isOpen]="isFollowersModalOpen"
+    (didDismiss)="closeFollowersModal()"
+  >
     <ng-template>
       <ion-header>
         <ion-toolbar>
@@ -380,8 +392,11 @@
         </div>
         } @else if (followersList.length === 0) {
         <div class="empty-state">
-          <ion-icon name="heart-outline" class="empty-icon"></ion-icon>
-          <ion-text color="medium"><p>{{ t.noFollowers }}</p></ion-text>
+          <div class="empty-icon-wrapper">
+            <ion-icon name="heart-outline" class="empty-icon"></ion-icon>
+          </div>
+          <p class="empty-title">{{ t.noFollowers }}</p>
+          <p class="empty-sub">{{ t.noFollowersHint }}</p>
         </div>
         } @else {
         <div class="follows-list">
@@ -390,7 +405,7 @@
             <div class="follow-avatar-container">
               <img
                 [src]="getAssetUrl(user.UserAvatar) || 'assets/icon/user.svg'"
-                alt="头像"
+                alt="Avatar"
                 class="follow-avatar"
               />
             </div>
@@ -508,7 +523,8 @@
             </p>
             <p>
               <strong>{{ t.snapshotCategory }}</strong>{{
-              (currentOrderDetail.snapshotCategory | tText) || t.uncategorized }}
+              (currentOrderDetail.snapshotCategory | tText) || t.uncategorized
+              }}
             </p>
             <p>
               <strong>{{ t.snapshotLocation }}</strong>{{
@@ -534,7 +550,7 @@
                 {
                 <img
                   [src]="getAssetUrl(photo)"
-                  alt="事件照片"
+                  alt="Event Photo"
                   class="snapshot-photo"
                   (error)="$event.target.src = 'assets/icon/default-image.svg'"
                 />

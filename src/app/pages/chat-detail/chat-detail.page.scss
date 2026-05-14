@@ -587,4 +587,15 @@
   .msg-image-caption {
     color: var(--ion-text-color, #ffffff);
   }
+
+  /* 我发送的消息气泡在深色模式下降低亮度，减少刺眼感 */
+  .message-group.me .message-bubble {
+    background-color: #3a7bd5;
+    color: #f0f0f0;
+  }
+
+  /* 请求类型标签文字在深色模式下使用深色文字（保持在黄色背景上的可读性） */
+  .request-badge {
+    color: #1a1a1a;
+  }
 }

@@ -555,6 +555,25 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     return String(msg.senderId) === userId;
   }
 
+  /** 判断消息是否为系统消息（兼容服务端未本地化 userName 的情况） */
+  isSystemMessage(msg: ChatModel): boolean {
+    if (!msg) return false;
+    const uname = String(msg.userName || '').toLowerCase();
+    const sender = String(msg.senderId || '').toLowerCase();
+
+    // 兼容服务端发送的中文 "系统通知"、英文或其它语言的翻译，以及 senderId 中包含 system 的情况
+    if (!uname && !sender) return false;
+    if (uname === String(this.t.systemNotification).toLowerCase()) return true;
+    if (uname === '系统通知') return true;
+    if (uname.includes('system')) return true;
+    if (sender.includes('system')) return true;
+
+    // 如果当前房间类型标记为 system，也视为系统消息
+    if (this.roomInfoTab3?.type === 'system') return true;
+
+    return false;
+  }
+
   /** 消息是否对当前用户可见（targetUserId 为空或等于当前用户） */
   isMessageVisible(msg: ChatModel): boolean {
     if (msg.targetUserId == null) return true;

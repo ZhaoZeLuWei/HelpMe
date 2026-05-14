@@ -42,6 +42,8 @@ import {
   briefcase,
   starOutline,
   peopleOutline,
+  receiptOutline,
+  clipboardOutline,
 } from 'ionicons/icons';
 
 import {
@@ -322,6 +324,8 @@ export class Tab4Page implements OnDestroy {
       briefcase,
       starOutline,
       peopleOutline,
+      receiptOutline,
+      clipboardOutline,
     });
 
     // 订阅登录状态
@@ -666,7 +670,8 @@ export class Tab4Page implements OnDestroy {
     this.userInfo.providerRole =
       Number(data.ProviderRole || data.providerRole) || 0;
     this.userInfo.orderCount = Number(data.OrderCount || data.orderCount) || 0;
-    this.userInfo.followerCount = Number(data.FollowerCount || data.followerCount) || 0;
+    this.userInfo.followerCount =
+      Number(data.FollowerCount || data.followerCount) || 0;
     this.userInfo.serviceRanking =
       Number(data.ServiceRanking || data.serviceRanking) || 0;
     this.userInfo.realName = data.RealName || data.realName || '';
@@ -952,11 +957,11 @@ export class Tab4Page implements OnDestroy {
   async cancelOrder(orderId: number) {
     const alert = await this.alertController.create({
       header: this.t.cancel,
-      message: '确定要取消该订单吗？取消后不可恢复。',
+      message: this.t.orderPanel.cancelOrderConfirmMsg,
       buttons: [
         { text: this.t.cancel, role: 'cancel' },
         {
-          text: '确认取消',
+          text: this.t.orderPanel.cancelOrderConfirmBtn,
           role: 'destructive',
           handler: async () => {
             await this.performOrderAction(orderId, 'cancel');
@@ -1127,7 +1132,7 @@ export class Tab4Page implements OnDestroy {
     } catch (err) {
       console.error('toggleEventStatus error', err);
       const toast = await this.toastController.create({
-        message: '网络错误，请重试',
+        message: this.t.networkError,
         duration: 2000,
         color: 'danger',
         position: 'top',

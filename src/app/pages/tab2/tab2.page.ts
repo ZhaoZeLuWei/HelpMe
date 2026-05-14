@@ -1,17 +1,9 @@
-import {
-  Component,
-  OnInit,
-  inject,
-  signal,
-  ViewChild,
-  AfterViewInit,
-} from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonHeader,
   IonToolbar,
   IonContent,
-  IonSearchbar,
   IonIcon,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
@@ -50,13 +42,12 @@ import {
     IonHeader,
     IonToolbar,
     IonContent,
-    IonSearchbar,
     IonIcon,
     UniversalSearchComponent,
     ShowEventComponent,
   ],
 })
-export class Tab2Page implements OnInit, AfterViewInit {
+export class Tab2Page implements OnInit {
   private readonly API_BASE = environment.apiBase;
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -78,9 +69,6 @@ export class Tab2Page implements OnInit, AfterViewInit {
   // AI 推荐数据（快照，不依赖信号响应）
   aiRecommendation: string | null = null;
   aiKeyword: string | null = null;
-
-  // 拿到搜索框实例
-  @ViewChild('searchBar') searchBar!: IonSearchbar;
 
   constructor() {
     addIcons({ sparklesOutline });
@@ -114,10 +102,6 @@ export class Tab2Page implements OnInit, AfterViewInit {
         if (keyword !== currentKeyword || !this.eventsData().length) {
           this.loadEvents(keyword);
         }
-      }
-
-      if (params['focusSearch']) {
-        setTimeout(() => this.searchBar?.setFocus(), 300);
       }
     });
 
@@ -155,15 +139,6 @@ export class Tab2Page implements OnInit, AfterViewInit {
       });
     }
     this.loadEvents();
-  }
-
-  ngAfterViewInit() {
-    // 如果 URL 带 focusSearch=true，则自动聚焦搜索框
-    this.route.queryParams.subscribe((params) => {
-      if (params['focusSearch']) {
-        setTimeout(() => this.searchBar?.setFocus(), 300);
-      }
-    });
   }
 
   /* 统一加载：根据关键词和分类决定接口 */

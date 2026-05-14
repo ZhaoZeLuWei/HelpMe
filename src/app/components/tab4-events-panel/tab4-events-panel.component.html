@@ -92,10 +92,11 @@
   }
   @if (!isLoading && events.length === 0) {
     <div class="empty-state">
-      <ion-icon name="document-text" class="empty-icon"></ion-icon>
-      <ion-text color="medium"
-        ><p>{{ t.eventPanel.noEvents }}</p></ion-text
-      >
+      <div class="empty-icon-wrapper">
+        <ion-icon name="clipboard-outline" class="empty-icon"></ion-icon>
+      </div>
+      <p class="empty-title">{{ t.eventPanel.noEvents }}</p>
+      <p class="empty-sub">{{ t.eventPanel.emptyHint }}</p>
     </div>
   }
 </div>

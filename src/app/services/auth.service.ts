@@ -3,6 +3,7 @@ import { BehaviorSubject, map, distinctUntilChanged } from 'rxjs';
 import { Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 import { environment } from '../../environments/environment';
+import { LanguageService } from './language.service';
 
 // 认证相关类型
 type LoginOk = { ok: true };
@@ -28,6 +29,17 @@ export class AuthService {
   private readonly API_BASE = environment.apiBase;
   private readonly router = inject(Router);
   private readonly toastController = inject(ToastController);
+  private readonly langService = inject(LanguageService);
+
+  /** 获取当前语言的登录相关翻译 */
+  private get loginT() {
+    return this.langService.getTranslations(this.langService.getCurrentLang())
+      .login;
+  }
+  private get registerT() {
+    return this.langService.getTranslations(this.langService.getCurrentLang())
+      .register;
+  }
 
   // 唯一真相：session（token + user）
   private readonly _session$ = new BehaviorSubject<Session | null>(
@@ -149,7 +161,8 @@ export class AuthService {
     }, delay);
   }
 
-  async handleAuthExpired(message = '登录已过期，请重新登录'): Promise<void> {
+  async handleAuthExpired(message?: string): Promise<void> {
+    const msg = message || this.loginT.loginExpired;
     if (this.handlingAuthExpired) return;
 
     this.handlingAuthExpired = true;
@@ -159,7 +172,7 @@ export class AuthService {
 
       if (hadToken) {
         const toast = await this.toastController.create({
-          message,
+          message: msg,
           duration: 1400,
           position: 'bottom',
           positionAnchor: 'main-tab-bar',
@@ -185,7 +198,8 @@ export class AuthService {
     phone: string,
     code: string,
   ): Promise<LoginOk | LoginFail> {
-    if (!phone || !code) return { ok: false, message: '请填写手机号和验证码' };
+    if (!phone || !code)
+      return { ok: false, message: this.loginT.formIncomplete };
 
     const url = `${this.API_BASE}/login`;
 
@@ -199,17 +213,16 @@ export class AuthService {
       const data = await resp.json().catch(() => null);
 
       if (!resp.ok) {
-        const err = data?.error || data?.msg || resp.statusText || '请求失败';
+        const err =
+          data?.error ||
+          data?.msg ||
+          resp.statusText ||
+          this.loginT.formIncomplete;
 
         const mapErr: Record<string, string> = {
-          'phone and code required': '请填写手机号和验证码',
-          请填写手机号和验证码: '请填写手机号和验证码',
-          'Invalid verification code': '验证码错误',
-          验证码错误: '验证码错误',
-          'User not found': '该手机号未注册',
-          该手机号未注册: '该手机号未注册',
-          'Database query failed': '登录失败，数据库错误',
-          '登录失败，数据库错误': '登录失败，数据库错误',
+          'phone and code required': this.loginT.formIncomplete,
+          'Invalid verification code': this.loginT.formIncomplete,
+          'User not found': this.loginT.phoneNotRegistered,
         };
 
         return {
@@ -227,18 +240,16 @@ export class AuthService {
 
       // 如果后端暂时还没返回 token：这里明确告诉原因（否则 UI 会以为登录成功但鉴权接口全 401）
       if (data?.success && data?.user && !data?.token) {
-        // 保留 user 也没意义（因为后续请求都没法鉴权），这里建议当失败处理更直观
         return {
           ok: false,
-          message:
-            '登录成功但服务器未返回 token（请检查后端 JWT 登录接口返回）',
+          message: this.loginT.loginSuccess,
         };
       }
 
-      return { ok: false, message: '登录失败：服务器返回格式异常' };
+      return { ok: false, message: this.loginT.formIncomplete };
     } catch (err) {
       console.error('Login error:', err);
-      return { ok: false, message: '无法连接到服务器（请确认后端已启动）' };
+      return { ok: false, message: this.registerT.networkError };
     }
   }
 
@@ -268,7 +279,7 @@ export class AuthService {
     ) {
       return {
         ok: false,
-        message: '请填写所有必填项',
+        message: this.registerT.formRequired,
       };
     }
 
@@ -311,19 +322,18 @@ export class AuthService {
 
       if (!resp.ok) {
         const err =
-          resData?.error || resData?.msg || resp.statusText || '请求失败';
+          resData?.error ||
+          resData?.msg ||
+          resp.statusText ||
+          this.registerT.formRequired;
 
         const mapErr: Record<string, string> = {
-          请填写所有必填项: '请填写所有必填项',
-          '手机号、验证码、用户名和真实姓名为必填项': '请填写必填项',
-          '手机号、验证码和用户名为必填项': '请填写必填项',
-          验证码错误: '验证码错误',
-          该手机号已注册: '该手机号已被注册，请直接登录',
-          该身份证号已被注册: '该身份证号已被注册',
-          '注册信息重复，请检查手机号或身份证号':
-            '注册信息重复，请检查手机号或身份证号',
-          '注册失败，数据库错误': '注册失败，数据库错误',
-          '注册失败，请稍后重试': '注册失败，请稍后重试',
+          '手机号、验证码、用户名和真实姓名为必填项':
+            this.registerT.formRequired,
+          '手机号、验证码和用户名为必填项': this.registerT.formRequired,
+          验证码错误: this.registerT.codeError,
+          该手机号已注册: this.registerT.phoneExists,
+          '注册信息重复，请检查手机号或身份证号': this.registerT.formRequired,
         };
 
         return {
@@ -339,10 +349,10 @@ export class AuthService {
         return { ok: true };
       }
 
-      return { ok: false, message: '注册失败：服务器返回格式异常' };
+      return { ok: false, message: this.registerT.formRequired };
     } catch (err) {
       console.error('Register error:', err);
-      return { ok: false, message: '无法连接到服务器（请确认后端已启动）' };
+      return { ok: false, message: this.registerT.networkError };
     }
   }
 
@@ -412,26 +422,29 @@ export class AuthService {
         return {
           success: false,
           error:
-            data?.error || data?.msg || resp.statusText || '发送验证码失败',
+            data?.error ||
+            data?.msg ||
+            resp.statusText ||
+            this.loginT.codeSendFailed,
         };
       }
 
       if (data?.success) {
         return {
           success: true,
-          message: data?.message || '验证码已发送',
+          message: data?.message || this.loginT.codeSent,
         };
       }
 
       return {
         success: false,
-        error: data?.error || '发送验证码失败',
+        error: data?.error || this.loginT.codeSendFailed,
       };
     } catch (err) {
       console.error('sendVerificationCode error:', err);
       return {
         success: false,
-        error: '无法连接到服务器（请确认后端已启动）',
+        error: this.registerT.networkError,
       };
     }
   }
@@ -455,26 +468,29 @@ export class AuthService {
         return {
           success: false,
           error:
-            data?.error || data?.msg || resp.statusText || '验证码校验失败',
+            data?.error ||
+            data?.msg ||
+            resp.statusText ||
+            this.loginT.captchaLoadFailed,
         };
       }
 
       if (data?.success) {
         return {
           success: true,
-          message: data?.message || '验证码校验通过',
+          message: data?.message || this.loginT.codeSent,
         };
       }
 
       return {
         success: false,
-        error: data?.error || '验证码校验失败',
+        error: data?.error || this.loginT.captchaLoadFailed,
       };
     } catch (err) {
       console.error('verifyVerificationCode error:', err);
       return {
         success: false,
-        error: '无法连接到服务器（请确认后端已启动）',
+        error: this.registerT.networkError,
       };
     }
   }

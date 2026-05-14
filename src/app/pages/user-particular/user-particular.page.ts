@@ -81,7 +81,7 @@ export class UserParticularPage implements OnInit {
     providerRole: 0,
     orderCount: 0,
     serviceRanking: 0,
-    isVerified: '未认证',
+    isVerified: this.languageService.getTranslations('zh').tab4.notVerified,
     stats: { favorites: 0, views: 0, follows: 0 },
     CreateTime: '',
   };
@@ -480,7 +480,10 @@ export class UserParticularPage implements OnInit {
     const result = await this.authService.toggleFollow(this.userId);
     if (result !== null) {
       this.isFollowing = result;
-      this.userInfo.followerCount = Math.max(0, (this.userInfo.followerCount || 0) + (result ? 1 : -1));
+      this.userInfo.followerCount = Math.max(
+        0,
+        (this.userInfo.followerCount || 0) + (result ? 1 : -1),
+      );
       const toast = await this.toastController.create({
         message: result ? this.t.followed : this.t.unfollowed,
         duration: 2000,

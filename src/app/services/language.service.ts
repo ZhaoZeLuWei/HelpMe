@@ -177,11 +177,14 @@ export class LanguageService {
         favoritesTitle: '我的收藏',
         loading: '加载中...',
         noFavorites: '暂无收藏',
+        noFavoritesHint: '收藏感兴趣的事件，随时查看',
         // 关注弹窗
         followsTitle: '关注的人',
         followersTitle: '我的粉丝',
         noFollows: '暂未关注任何人',
+        noFollowsHint: '关注感兴趣的用户，不错过动态',
         noFollowers: '暂无粉丝',
+        noFollowersHint: '发布优质内容，吸引更多粉丝',
         noLocation: '未设置地点',
         serviceRatingLabel: '服务评分：',
         followers: '粉丝：',
@@ -225,6 +228,7 @@ export class LanguageService {
           deleting: '删除中...',
           delete: '删除',
           noEvents: '暂无事件',
+          emptyHint: '发布你的第一个事件，开始互助之旅',
           activate: '上架',
           deactivate: '下架',
           deactivated: '已下架',
@@ -257,8 +261,10 @@ export class LanguageService {
           reviewPending: '已评价，等待对方',
           viewReview: '查看评价',
           noOrders: '暂无订单',
+          emptyHint: '浏览事件并下单，开始你的第一笔交易',
+          cancelOrderConfirmMsg: '确定要取消该订单吗？取消后不可恢复。',
+          cancelOrderConfirmBtn: '确认取消',
         },
-        // 个人资料卡片
         profileCard: {
           realName: '真实姓名：',
           introduction: '个人介绍：',
@@ -662,6 +668,7 @@ export class LanguageService {
         codeSent: '验证码已发送',
         formIncomplete: '请完善手机号和验证码',
         loginSuccess: '登录成功，欢迎您！',
+        loginExpired: '未登录或登录已过期',
       },
       // 注册页
       register: {
@@ -736,6 +743,8 @@ export class LanguageService {
         searchHistory: '搜索记录',
         clearHistory: '清除记录',
         noHistory: '暂无搜索记录',
+        aiUnavailable: 'AI 搜索暂不可用，使用普通搜索结果',
+        searchError: '搜索出错，请重试',
       },
       // 地点选择器组件
       locationPicker: {
@@ -754,6 +763,17 @@ export class LanguageService {
         noHistory: '暂无历史地址',
         nearby: '附近推荐',
         nearbyUnit: '附近',
+        mapLoadFailed: '地图加载失败',
+        browserNoGeolocation: '您的浏览器不支持定位功能',
+        locateFailed: '定位失败，请手动选择',
+        locateDenied: '您拒绝了定位权限，请手动选择',
+        locateNetworkError: '无法获取位置信息，请检查网络',
+        selectOnMapFirst: '请先在地图上选择一个位置',
+        justNow: '刚刚',
+        minutesAgo: '分钟前',
+        hoursAgo: '小时前',
+        daysAgo: '天前',
+        monthsAgo: '个月前',
       },
     },
     en: {
@@ -920,11 +940,14 @@ export class LanguageService {
         favoritesTitle: 'Favorites',
         loading: 'Loading...',
         noFavorites: 'No favorites',
+        noFavoritesHint: 'Favorite events you like and check them anytime',
         // Follows modal
         followsTitle: 'Following',
         followersTitle: 'My Followers',
         noFollows: 'Not following anyone',
+        noFollowsHint: 'Follow users you like and never miss updates',
         noFollowers: 'No followers yet',
+        noFollowersHint: 'Post great content to attract more followers',
         noLocation: 'No location',
         serviceRatingLabel: 'Service Rating: ',
         followers: 'Followers: ',
@@ -968,6 +991,7 @@ export class LanguageService {
           deleting: 'Deleting...',
           delete: 'Delete',
           noEvents: 'No events',
+          emptyHint: 'Post your first event and start your mutual aid journey',
           activate: 'Activate',
           deactivate: 'Deactivate',
           deactivated: 'Deactivated',
@@ -1002,8 +1026,12 @@ export class LanguageService {
           reviewPending: 'Reviewed, waiting for other',
           viewReview: 'View Review',
           noOrders: 'No orders',
+          emptyHint:
+            'Browse events and place orders to start your first transaction',
+          cancelOrderConfirmMsg:
+            'Are you sure you want to cancel this order? This cannot be undone.',
+          cancelOrderConfirmBtn: 'Confirm Cancel',
         },
-        // Profile Card
         profileCard: {
           realName: 'Real Name: ',
           introduction: 'Bio: ',
@@ -1337,6 +1365,7 @@ export class LanguageService {
         codeSent: 'Verification code sent',
         formIncomplete: 'Please complete phone and verification code',
         loginSuccess: 'Login successful, welcome!',
+        loginExpired: 'Login expired, please login again',
       },
       // Chat Detail Page
       chatDetail: {
@@ -1487,6 +1516,8 @@ export class LanguageService {
         searchHistory: 'Search History',
         clearHistory: 'Clear',
         noHistory: 'No search history',
+        aiUnavailable: 'AI search unavailable, using standard results',
+        searchError: 'Search error, please try again',
       },
       // Location Picker Component
       locationPicker: {
@@ -1505,6 +1536,17 @@ export class LanguageService {
         noHistory: 'No history',
         nearby: 'Nearby',
         nearbyUnit: 'nearby',
+        mapLoadFailed: 'Map loading failed',
+        browserNoGeolocation: 'Your browser does not support geolocation',
+        locateFailed: 'Location failed, please select manually',
+        locateDenied: 'Location permission denied, please select manually',
+        locateNetworkError: 'Cannot get location, please check network',
+        selectOnMapFirst: 'Please select a location on the map first',
+        justNow: 'just now',
+        minutesAgo: 'min ago',
+        hoursAgo: 'h ago',
+        daysAgo: 'd ago',
+        monthsAgo: 'mo ago',
       },
     },
   };

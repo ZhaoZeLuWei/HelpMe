@@ -1,14 +1,8 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <div class="header-search-wrapper" (click)="navigateToSearch()">
-      <ion-searchbar
-        class="header-search-bar"
-        [disabled]="true"
-        [placeholder]="t.searchPlaceholder"
-        [animated]="true"
-        show-clear-button="never"
-      >
-      </ion-searchbar>
+    <div class="x-search-pill" (click)="navigateToSearch()">
+      <span class="material-icons search-icon">search</span>
+      <span class="search-text">{{ t.searchPlaceholder }}</span>
     </div>
   </ion-toolbar>
 </ion-header>

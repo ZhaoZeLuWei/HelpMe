@@ -63,22 +63,33 @@
   }
 }
 
-.header-search-wrapper {
-  width: 100%;
-  height: 100%;
+/* 药丸形搜索栏 — 直接复用 tab1 样式 */
+.x-search-pill {
   display: flex;
   align-items: center;
-}
+  gap: 8px;
+  margin: 8px 16px;
+  padding: 10px 16px;
+  background: var(--ion-background-color-step-100, #f1f5f9);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.25s ease;
 
-.header-search-bar {
-  --background: transparent;
-  --border-radius: 0;
-  --box-shadow: none;
-  --inner-border-radius: 0;
-  --inner-box-shadow: none;
-  border: none;
-  padding: 0;
-  height: 100%;
+  &:hover {
+    background: var(--ion-background-color-step-200, #e2e8f0);
+    transform: scale(1.01);
+  }
+
+  .search-icon {
+    font-size: 20px;
+    color: var(--ion-color-medium, #94a3b8);
+  }
+
+  .search-text {
+    font-size: 15px;
+    color: var(--ion-color-medium, #94a3b8);
+    user-select: none;
+  }
 }
 
 /* 搜索框容器样式（与Tab1一致） */
@@ -201,31 +212,6 @@
   }
 }
 /* 复用 tab1 搜索条外观 */
-.header-search-wrapper {
-  cursor: pointer;
-  padding: 10px 15px;
-  max-width: 500px;
-  margin: 0 auto;
-  background: var(--ion-background-color);
-  border-bottom: 1px solid var(--ion-background-color-step-150);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-  ion-searchbar.header-search-bar {
-    --background: var(--ion-card-background, var(--ion-background-color));
-    --border-radius: 20px;
-    --box-shadow: none;
-    --inner-border-radius: 20px;
-    --inner-box-shadow: none;
-    pointer-events: none;
-    height: 40px;
-    font-size: 15px;
-    color: var(--ion-text-color);
-
-    &::part(input) {
-      --placeholder-color: var(--ion-color-medium);
-    }
-  }
-}
 
 /* =========================================================================
    Elderly Mode (长辈模式)
@@ -237,9 +223,14 @@
     height: 48px;
     font-weight: 700;
   }
-  .header-search-wrapper ion-searchbar.header-search-bar {
-    height: 56px;
-    font-size: 20px;
+  .x-search-pill {
+    padding: 14px 20px;
+    .search-icon {
+      font-size: 24px;
+    }
+    .search-text {
+      font-size: 18px;
+    }
   }
   .empty-state {
     p {
@@ -267,5 +258,36 @@
   .ai-keyword-tag {
     font-size: 16px;
     padding: 4px 12px;
+  }
+}
+
+/* =========================================================================
+   Dark Mode Overrides (深色模式适配)
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  /* AI 推荐区域背景在深色模式下使用更深的渐变 */
+  .ai-recommendation {
+    background: linear-gradient(
+      135deg,
+      rgba(20, 184, 166, 0.12),
+      rgba(20, 184, 166, 0.04)
+    );
+    border-color: rgba(20, 184, 166, 0.25);
+  }
+
+  /* AI 标题文字在深色模式下使用更亮的青色 */
+  .ai-header-left {
+    color: #2dd4bf;
+  }
+
+  /* AI 关键词标签在深色模式下增强对比度 */
+  .ai-keyword-tag {
+    background: rgba(20, 184, 166, 0.18);
+    color: #2dd4bf;
+  }
+
+  /* AI 计数标签在深色模式下增强对比度 */
+  .ai-header-count {
+    background: rgba(20, 184, 166, 0.15);
   }
 }

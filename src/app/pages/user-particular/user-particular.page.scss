@@ -464,3 +464,28 @@ ion-content {
     height: 48px;
   }
 }
+
+/* =========================================================================
+   Dark Mode Overrides (深色模式适配)
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  /* 价格文字在深色模式下使用更亮的琥珀色 */
+  .list-item-meta .price {
+    color: #fbbf24;
+  }
+
+  /* 评论评分在深色模式下使用更亮的橙色 */
+  .comment-score {
+    color: #ffb340;
+  }
+
+  /* 标签页活跃状态在深色模式下降低饱和度 */
+  .tab-item.active {
+    background: #0d6b63;
+  }
+
+  /* 用户介绍左边框颜色适配深色模式 */
+  .user-introduction {
+    border-left-color: #14b8a6;
+  }
+}

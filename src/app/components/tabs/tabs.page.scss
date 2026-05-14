@@ -1,19 +1,166 @@
 /* =========================================================================
-   Elderly Mode - 底部导航栏 (长辈模式)
+   底部导航栏样式 — 重构层级
+   ========================================================================= */
+
+/*
+ * Ionic 内部结构：
+ *   ion-tabs
+ *     └─ .tabs-inner  (position: relative, flex: 1)
+ *         └─ ion-router-outlet  (每个 tab 页面的 ion-content 在这里)
+ *     └─ ion-tab-bar  (slot="bottom")
+ *
+ * 问题：ion-content 滚动时覆盖 tab-bar 区域，导致凸起的发布按钮被遮挡。
+ * 解决：
+ *   1. ion-tab-bar 设高 z-index，浮在内容之上
+ *   2. 发布按钮的圆形图标用 z-index 更高确保最顶层
+ *   3. 给 tab-bar 加足高度，让图标有空间凸起不被裁剪
+ */
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 让 tabs 容器不裁剪溢出内容 */
+ion-tabs {
+  overflow: visible !important;
+  --bottom: 0;
+}
+
+ion-tab-bar {
+  --background: var(--ion-background-color, #fff);
+  --border: 1px solid var(--ion-color-step-100, #f0f0f0);
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.08);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  overflow: visible !important;
+  /* Ionic 默认 contain: strict 含 paint，会把向上凸起的发布按钮裁切掉 */
+  contain: none !important;
+  z-index: 9999;
+  position: relative;
+  height: 66px;
+}
+
+/* =========================================================================
+   发布按钮（tab5）— 凸起圆形渐变
+   ========================================================================= */
+ion-tab-button[tab="tab5"] {
+  --background: transparent;
+  --color: var(--ion-color-medium);
+  position: relative;
+  overflow: visible;
+  z-index: 10000;
+
+  /* Shadow 内 .button-native 默认 overflow:hidden，会裁切绝对定位的凸起圆 */
+  &::part(native) {
+    overflow: visible;
+  }
+
+  /* 凸起的圆形图标 */
+  .tab5-icon-ring {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #14b8a6);
+    color: #fff;
+    border-radius: 50%;
+    box-shadow:
+      0 4px 16px rgba(59, 130, 246, 0.4),
+      0 2px 8px rgba(20, 184, 166, 0.25);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+
+    ion-icon {
+      font-size: 26px;
+      color: #fff;
+    }
+  }
+
+  /* 隐藏 ion-icon 默认渲染，用 .tab5-icon-ring 替代 */
+  > ion-icon {
+    display: none;
+  }
+
+  ion-label {
+    font-weight: 700;
+    font-size: 10px;
+    color: var(--ion-color-medium);
+    transition: color 0.2s ease;
+    margin-top: 24px;
+  }
+
+  &:active .tab5-icon-ring {
+    transform: translateX(-50%) scale(0.9);
+    box-shadow:
+      0 2px 8px rgba(59, 130, 246, 0.3),
+      0 1px 4px rgba(20, 184, 166, 0.15);
+  }
+
+  &.tab-selected {
+    ion-label {
+      color: #3b82f6;
+    }
+    .tab5-icon-ring {
+      background: linear-gradient(135deg, #14b8a6, #3b82f6);
+      box-shadow:
+        0 6px 24px rgba(59, 130, 246, 0.45),
+        0 3px 10px rgba(20, 184, 166, 0.3);
+    }
+  }
+}
+
+/* =========================================================================
+   其他 tab 按钮
+   ========================================================================= */
+ion-tab-button:not([tab="tab5"]) {
+  --color: var(--ion-color-medium);
+  --color-selected: var(--ion-color-primary);
+  --padding-top: 6px;
+  --padding-bottom: 4px;
+}
+
+/* =========================================================================
+   Elderly Mode (长辈模式)
    ========================================================================= */
 :host-context(body.elderly-mode) {
   ion-tab-bar {
-    height: 72px;
+    height: 76px;
   }
+
   ion-tab-button {
     font-size: 16px;
     font-weight: 700;
+
     ion-icon {
       font-size: 28px;
     }
+
     ion-label {
       font-size: 14px;
       font-weight: 700;
+    }
+  }
+
+  ion-tab-button[tab="tab5"] {
+    .tab5-icon-ring {
+      width: 60px;
+      height: 60px;
+      top: -28px;
+
+      ion-icon {
+        font-size: 30px;
+      }
+    }
+
+    ion-label {
+      margin-top: 30px;
+      font-size: 13px;
     }
   }
 }

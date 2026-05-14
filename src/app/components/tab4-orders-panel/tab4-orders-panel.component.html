@@ -49,7 +49,9 @@
     <ion-card class="task-item">
       <ion-item lines="none">
         <ion-label>
-          <h2 class="task-title">{{ (order.snapshotTitle || order.title) | tText }}</h2>
+          <h2 class="task-title">
+            {{ order.snapshotTitle || order.title | tText }}
+          </h2>
           <p class="task-meta">
             {{
               order.role === "buyer" ? t.orderPanel.buyer : t.orderPanel.seller
@@ -121,10 +123,11 @@
   }
   @if (!isLoading && orders.length === 0) {
     <div class="empty-state">
-      <ion-icon name="document-text" class="empty-icon"></ion-icon>
-      <ion-text color="medium"
-        ><p>{{ t.orderPanel.noOrders }}</p></ion-text
-      >
+      <div class="empty-icon-wrapper">
+        <ion-icon name="receipt-outline" class="empty-icon"></ion-icon>
+      </div>
+      <p class="empty-title">{{ t.orderPanel.noOrders }}</p>
+      <p class="empty-sub">{{ t.orderPanel.emptyHint }}</p>
     </div>
   }
 </div>

@@ -4,12 +4,14 @@ import { Observable, of, BehaviorSubject, firstValueFrom } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { LanguageService } from './language.service';
+import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class DynamicTranslationService {
   private http = inject(HttpClient);
   private langService = inject(LanguageService);
   private appRef = inject(ApplicationRef);
+  private auth = inject(AuthService);
 
   private readonly apiBase = environment.apiBase;
   private readonly sourceLang = 'zh';
@@ -125,15 +127,18 @@ export class DynamicTranslationService {
       for (const chunk of chunks) {
         try {
           const res = await firstValueFrom(
-            this.http
-              .post<{ success: boolean; results: Record<string, string> }>(
-                `${this.apiBase}/api/translate/batch`,
-                {
-                  texts: chunk,
-                  sourceLang: this.sourceLang,
-                  targetLang,
-                },
-              ),
+            this.http.post<{
+              success: boolean;
+              results: Record<string, string>;
+            }>(
+              `${this.apiBase}/api/translate/batch`,
+              {
+                texts: chunk,
+                sourceLang: this.sourceLang,
+                targetLang,
+              },
+              { headers: this.auth.getAuthHeader() },
+            ),
           );
 
           if (res?.success && res.results) {

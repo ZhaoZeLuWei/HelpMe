@@ -30,6 +30,9 @@
         <ion-icon name="close-circle"></ion-icon>
       </button>
       }
+      <button class="input-go-btn" (click)="onSearch()">
+        <ion-icon name="arrow-forward-outline"></ion-icon>
+      </button>
     </div>
 
     <div class="action-row">
@@ -42,8 +45,11 @@
         (click)="aiSearch()"
         [disabled]="aiSearching"
       >
+        @if (aiSearching) {
+        <ion-icon name="hourglass-outline" class="spin-icon"></ion-icon>
+        } @else {
         <ion-icon name="sparkles-outline"></ion-icon>
-        {{ aiSearching ? t.searching : t.aiAssist }}
+        } {{ aiSearching ? t.searching : t.aiAssist }}
       </button>
     </div>
   </div>

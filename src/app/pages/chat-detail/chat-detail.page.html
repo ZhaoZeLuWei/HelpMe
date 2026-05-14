@@ -35,9 +35,12 @@
   @if (showOrderInfo) {
   <ion-toolbar color="light" class="order-detail-bar">
     <div class="order-detail-content">
-      <p><strong>{{ t.locationLabel }}</strong>{{ orderInfo.Location | tText }}</p>
       <p>
-        <strong>{{ t.descriptionLabel }}</strong>{{ orderInfo.EventDetails | tText }}
+        <strong>{{ t.locationLabel }}</strong>{{ orderInfo.Location | tText }}
+      </p>
+      <p>
+        <strong>{{ t.descriptionLabel }}</strong>{{ orderInfo.EventDetails |
+        tText }}
       </p>
       <p>
         <strong>{{ t.orderTime }}：</strong>{{ orderInfo.OrderCreateTime |
@@ -95,9 +98,12 @@
   @if (showEventInfo) {
   <ion-toolbar color="light" class="order-detail-bar">
     <div class="order-detail-content">
-      <p><strong>{{ t.locationLabel }}</strong>{{ eventInfo.Location | tText }}</p>
       <p>
-        <strong>{{ t.descriptionLabel }}</strong>{{ eventInfo.EventDetails | tText }}
+        <strong>{{ t.locationLabel }}</strong>{{ eventInfo.Location | tText }}
+      </p>
+      <p>
+        <strong>{{ t.descriptionLabel }}</strong>{{ eventInfo.EventDetails |
+        tText }}
       </p>
       <p>
         <strong>{{ t.publishTime }}：</strong>{{ eventInfo.CreateTime |
@@ -121,7 +127,7 @@
   <div class="chat-container">
     @for (msg of messages(); track $index) {
     <!-- 系统消息居中显示 -->
-    @if (msg.userName === t.systemNotification) {
+    @if (isSystemMessage(msg)) {
     <div class="system-message">
       <span class="system-message-text">{{ msg.text }}</span>
       <span class="system-message-time">{{ msg.sendTime | date:'HH:mm' }}</span>
@@ -139,7 +145,8 @@
         <div class="message-main">
           <div class="message-meta">
             <span class="user-name"
-              >{{ isMyMessage(msg) ? (myself?.name || t.me) : ((msg.userName || roomInfoTab3?.name) | tText) || t.otherParty }}</span
+              >{{ isMyMessage(msg) ? (myself?.name || t.me) : ((msg.userName ||
+              roomInfoTab3?.name) | tText) || t.otherParty }}</span
             >
             <span class="timestamp"> {{ msg.sendTime | date:'HH:mm' }}</span>
           </div>
@@ -272,17 +279,23 @@
         @if (orderInfo.DeliveryAddress) {
         <div class="info-row">
           <span class="info-label">{{ t.deliveryAddress }}</span>
-          <span class="info-value">{{ orderInfo.DeliveryAddress | tText }}</span>
+          <span class="info-value"
+            >{{ orderInfo.DeliveryAddress | tText }}</span
+          >
         </div>
         } @if (orderInfo.DeliverySpecific) {
         <div class="info-row">
           <span class="info-label">{{ t.doorNumber }}</span>
-          <span class="info-value">{{ orderInfo.DeliverySpecific | tText }}</span>
+          <span class="info-value"
+            >{{ orderInfo.DeliverySpecific | tText }}</span
+          >
         </div>
         } @if (orderInfo.DeliveryAdditionalInfo) {
         <div class="info-row">
           <span class="info-label">{{ t.additionalInfo }}</span>
-          <span class="info-value">{{ orderInfo.DeliveryAdditionalInfo | tText }}</span>
+          <span class="info-value"
+            >{{ orderInfo.DeliveryAdditionalInfo | tText }}</span
+          >
         </div>
         }
         <div class="info-row">

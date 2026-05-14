@@ -464,7 +464,7 @@ export class LocationPickerComponent
   private initMap() {
     const mapContainer = document.getElementById('mapContainer');
     if (!mapContainer || typeof AMap === 'undefined') {
-      this.showToast('地图加载失败');
+      this.showToast(this.t.mapLoadFailed);
       return;
     }
 
@@ -524,7 +524,7 @@ export class LocationPickerComponent
 
   async getCurrentLocation() {
     if (!navigator.geolocation) {
-      this.showToast('您的浏览器不支持定位功能');
+      this.showToast(this.t.browserNoGeolocation);
       return;
     }
 
@@ -554,9 +554,9 @@ export class LocationPickerComponent
 
       await this.reverseGeocode(lng, lat);
     } catch (err: any) {
-      let msg = '定位失败，请手动选择';
-      if (err.code === 1) msg = '您拒绝了定位权限，请手动选择';
-      if (err.code === 2) msg = '无法获取位置信息，请检查网络';
+      let msg = this.t.locateFailed;
+      if (err.code === 1) msg = this.t.locateDenied;
+      if (err.code === 2) msg = this.t.locateNetworkError;
       this.showToast(msg);
     } finally {
       this.isLocating.set(false);
@@ -649,7 +649,7 @@ export class LocationPickerComponent
       const location = this.selectedMapLocation();
       const address = this.currentAddress();
       if (!location || !address) {
-        this.showToast('请先在地图上选择一个位置');
+        this.showToast(this.t.selectOnMapFirst);
         return;
       }
 
@@ -831,14 +831,14 @@ export class LocationPickerComponent
   formatRelativeTime(timestamp: number): string {
     const diffMs = Date.now() - timestamp;
     const diffMinutes = Math.floor(diffMs / 60000);
-    if (diffMinutes < 1) return '刚刚';
-    if (diffMinutes < 60) return `${diffMinutes}分钟前`;
+    if (diffMinutes < 1) return this.t.justNow;
+    if (diffMinutes < 60) return `${diffMinutes}${this.t.minutesAgo}`;
     const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours}小时前`;
+    if (diffHours < 24) return `${diffHours}${this.t.hoursAgo}`;
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 30) return `${diffDays}天前`;
+    if (diffDays < 30) return `${diffDays}${this.t.daysAgo}`;
     const diffMonths = Math.floor(diffDays / 30);
-    return `${diffMonths}个月前`;
+    return `${diffMonths}${this.t.monthsAgo}`;
   }
 
   // ================= 地址簿切换 =================

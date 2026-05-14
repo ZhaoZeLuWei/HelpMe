@@ -40,11 +40,14 @@
             </ion-badge>
           </h3>
           <p class="publisher-meta">
-            {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }}{{ t.scoreUnit }}
+            {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }}{{ t.scoreUnit
+            }}
             <br />
-            {{ t.serviceRating }}{{ (userInfo.serviceRanking || 0) }}{{ t.scoreUnit }}
+            {{ t.serviceRating }}{{ (userInfo.serviceRanking || 0) }}{{
+            t.scoreUnit }}
             <br />
-            {{ t.serviceCount }}{{ (userInfo.orderCount || 0) }}{{ t.countUnit }}
+            {{ t.serviceCount }}{{ (userInfo.orderCount || 0) }}{{ t.countUnit
+            }}
             <br />
             {{ t.followerCount }}{{ (userInfo.followerCount || 0) }}
             <br />
@@ -91,9 +94,16 @@
         @if (eventTags.length > 0) {
         <div class="event-tags">
           @for (tag of eventTags; track $index) {
-          <span class="tag-chip" (click)="searchByTag(tag)">
+          <span
+            class="tag-chip"
+            role="button"
+            tabindex="0"
+            (click)="searchByTag(tag)"
+            (keyup.enter)="searchByTag(tag)"
+            [attr.aria-label]="('#' + (tag | tText))"
+          >
             <ion-icon name="pricetag-outline"></ion-icon>
-            #{{ tag }}
+            #{{ tag | tText }}
           </span>
           }
         </div>
@@ -139,8 +149,8 @@
             slot="start"
             [name]="isFavorited ? 'star' : 'star-outline'"
           ></ion-icon>
-          {{ isFavorited ? t.favorited : t.favorite }}
-          @if (favoriteCount > 0) { ({{ favoriteCount }}) }
+          {{ isFavorited ? t.favorited : t.favorite }} @if (favoriteCount > 0) {
+          ({{ favoriteCount }}) }
         </ion-button>
       </ion-col>
       @if (!isCurrentUserCreator) {
