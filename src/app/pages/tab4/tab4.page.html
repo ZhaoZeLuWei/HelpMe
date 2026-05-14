@@ -335,8 +335,8 @@
               />
             </div>
             <div class="follow-info">
-              <h4>{{ user.UserName }}</h4>
-              <p>{{ user.Location || t.noLocation }}</p>
+              <h4>{{ user.UserName | tText }}</h4>
+              <p>{{ (user.Location | tText) || t.noLocation }}</p>
               <p class="follow-meta">
                 {{ t.serviceRatingLabel }}{{ user.ServiceRanking || 0 }} · {{
                 t.followers }}{{ user.OrderCount || 0 }}
@@ -415,7 +415,7 @@
             @if (currentOrderDetail.cancelledByName) {
             <p class="cancelled-info">
               <strong>{{ t.cancelledBy || '取消人' }}</strong>{{
-              currentOrderDetail.cancelledByName }}
+              currentOrderDetail.cancelledByName | tText }}
             </p>
             }
           </div>
@@ -428,17 +428,17 @@
             </h3>
             <p>
               <strong>{{ t.address }}</strong>{{
-              currentOrderDetail.deliveryAddress || t.notFilled }}
+              (currentOrderDetail.deliveryAddress | tText) || t.notFilled }}
             </p>
             @if (currentOrderDetail.deliverySpecific) {
             <p>
               <strong>{{ t.specificLocation }}</strong>{{
-              currentOrderDetail.deliverySpecific }}
+              currentOrderDetail.deliverySpecific | tText }}
             </p>
             } @if (currentOrderDetail.deliveryAdditionalInfo) {
             <p>
               <strong>{{ t.additionalInfo }}</strong>{{
-              currentOrderDetail.deliveryAdditionalInfo }}
+              currentOrderDetail.deliveryAdditionalInfo | tText }}
             </p>
             }
           </div>
@@ -451,15 +451,15 @@
             </h3>
             <p>
               <strong>{{ t.snapshotTitle }}</strong>{{
-              currentOrderDetail.snapshotTitle }}
+              currentOrderDetail.snapshotTitle | tText }}
             </p>
             <p>
               <strong>{{ t.snapshotCategory }}</strong>{{
-              currentOrderDetail.snapshotCategory || t.uncategorized }}
+              (currentOrderDetail.snapshotCategory | tText) || t.uncategorized }}
             </p>
             <p>
               <strong>{{ t.snapshotLocation }}</strong>{{
-              currentOrderDetail.snapshotLocation || t.notFilled }}
+              (currentOrderDetail.snapshotLocation | tText) || t.notFilled }}
             </p>
             <p>
               <strong>{{ t.snapshotPrice }}</strong>¥{{
@@ -468,7 +468,7 @@
             @if (currentOrderDetail.snapshotDetails) {
             <p>
               <strong>{{ t.snapshotDetails }}</strong>{{
-              currentOrderDetail.snapshotDetails }}
+              currentOrderDetail.snapshotDetails | tText }}
             </p>
             }
 

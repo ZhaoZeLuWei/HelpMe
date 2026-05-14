@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
+import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 
 // ── 距离工具函数（全局缓存） ──
 
@@ -196,7 +197,7 @@ export interface EventCardData {
   templateUrl: './show-event.component.html',
   styleUrls: ['./show-event.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule],
+  imports: [IonicModule, CommonModule, TranslateTextPipe],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class ShowEventComponent {

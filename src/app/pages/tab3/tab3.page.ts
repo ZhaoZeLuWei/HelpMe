@@ -17,6 +17,8 @@ import {
   IonLabel,
 } from '@ionic/angular/standalone';
 import { NavController, ToastController } from '@ionic/angular';
+import { DynamicTranslationService } from '../../services/dynamic-translation.service';
+import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 import { LanguageService } from '../../services/language.service';
 
 @Component({
@@ -34,6 +36,7 @@ import { LanguageService } from '../../services/language.service';
     IonBadge,
     IonNote,
     IonLabel,
+    TranslateTextPipe,
   ],
   standalone: true,
 })
@@ -44,6 +47,9 @@ export class Tab3Page implements OnInit {
   private http = inject(HttpClient);
   private toastCtrl = inject(ToastController);
   private langService = inject(LanguageService);
+  private dynTrans = inject(DynamicTranslationService);
+
+  private isFirstLangEmit = true;
 
   //variables
   socket: any;
@@ -62,6 +68,22 @@ export class Tab3Page implements OnInit {
 
   ngOnInit() {
     this.showChat = false;
+
+    // 语言监听：切换语言时重新拉取房间列表
+    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
+      this.t = {
+        ...this.langService.getTranslations(lang).tab3,
+        tab3Extra: this.langService.getTranslations(lang).tab3Extra,
+      };
+      if (this.isFirstLangEmit) {
+        this.isFirstLangEmit = false;
+        return;
+      }
+      const userId = this.auth.currentUserId;
+      if (userId) {
+        this.loadUserRooms(userId);
+      }
+    });
 
     // Init Connection
     //用户独享socket 房间 ，用于实时更新聊天列表 ！！！（重要突破）

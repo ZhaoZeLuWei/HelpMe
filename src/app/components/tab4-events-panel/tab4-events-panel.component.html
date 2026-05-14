@@ -16,7 +16,7 @@
       >
         <ion-label>
           <h2 class="task-title">
-            {{ event.title }}
+            {{ event.title | tText }}
             @if (event.Status === 1) {
               <ion-badge color="medium" class="status-badge">{{
                 t.eventPanel.deactivated || "已下架"
@@ -24,7 +24,7 @@
             }
           </h2>
           <p class="task-meta">
-            {{ event.location || t.eventPanel.noLocation }}
+            {{ (event.location | tText) || t.eventPanel.noLocation }}
           </p>
           <p class="task-meta">
             {{ t.eventPanel.eventId }}{{ event.id }} · {{ event.createdAt }}

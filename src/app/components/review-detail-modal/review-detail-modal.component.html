@@ -39,7 +39,7 @@
                   />
                 </ion-avatar>
                 <div class="review-meta">
-                  <span class="author-name">{{ r.authorName }}</span>
+                  <span class="author-name">{{ r.authorName | tText }}</span>
                   <span class="review-time">{{ r.createTime }}</span>
                 </div>
                 <div class="score-badge">
@@ -55,7 +55,7 @@
                 </div>
               </div>
               @if (r.content) {
-                <p class="review-content">{{ r.content }}</p>
+                <p class="review-content">{{ r.content | tText }}</p>
               }
             </div>
           }

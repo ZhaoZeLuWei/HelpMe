@@ -26,8 +26,37 @@ import {
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ConfigService } from './app/services/config.service';
+import { langInterceptor } from './app/services/lang.interceptor';
+
+// 全局 fetch 补丁：自动附加 lang 参数到 API 请求
+const _originalFetch = window.fetch;
+window.fetch = function (input: RequestInfo | URL, init?: RequestInit) {
+  const lang = localStorage.getItem('app_lang') || 'zh';
+  if (lang !== 'zh') {
+    let urlStr: string;
+    if (typeof input === 'string') {
+      urlStr = input;
+    } else if (input instanceof URL) {
+      urlStr = input.toString();
+    } else {
+      urlStr = input.url;
+    }
+    if (urlStr.includes('/api/') || urlStr.includes('/events/') || urlStr.includes('/users/') ||
+        urlStr.includes('/favorites') || urlStr.includes('/follows') || urlStr.includes('/reviews') ||
+        urlStr.includes('/orders')) {
+      const sep = urlStr.includes('?') ? '&' : '?';
+      const newUrl = `${urlStr}${sep}lang=${lang}`;
+      if (typeof input === 'string') {
+        input = newUrl;
+      } else if (input instanceof Request) {
+        return _originalFetch(new Request(newUrl, input), init);
+      }
+    }
+  }
+  return _originalFetch(input, init);
+};
 
 /* 2. 一次性注册全局图标 */
 addIcons({
@@ -52,7 +81,7 @@ function initializeApp(configService: ConfigService) {
 bootstrapApplication(AppComponent, {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
-    provideHttpClient(),
+    provideHttpClient(withInterceptors([langInterceptor])),
     provideIonicAngular(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
     {
