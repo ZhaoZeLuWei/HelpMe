@@ -87,30 +87,11 @@ $help-bg: rgba(2, 132, 199, 0.04);
   display: block;
 }
 
-// 距离标签
-.distance-in-image {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: rgba(0, 0, 0, 0.6);
-  color: white;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  backdrop-filter: blur(2px);
-  z-index: 2;
+// 距离标签（浮动在图片右下角，旧方案已合并到类型条中）
+// 保留以防有在线服务判断需要，但现在由类型条内嵌处理
+// .distance-in-image 已废弃，移除
 
-  .material-icons {
-    font-size: 14px;
-    color: white;
-  }
-}
-
-// ===== 类型标识条（图片底部） =====
+// ===== 类型标识条（图片底部，整合距离在右下角） =====
 .card-type-strip {
   position: absolute;
   bottom: 0;
@@ -119,7 +100,7 @@ $help-bg: rgba(2, 132, 199, 0.04);
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: space-between;
   padding: 5px 10px;
   font-size: 12px;
   font-weight: 700;
@@ -127,17 +108,42 @@ $help-bg: rgba(2, 132, 199, 0.04);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 
-  .type-icon {
-    font-size: 16px;
+  // 左半部分：类型图标 + 文字
+  .strip-left {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+
+    .type-icon {
+      font-size: 16px;
+      color: #fff;
+    }
+
+    .type-text {
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  // 右半部分：距离信息（纯白色，无背景）
+  .strip-right {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
     color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+    .material-icons {
+      font-size: 14px;
+      color: #fff;
+    }
   }
 
-  .type-text {
-    letter-spacing: 0.5px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  }
-
-  // 各个类型的配色（直接 class 更可靠）
+  // 各个类型的配色
   &.strip-request {
     background: linear-gradient(90deg, rgba(234, 88, 12, 0.92), rgba(249, 115, 22, 0.85));
   }
