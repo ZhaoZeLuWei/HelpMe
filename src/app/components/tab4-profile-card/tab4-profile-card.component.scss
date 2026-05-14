@@ -92,3 +92,48 @@
   border-bottom: 1px solid
     var(--ion-color-light, var(--ion-background-color-step-100));
 }
+
+/* =========================================================================
+   Elderly Mode CSS Overrides (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .user-card {
+    margin: 16px;
+    border-radius: 24px;
+  }
+  .user-header {
+    padding: 32px 24px;
+    gap: 24px;
+  }
+  .user-avatar ion-icon {
+    font-size: 100px;
+  }
+  .user-name-row h2 {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0;
+  }
+  .user-name-row p {
+    font-size: 20px;
+  }
+  .info-label {
+    font-size: 18px;
+    min-width: 100px;
+    font-weight: 700;
+  }
+  .info-value {
+    font-size: 18px;
+  }
+  .user-ratings ion-col h3 {
+    font-size: 24px;
+    font-weight: 800;
+  }
+  .user-ratings ion-col p {
+    font-size: 16px;
+  }
+  .edit-profile-btn-inline {
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+  }
+}

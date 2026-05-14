@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@alicloud/green20220302": "^3.2.3",
-    "@alicloud/openapi-client": "^0.4.15",
     "@alicloud/pop-core": "^1.8.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",

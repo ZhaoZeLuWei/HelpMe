@@ -1,82 +1,119 @@
-<div class="page-container">
-  <button class="lang-switch-btn" (click)="toggleLanguage()">
-    <span class="material-icons">public</span>
-    <!-- 使用 getter 或 t.btnText -->
-    <span>{{ t.btnText }}</span>
-  </button>
+<div class="x-page-container">
+  <!-- 顶部区域 -->
+  <div class="x-header-area">
+    <div class="x-header-top">
+      <h1 class="x-app-title">HelpMe</h1>
+      <div class="header-actions">
+        <!-- 切换长辈模式的按钮 -->
+        <button
+          class="elderly-toggle-btn hover-scale"
+          (click)="toggleElderlyMode()"
+          [class.active]="isElderlyMode"
+        >
+          <span class="material-icons">elderly</span>
+          <span>{{ t.elderlyMode }}</span>
+        </button>
+        <button
+          class="x-lang-btn glass-panel hover-scale"
+          (click)="toggleLanguage()"
+        >
+          <span class="material-icons lang-icon">language</span>
+          <span class="lang-text">{{ currentLangBtnText }}</span>
+        </button>
+      </div>
+    </div>
 
-  <div class="search-bar-wrapper" (click)="goToSearchPage()">
-    <ion-searchbar
-      [disabled]="true"
-      [placeholder]="t.searchPlaceholder"
-      [animated]="true"
-      show-clear-button="never">
-    </ion-searchbar>
+    <!-- 极简药丸形搜索栏 (在长辈模式下会变身为普通大按钮形状) -->
+    <div class="x-search-pill hover-scale" (click)="goToSearchPage()">
+      <span class="material-icons search-icon">search</span>
+      <span class="search-text">{{ t.searchPlaceholder }}</span>
+    </div>
   </div>
 
-  <div class="content-area ion-padding">
-    <!-- 求助大卡片 -->
-    <div class="big-card request-card">
-      <h3 class="big-card-title">{{ t.requestTitle }}</h3>
-
-      <div class="small-card-grid">
-        <ng-container *ngIf="requestList.length > 0">
-          <app-show-event
-            *ngFor="let req of requestList; trackBy: trackById"
-            [event]="req"
-            (cardClick)="cardClickFeedback($event)">
-          </app-show-event>
-        </ng-container>
-
-        <div *ngIf="requestList.length === 0" class="empty-state">
-          <span class="material-icons">search_off</span>
-          <p>{{ t.noEvent }}</p>
-        </div>
+  <div class="x-content-area">
+    <!-- Hero Banner (长辈模式下会隐藏或简化) -->
+    <div class="x-hero-banner hover-scale">
+      <div class="banner-content">
+        <h2 class="banner-title">{{ t.heroTitle }}</h2>
+        <p class="banner-subtitle">{{ t.heroSubtitle }}</p>
       </div>
+      <div class="banner-decoration"></div>
+    </div>
 
-      <button class="big-card-more-btn" (click)="goToTab2Search('request')">
-        <div class="css-triangle"></div>
-        {{ t.more }}
+    <!-- 最新悬赏 -->
+    <div class="x-section-header">
+      <h2 class="x-section-title">{{ t.requestTitle }}</h2>
+      <button class="x-more-btn" (click)="goToTab2Search('request')">
+        {{ t.more }} <span class="material-icons">chevron_right</span>
       </button>
     </div>
 
-    <!-- 帮助大卡片 -->
-    <div class="big-card help-card">
-      <h3 class="big-card-title">{{ t.helpTitle }}</h3>
+    <!-- 瀑布流网格 (长辈模式下由 CSS 变为单列) -->
+    <div class="x-waterfall-grid">
+      <ng-container *ngIf="requestList.length > 0">
+        <app-show-event
+          *ngFor="let req of requestList; trackBy: trackById"
+          [event]="req"
+          (cardClick)="cardClickFeedback($event)"
+        >
+        </app-show-event>
+      </ng-container>
 
-      <div class="small-card-grid">
-        <ng-container *ngIf="helpList.length > 0">
-          <app-show-event
-            *ngFor="let help of helpList; trackBy: trackById"
-            [event]="help"
-            (cardClick)="cardClickFeedback($event)">
-          </app-show-event>
-        </ng-container>
-
-        <div *ngIf="helpList.length === 0" class="empty-state">
-          <span class="material-icons">search_off</span>
-          <p>{{ t.noHelp }}</p>
-        </div>
+      <div *ngIf="requestList.length === 0" class="x-empty-state">
+        <span class="material-icons fallback-icon">search_off</span>
+        <p>{{ t.noEvent }}</p>
       </div>
+    </div>
 
-      <button class="big-card-more-btn" (click)="goToTab2Search('help')">
-        <div class="css-triangle"></div>
-        {{ t.more }}
+    <!-- 大家在帮 -->
+    <div class="x-section-header" style="margin-top: 24px">
+      <h2 class="x-section-title">{{ t.helpTitle }}</h2>
+      <button class="x-more-btn" (click)="goToTab2Search('help')">
+        {{ t.more }} <span class="material-icons">chevron_right</span>
       </button>
     </div>
 
-    <!-- 弹窗 -->
-    <div class="custom-modal-overlay" *ngIf="showLangConfirmModal" (click)="cancelSwitchLanguage()">
-      <div class="custom-modal-card" (click)="$event.stopPropagation()">
-        <div class="modal-icon-circle">
-          <span class="material-icons">language</span>
-        </div>
-        <h3 class="modal-header">{{ t.modalTitle }}</h3>
-        <p class="modal-body" [innerHTML]="t.modalBody"></p>
-        <div class="modal-actions">
-          <button class="modal-btn cancel" (click)="cancelSwitchLanguage()">{{ t.cancel }}</button>
-          <button class="modal-btn confirm" (click)="confirmSwitchLanguage()">{{ t.confirm }}</button>
-        </div>
+    <div class="x-waterfall-grid">
+      <ng-container *ngIf="helpList.length > 0">
+        <app-show-event
+          *ngFor="let help of helpList; trackBy: trackById"
+          [event]="help"
+          (cardClick)="cardClickFeedback($event)"
+        >
+        </app-show-event>
+      </ng-container>
+
+      <div *ngIf="helpList.length === 0" class="x-empty-state">
+        <span class="material-icons fallback-icon">search_off</span>
+        <p>{{ t.noHelp }}</p>
+      </div>
+    </div>
+
+    <div class="x-bottom-spacer"></div>
+  </div>
+
+  <!-- 弹窗 (长辈模式下字体变大) -->
+  <div
+    class="custom-modal-overlay glass-panel"
+    *ngIf="showLangConfirmModal"
+    (click)="cancelSwitchLanguage()"
+  >
+    <div
+      class="custom-modal-card modern-card"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-icon-circle">
+        <span class="material-icons">language</span>
+      </div>
+      <h3 class="modal-header">{{ t.modalTitle }}</h3>
+      <p class="modal-body" [innerHTML]="t.modalBody"></p>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" (click)="cancelSwitchLanguage()">
+          {{ t.cancel }}
+        </button>
+        <button class="modal-btn confirm" (click)="confirmSwitchLanguage()">
+          {{ t.confirm }}
+        </button>
       </div>
     </div>
   </div>

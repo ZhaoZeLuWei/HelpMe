@@ -19,7 +19,10 @@ export class LanguageService {
       },
       // Tab1 页面
       tab1: {
-        btnText: '中文',
+        btnText: '中/EN',
+        heroTitle: 'HelpMe 互助',
+        heroSubtitle: '随时随地，互帮互助，让生活更简单',
+        elderlyMode: '长辈模式',
         modalTitle: '提示 / Alert',
         modalBody:
           '您确定要切换语言吗？<br><span class="sub-text">Are you sure you want to switch language?</span>',
@@ -748,7 +751,10 @@ export class LanguageService {
         me: 'Me',
       },
       tab1: {
-        btnText: 'EN',
+        btnText: '中/EN',
+        heroTitle: 'HelpMe Mutual Aid',
+        heroSubtitle: 'Help each other anywhere, anytime, making life simpler',
+        elderlyMode: 'Elderly Mode',
         modalTitle: 'Alert',
         modalBody: 'Are you sure you want to switch language?',
         cancel: 'Cancel',

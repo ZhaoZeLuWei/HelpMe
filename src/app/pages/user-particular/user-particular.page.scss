@@ -374,3 +374,93 @@ ion-content {
     padding: 12px;
   }
 }
+
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .user-avatar {
+    width: 96px;
+    height: 96px;
+  }
+  .user-name-row h3 {
+    font-size: 26px;
+    font-weight: 800;
+  }
+  .service-badge {
+    font-size: 16px;
+    padding: 4px 12px;
+  }
+  .publisher-meta {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  .user-introduction {
+    font-size: 18px;
+    line-height: 1.6;
+    padding: 16px;
+  }
+
+  .tab-item {
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .tab-pane h3 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .list-item-title {
+    font-size: 20px;
+    font-weight: 700;
+    white-space: normal;
+  }
+  .list-item-meta {
+    font-size: 16px;
+    gap: 12px;
+    .price {
+      font-size: 18px;
+    }
+  }
+  .list-item-end {
+    font-size: 14px;
+  }
+  .type-badge {
+    min-width: 72px;
+    font-size: 14px;
+    ion-icon {
+      font-size: 28px;
+    }
+  }
+
+  .comment-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  .comment-author {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .comment-score {
+    font-size: 16px;
+  }
+  .comment-content {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  .empty-state {
+    ion-icon {
+      font-size: 64px;
+    }
+    p {
+      font-size: 20px;
+    }
+  }
+
+  .follow-button-container ion-button {
+    font-size: 18px;
+    height: 48px;
+  }
+}

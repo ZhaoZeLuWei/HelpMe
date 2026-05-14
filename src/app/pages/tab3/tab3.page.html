@@ -6,9 +6,11 @@
 
 <ion-content [fullscreen]="true">
   @if (!showChat) {
-  <h1>{{ t.loginRequired }}</h1>
-  <h1>{{ t.loginRequiredSub }}</h1>
-  <h3>{{ t.loginHint }}</h3>
+  <div class="login-prompt-container">
+    <h1>{{ t.loginRequired }}</h1>
+    <h1>{{ t.loginRequiredSub }}</h1>
+    <h3>{{ t.loginHint }}</h3>
+  </div>
   } @if (showChat) {
   <ion-list>
     <!--      这里是每一个用户登陆后对应的通知消息-->

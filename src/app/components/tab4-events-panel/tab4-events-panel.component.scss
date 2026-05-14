@@ -39,3 +39,27 @@
   color: var(--ion-color-medium);
   font-size: 13px;
 }
+
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .task-title {
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .task-meta {
+    font-size: 16px;
+  }
+  .status-badge {
+    font-size: 14px;
+    padding: 4px 10px;
+  }
+  .task-actions {
+    --min-height: 56px;
+  }
+  .task-actions ion-button {
+    font-size: 16px;
+    height: 44px;
+  }
+}

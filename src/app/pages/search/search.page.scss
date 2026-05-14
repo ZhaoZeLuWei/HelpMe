@@ -29,3 +29,23 @@ ion-button[color="tertiary"] {
     max-width: none;
   }
 }
+
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  ion-searchbar {
+    font-size: 20px;
+    --border-radius: 16px;
+  }
+  ion-button {
+    font-size: 20px;
+    font-weight: 700;
+    height: 56px;
+    max-width: none;
+  }
+  .button-container {
+    gap: 16px;
+    margin-top: 32px;
+  }
+}

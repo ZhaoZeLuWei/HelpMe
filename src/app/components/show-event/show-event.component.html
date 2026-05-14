@@ -1,41 +1,42 @@
-<div class="small-card clickable-card" (click)="onCardClick()">
+<div class="x-card clickable-card hover-scale" (click)="onCardClick()">
   <!-- 图片区域 -->
-  <div class="card-image-wrapper">
-    <!--  调用图片 on-image-url" 存在则显示图片；不存在则显示占位图 -->
+  <div class="x-card-image">
     <img
       [src]="imgUrl(event.cardImage)"
       (error)="onImageError($event)"
-      class="card-image-img"
+      class="x-card-img"
       [alt]="t.eventImage"
     />
     @if (!isOnline && event.distance) {
-      <div class="distance-in-image">
+      <div class="x-distance">
         <span class="material-icons">location_on</span>
         <span>{{ event.distance }}</span>
       </div>
     }
   </div>
 
-  <div class="user-info-row">
-    <div class="user-avatar">
-      <img
-        [src]="avatarUrl(event.avatar)"
-        (error)="onAvatarError($event)"
-        [alt]="t.userAvatar"
-        class="avatar-img-small"
-      />
-    </div>
-    <div class="name-address-wrapper">
+  <!-- 内容区域 -->
+  <div class="x-card-content">
+    <div class="x-event-title">{{ event.title }}</div>
 
-      <div class="user-info">
-        <span class="user-name">{{ event.name }}</span>
-        <span class="user-address">{{ event.address }}</span>
+    <div class="x-card-bottom">
+      <div class="x-user">
+        <img
+          [src]="avatarUrl(event.avatar)"
+          (error)="onAvatarError($event)"
+          class="x-avatar"
+          [alt]="t.userAvatar"
+        />
+        <div class="x-user-text">
+          <span class="x-name">{{ event.name }}</span>
+          <span class="x-address">{{ event.address }}</span>
+        </div>
+      </div>
+      <div class="x-price-action">
+        <span class="x-price">{{ event.price }}</span>
+        <!-- 这个按钮只在长辈模式下显示 -->
+        <button class="x-view-btn">查看详情</button>
       </div>
     </div>
-  </div>
-
-  <div class="event-title">{{ event.title }}</div>
-  <div class="card-footer">
-    <span class="price">{{ event.price }}</span>
   </div>
 </div>

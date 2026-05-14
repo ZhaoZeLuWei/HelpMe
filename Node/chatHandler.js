@@ -400,14 +400,40 @@ module.exports.registerChatHandler = (io, socket) => {
         }
       }
 
-      // 如果房间不存在，禁止客户端自行创建（只有系统房间允许自动创建）
-      if (!room && !String(roomId).startsWith("system_")) {
-        socket.emit("joinRoomError", { message: "房间不存在，无法加入" });
-        return;
-      }
-
-      // 普通房间：校验用户是否为房间成员
-      if (room) {
+      // 如果房间不存在，自动创建（普通房间和系统房间均支持）
+      if (!room) {
+        if (String(roomId).startsWith("system_")) {
+          // 系统房间：creatorId 和 partnerId 均为当前用户
+          room = await Room.create({
+            _id: roomId,
+            creatorId: socket.user.id,
+            partnerId: socket.user.id,
+          });
+          console.log(`系统房间已创建: ${roomId}`);
+        } else {
+          // 普通房间：从 roomId（eventId_creatorId_partnerId）中解析用户 ID
+          const parts = String(roomId).split("_");
+          if (parts.length === 3) {
+            const [, partA, partB] = parts.map(Number);
+            // 校验当前用户是否为房间成员之一
+            if (socket.user.id !== partA && socket.user.id !== partB) {
+              socket.emit("joinRoomError", { message: "无权加入此聊天房间" });
+              return;
+            }
+            room = await Room.create({
+              _id: roomId,
+              eventId: Number(parts[0]),
+              creatorId: partA,
+              partnerId: partB,
+            });
+            console.log(`普通房间已创建: ${roomId}`);
+          } else {
+            socket.emit("joinRoomError", { message: "无效的房间 ID 格式" });
+            return;
+          }
+        }
+      } else {
+        // 房间已存在，校验用户是否为成员
         const isMember =
           room.creatorId === socket.user.id ||
           room.partnerId === socket.user.id;
@@ -415,16 +441,6 @@ module.exports.registerChatHandler = (io, socket) => {
           socket.emit("joinRoomError", { message: "无权加入此聊天房间" });
           return;
         }
-      }
-
-      // 系统房间自动创建（已校验 userId）
-      if (!room && String(roomId).startsWith("system_")) {
-        room = await Room.create({
-          _id: roomId,
-          creatorId: socket.user.id,
-          partnerId: socket.user.id,
-        });
-        console.log(`系统房间已创建: ${roomId}`);
       }
 
       socket.join(roomId);
