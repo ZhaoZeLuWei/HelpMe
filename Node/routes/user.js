@@ -559,8 +559,9 @@ router.get("/users/:id/profile", async (req, res) => {
     const userGeoSelect = "u.LocationPlaceId,";
 
     const [rows] = await pool.query(
-      `SELECT u.UserId, u.UserName, u.RealName, u.UserAvatar, u.Location, ${userGeoSelect} u.BirthDate, u.Introduction, u.CreateTime,
-              (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
+      `SELECT u.UserId, u.UserName, u.RealName, u.UserAvatar, u.Location, ${userGeoSelect} u.BirthDate, u.Introduction, 
+        u.FollowerCount, u.CreateTime,
+                      (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
               c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
        FROM Users u
        LEFT JOIN Consumers c ON u.UserId = c.ConsumerId
@@ -702,6 +703,7 @@ router.put("/users/:id/profile", authRequired, async (req, res) => {
     const [rows] = await pool.query(
       `SELECT u.UserId, u.UserName, u.RealName, u.IdCardNumber, u.PhoneNumber, u.UserAvatar, u.Location, ${userGeoSelect} u.BirthDate, u.Introduction,
               (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
+              u.FollowerCount,
               c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
        FROM Users u
        LEFT JOIN Consumers c ON u.UserId = c.ConsumerId
@@ -821,6 +823,7 @@ router.get("/admin/users/:id", adminRequired, async (req, res) => {
         u.Location,
         u.BirthDate,
         u.Introduction,
+        u.FollowerCount,
         u.CreateTime,
         (SELECT VerificationStatus FROM Verifications v
          WHERE v.ProviderId = u.UserId

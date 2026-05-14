@@ -11,6 +11,12 @@
   vertical-align: middle;
 }
 
+// ===== 卡片类型配色 =====
+$request-color: #ea580c;
+$request-bg: rgba(234, 88, 12, 0.04);
+$help-color: #0284c7;
+$help-bg: rgba(2, 132, 199, 0.04);
+
 // 小卡片基础
 .small-card {
   background-color: var(--ion-card-background, var(--ion-background-color));
@@ -18,13 +24,34 @@
   border-radius: 10px;
   padding: 10px;
   position: relative;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   width: 100%;
+  // 默认透明左边框占位
+  border-left: 4px solid transparent;
+
+  // 求助卡片：橙色左框 + 极浅橙色底
+  &.type-request {
+    border-left-color: $request-color;
+    background: linear-gradient(
+      to right,
+      $request-bg,
+      var(--ion-card-background, var(--ion-background-color)) 40%
+    );
+  }
+
+  // 帮助卡片：蓝色左框 + 极浅蓝色底
+  &.type-help {
+    border-left-color: $help-color;
+    background: linear-gradient(
+      to right,
+      $help-bg,
+      var(--ion-card-background, var(--ion-background-color)) 40%
+    );
+  }
 }
 
 .clickable-card {
   cursor: pointer;
-  transition: all 0.2s ease;
 
   &:hover {
     box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.12);
@@ -60,26 +87,69 @@
   display: block;
 }
 
-// 距离标签
-.distance-in-image {
+// 距离标签（浮动在图片右下角，旧方案已合并到类型条中）
+// 保留以防有在线服务判断需要，但现在由类型条内嵌处理
+// .distance-in-image 已废弃，移除
+
+// ===== 类型标识条（图片底部，整合距离在右下角） =====
+.card-type-strip {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
-  gap: 4px;
-  background-color: rgba(0, 0, 0, 0.6);
-  color: white;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  backdrop-filter: blur(2px);
-  z-index: 2;
+  justify-content: space-between;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 
-  .material-icons {
-    font-size: 14px;
-    color: white;
+  // 左半部分：类型图标 + 文字
+  .strip-left {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+
+    .type-icon {
+      font-size: 16px;
+      color: #fff;
+    }
+
+    .type-text {
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  // 右半部分：距离信息（纯白色，无背景）
+  .strip-right {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+    .material-icons {
+      font-size: 14px;
+      color: #fff;
+    }
+  }
+
+  // 各个类型的配色
+  &.strip-request {
+    background: linear-gradient(90deg, rgba(234, 88, 12, 0.92), rgba(249, 115, 22, 0.85));
+  }
+
+  &.strip-help {
+    background: linear-gradient(90deg, rgba(2, 132, 199, 0.92), rgba(56, 189, 248, 0.85));
   }
 }
 
@@ -125,6 +195,27 @@
   text-overflow: ellipsis;
   margin-top: 0;
   line-height: 1.2;
+}
+
+// 卡片标签
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+  overflow: hidden;
+}
+
+.card-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  background: rgba(15, 118, 110, 0.08);
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #0f766e;
+  white-space: nowrap;
 }
 
 .user-info {
@@ -174,4 +265,30 @@
   font-weight: 800;
   font-size: 16px;
   color: #d97706;
+}
+
+// ===== 暗色模式适配 =====
+@media (prefers-color-scheme: dark) {
+  .small-card {
+    &.type-request {
+      background: linear-gradient(
+        to right,
+        rgba(234, 88, 12, 0.08),
+        var(--ion-card-background, #2c2c2e) 40%
+      );
+    }
+
+    &.type-help {
+      background: linear-gradient(
+        to right,
+        rgba(2, 132, 199, 0.08),
+        var(--ion-card-background, #2c2c2e) 40%
+      );
+    }
+  }
+
+  .card-type-strip {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
 }

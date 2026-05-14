@@ -115,6 +115,8 @@ export class Tab1Page implements OnInit {
           avatar: item.avatar,
           createTime: item.createTime,
           title: item.title,
+          tags: item.tags || '',
+          eventType: item.eventType != null ? Number(item.eventType) : null,
           lng: item.lng != null ? Number(item.lng) : null,
           lat: item.lat != null ? Number(item.lat) : null,
         }));

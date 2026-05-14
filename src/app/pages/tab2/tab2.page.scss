@@ -187,8 +187,11 @@
 .header-search-wrapper {
   cursor: pointer;
   padding: 10px 15px;
+  max-width: 500px;
+  margin: 0 auto;
   background: var(--ion-background-color);
   border-bottom: 1px solid var(--ion-background-color-step-150);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
   ion-searchbar.header-search-bar {
     --background: var(--ion-card-background, var(--ion-background-color));

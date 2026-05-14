@@ -81,5 +81,12 @@
         <span class="rating-value">{{ userInfo?.orderCount || 0 }}</span>
       </div>
     </div>
+    <div class="rating-item" (click)="showFollowers.emit()" style="cursor: pointer">
+      <ion-icon name="heart" color="danger"></ion-icon>
+      <div class="rating-content">
+        <span class="rating-label">{{ t?.followerCount }}</span>
+        <span class="rating-value">{{ userInfo?.followerCount || 0 }}</span>
+      </div>
+    </div>
   </div>
 </ion-card>

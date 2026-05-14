@@ -17,6 +17,7 @@ import {
   starOutline,
   createOutline,
   chatbubbleOutline,
+  pricetagOutline,
 } from 'ionicons/icons';
 import {
   IonButton,
@@ -119,6 +120,7 @@ export class ParticularPage implements OnInit {
       starOutline,
       createOutline,
       chatbubbleOutline,
+      pricetagOutline,
     });
   }
 
@@ -138,6 +140,7 @@ export class ParticularPage implements OnInit {
   isCurrentUserCreator: boolean = false;
   isFavorited: boolean = false;
   isFollowingCreator: boolean = false;
+  favoriteCount: number = 0;
   get currentUserId(): number | null {
     return this.authService.currentUserId;
   }
@@ -173,6 +176,7 @@ export class ParticularPage implements OnInit {
 
   event: EventCardData | null = null;
   eventPhotos: string[] = [];
+  eventTags: string[] = [];
   previewImageUrl: string | null = null;
   previewPhotoIndex = 0;
 
@@ -236,6 +240,15 @@ export class ParticularPage implements OnInit {
           };
           this.canCreateOrder = rawEvent.canCreateOrder ?? true;
           this.activeOrder = rawEvent.activeOrder || null;
+          this.favoriteCount = rawEvent.FavoriteCount ?? 0;
+          // 解析标签：优先从 EventTags 表取，兼容旧数据从 EventCategory 字段解析
+          if (rawEvent.Tags) {
+            this.eventTags = String(rawEvent.Tags).split(',').filter(Boolean);
+          } else if (rawEvent.EventCategory) {
+            this.eventTags = String(rawEvent.EventCategory).split('、').filter(Boolean);
+          } else {
+            this.eventTags = [];
+          }
           if (this.event?.creatorId) {
             this.loadUserFromStorage(this.event.creatorId);
           }
@@ -249,6 +262,13 @@ export class ParticularPage implements OnInit {
     } catch (error) {
       console.error('加载事件详情失败:', error);
     }
+  }
+
+  /** 点击标签跳转到 tab2 搜索相同标签的内容 */
+  searchByTag(tag: string) {
+    this.router.navigate(['/tabs/tab2'], {
+      queryParams: { search: tag },
+    });
   }
 
   async loadUserFromStorage(userId: number): Promise<void> {
@@ -265,6 +285,7 @@ export class ParticularPage implements OnInit {
           this.userInfo.providerRole = data.user.ProviderRole ?? 0;
           this.userInfo.orderCount = data.user.OrderCount ?? 0;
           this.userInfo.serviceRanking = data.user.ServiceRanking ?? 0;
+          this.userInfo.followerCount = data.user.FollowerCount ?? 0;
           this.userInfo.CreateTime = data.user.CreateTime || '';
         }
       }
@@ -433,6 +454,7 @@ export class ParticularPage implements OnInit {
     const result = await this.authService.toggleFollow(this.event.creatorId);
     if (result !== null) {
       this.isFollowingCreator = result;
+      this.userInfo.followerCount = Math.max(0, (this.userInfo.followerCount || 0) + (result ? 1 : -1));
       this.showToast(result ? this.t.followed : this.t.unfollowed);
     }
   }
@@ -450,6 +472,7 @@ export class ParticularPage implements OnInit {
     const result = await this.authService.toggleFavorite(Number(this.event.id));
     if (result !== null) {
       this.isFavorited = result;
+      this.favoriteCount = Math.max(0, this.favoriteCount + (result ? 1 : -1));
       this.showToast(result ? this.t.favorited : this.t.unfavorited);
     }
   }

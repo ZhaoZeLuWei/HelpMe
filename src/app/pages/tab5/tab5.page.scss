@@ -157,6 +157,11 @@
   min-height: 40px;
 }
 
+/* 位置行允许换行 */
+.form-row-location {
+  flex-wrap: wrap;
+}
+
 /* 输入框 */
 .form-input {
   flex: 1;
@@ -203,6 +208,48 @@
   font-size: 18px;
   color: var(--ion-color-medium);
   flex-shrink: 0;
+}
+
+/* 线上服务切换按钮 */
+.online-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--ion-color-medium);
+  background: transparent;
+  color: var(--ion-color-medium);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.online-toggle-btn:hover {
+  border-color: #0f766e;
+  color: #0f766e;
+}
+
+.online-toggle-btn.active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #fff;
+}
+
+.online-toggle-btn ion-icon {
+  font-size: 16px;
+}
+
+/* 线上服务提示文字 */
+.online-hint {
+  width: 100%;
+  font-size: 12px;
+  color: #0f766e;
+  padding: 2px 0 4px;
 }
 
 /* 描述输入框 */

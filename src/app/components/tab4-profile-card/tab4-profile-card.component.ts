@@ -24,6 +24,7 @@ export class Tab4ProfileCardComponent {
   @Input() t: any;
 
   @Output() editProfile = new EventEmitter<void>();
+  @Output() showFollowers = new EventEmitter<void>();
 
   onEditProfile() {
     this.editProfile.emit();

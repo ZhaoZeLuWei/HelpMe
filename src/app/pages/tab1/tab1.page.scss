@@ -393,14 +393,25 @@
 .search-bar-wrapper {
   cursor: pointer;
   padding: 10px 15px;
+  max-width: 500px;
+  margin: 0 auto;
   background: var(--ion-background-color);
   border-bottom: 1px solid var(--ion-background-color-step-150);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
   ion-searchbar {
     --background: var(--ion-card-background, var(--ion-background-color));
     --border-radius: 20px;
     --box-shadow: none;
+    --inner-border-radius: 20px;
+    --inner-box-shadow: none;
     pointer-events: none;
+    height: 40px;
+    font-size: 15px;
+    color: var(--ion-text-color);
+
+    &::part(input) {
+      --placeholder-color: var(--ion-color-medium);
+    }
   }
 }

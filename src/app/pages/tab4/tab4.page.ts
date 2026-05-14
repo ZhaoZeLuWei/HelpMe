@@ -276,10 +276,13 @@ export class Tab4Page implements OnDestroy {
   // 收藏 & 关注弹窗
   isFavoritesModalOpen = false;
   isFollowsModalOpen = false;
+  isFollowersModalOpen = false;
   favoritesList: any[] = [];
   followsList: any[] = [];
+  followersList: any[] = [];
   isLoadingFavorites = false;
   isLoadingFollows = false;
+  isLoadingFollowers = false;
 
   userInfo: any = this.createDefaultUserInfo();
   tasks: any[] = [];
@@ -663,6 +666,7 @@ export class Tab4Page implements OnDestroy {
     this.userInfo.providerRole =
       Number(data.ProviderRole || data.providerRole) || 0;
     this.userInfo.orderCount = Number(data.OrderCount || data.orderCount) || 0;
+    this.userInfo.followerCount = Number(data.FollowerCount || data.followerCount) || 0;
     this.userInfo.serviceRanking =
       Number(data.ServiceRanking || data.serviceRanking) || 0;
     this.userInfo.realName = data.RealName || data.realName || '';
@@ -1100,8 +1104,8 @@ export class Tab4Page implements OnDestroy {
 
       const data = await resp.json().catch(() => null);
       if (resp.ok && data?.success) {
-        // 更新本地数据
-        event.Status = newStatus;
+        // 使用后台返回的实际状态
+        event.Status = data.status;
 
         const toast = await this.toastController.create({
           message:
@@ -1565,7 +1569,9 @@ export class Tab4Page implements OnDestroy {
   onFavoriteCardClick(event: EventCardData) {
     this.isFavoritesModalOpen = false;
     this.cdr.detectChanges();
-    this.goToEventDetail(Number(event.id));
+    setTimeout(() => {
+      this.goToEventDetail(Number(event.id));
+    }, 150);
   }
 
   // ---- 关注弹窗 ----
@@ -1607,9 +1613,48 @@ export class Tab4Page implements OnDestroy {
   goToUserFromFollow(user: any) {
     this.isFollowsModalOpen = false;
     this.cdr.detectChanges();
-    this.router.navigate(['/user-particular'], {
-      queryParams: { name: user.UserName, userId: user.UserId },
-    });
+    setTimeout(() => {
+      this.router.navigate(['/user-particular'], {
+        queryParams: { name: user.UserName, userId: user.UserId },
+      });
+    }, 150);
+  }
+
+  // ---- 粉丝弹窗 ----
+  async openFollowersModal() {
+    this.isFollowersModalOpen = true;
+    await this.loadFollowers();
+  }
+
+  closeFollowersModal() {
+    this.isFollowersModalOpen = false;
+  }
+
+  async loadFollowers() {
+    this.isLoadingFollowers = true;
+    try {
+      const resp = await fetch(`${this.API_BASE}/follows/followers`, {
+        headers: this.auth.getAuthHeader(),
+      });
+      const data = await resp.json().catch(() => null);
+      if (data?.success && Array.isArray(data.followers)) {
+        this.followersList = data.followers;
+      }
+    } catch (e) {
+      console.error('loadFollowers error', e);
+    } finally {
+      this.isLoadingFollowers = false;
+    }
+  }
+
+  goToUserFromFollower(user: any) {
+    this.isFollowersModalOpen = false;
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.router.navigate(['/user-particular'], {
+        queryParams: { name: user.UserName, userId: user.UserId },
+      });
+    }, 150);
   }
 
   private triggerDynamicTranslation() {

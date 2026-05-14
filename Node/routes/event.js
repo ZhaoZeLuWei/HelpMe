@@ -75,6 +75,7 @@ router.get("/api/cards", async (req, res) => {
         e.LocationLat AS lat,
         e.EventTitle AS title,
         e.EventDetails AS demand,
+        e.EventType AS eventType,
         e.Price AS price,
         e.CreateTime   AS createTime,
         u.UserName AS name,
@@ -119,6 +120,7 @@ router.get("/api/cards", async (req, res) => {
         creatorId: item.creatorId,
         title: item.title,
         tags: item.tags || "",
+        eventType: item.eventType != null ? Number(item.eventType) : null,
         icon: "navigate-outline",
         distance: "距500m",
       };
@@ -335,7 +337,13 @@ router.get("/events/:id", async (req, res) => {
 
   try {
     const selectSql =
-      "SELECT EventId, CreatorId, EventTitle, EventType, EventCategory, Photos, Location, LocationPlaceId, Price, EventDetails, Status, CreateTime FROM Events WHERE EventId = ? LIMIT 1";
+      `SELECT e.EventId, e.CreatorId, e.EventTitle, e.EventType, e.EventCategory, e.Photos, e.Location, e.LocationPlaceId, e.Price, e.EventDetails, e.Status, e.FavoriteCount, e.CreateTime,
+       GROUP_CONCAT(et.Tag SEPARATOR ',') AS Tags
+       FROM Events e
+       LEFT JOIN EventTags et ON e.EventId = et.EventId
+       WHERE e.EventId = ?
+       GROUP BY e.EventId
+       LIMIT 1`;
 
     const [rows] = await pool.query(selectSql, [eventId]);
 
@@ -574,6 +582,9 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
       .json({ success: false, error: "Status 必须为 0（上架）或 1（下架）" });
   }
 
+  // 手动下架存为 2（与订单完成自动下架的 Status=1 区分）
+  const dbStatus = newStatus === 1 ? 2 : 0;
+
   try {
     // 校验事件存在且属于当前用户
     const [checkRows] = await pool.query(
@@ -590,16 +601,16 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
     const currentStatus = Number(checkRows[0].Status);
 
     // 状态未变化时直接返回
-    if (currentStatus === newStatus) {
+    if (currentStatus === dbStatus) {
       return res.json({
         success: true,
-        status: newStatus,
-        message: newStatus === 0 ? "事件已处于上架状态" : "事件已处于下架状态",
+        status: dbStatus,
+        message: dbStatus === 0 ? "事件已处于上架状态" : "事件已处于下架状态",
       });
     }
 
     // 如果要上架，检查是否有进行中的订单（状态 0/1/2 的订单不允许上架）
-    if (newStatus === 0) {
+    if (dbStatus === 0) {
       const [activeOrders] = await pool.query(
         "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
         [eventId],
@@ -613,7 +624,7 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
     }
 
     // 如果要下架，同样检查是否有进行中的订单（状态 0/1/2 的订单不允许下架）
-    if (newStatus === 1) {
+    if (dbStatus === 2) {
       const [activeOrders] = await pool.query(
         "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
         [eventId],
@@ -627,11 +638,11 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
     }
 
     await pool.query("UPDATE Events SET Status = ? WHERE EventId = ?", [
-      newStatus,
+      dbStatus,
       eventId,
     ]);
 
-    const statusText = newStatus === 0 ? "上架" : "下架";
+    const statusText = dbStatus === 0 ? "上架" : "下架";
     await sendSystemMessage({
       roomId: `system_${creatorId}`,
       text: `您的事件"${checkRows[0].EventTitle}"已${statusText}。`,
@@ -640,7 +651,7 @@ router.patch("/events/:id/status", authRequired, async (req, res) => {
 
     return res.json({
       success: true,
-      status: newStatus,
+      status: dbStatus,
       message: `事件已${statusText}`,
     });
   } catch (err) {

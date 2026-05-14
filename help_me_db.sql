@@ -27,8 +27,9 @@ CREATE TABLE Users (
   Location      VARCHAR(255) NOT NULL,
   LocationPlaceId VARCHAR(24) NULL,
   BirthDate     DATE         NOT NULL,
-  Introduction  VARCHAR(255) NULL,
-  CreateTime    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  Introduction   VARCHAR(255) NULL,
+  FollowerCount  INT(6)       NOT NULL DEFAULT 0 COMMENT '粉丝数',
+  CreateTime     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   UNIQUE KEY uk_users_phone (PhoneNumber),
   UNIQUE KEY uk_users_idcard (IdCardNumber)
@@ -67,6 +68,7 @@ CREATE TABLE Events (
   LocationLat    DECIMAL(10,7)  NULL,
   Price          DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
   EventDetails   TEXT           NOT NULL,
+  FavoriteCount  INT(6)         NOT NULL DEFAULT 0 COMMENT '被收藏次数',
   Status         TINYINT(1)     NOT NULL DEFAULT 0 COMMENT '0=上架中, 1=已解决/已下架',
   CreateTime     TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

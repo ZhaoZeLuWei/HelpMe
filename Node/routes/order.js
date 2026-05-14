@@ -501,12 +501,10 @@ router.put("/orders/:id/complete", authRequired, async (req, res) => {
       [actualServiceProviderId],
     );
 
-    // 求助事件完成后自动标记为已解决，不再展示
-    if (eventType === 0) {
-      await conn.query("UPDATE Events SET Status = 1 WHERE EventId = ?", [
-        order.EventId,
-      ]);
-    }
+    // 事件关联的订单完成后自动下架，不再展示
+    await conn.query("UPDATE Events SET Status = 1 WHERE EventId = ?", [
+      order.EventId,
+    ]);
 
     await conn.commit();
 

@@ -77,6 +77,7 @@ export class LanguageService {
         buyerRating: '买家评分',
         serviceRating: '服务评分',
         orderCount: '服务单数',
+        followerCount: '粉丝',
         // 按钮
         editProfile: '编辑资料',
         logout: '登出',
@@ -175,7 +176,9 @@ export class LanguageService {
         noFavorites: '暂无收藏',
         // 关注弹窗
         followsTitle: '关注的人',
+        followersTitle: '我的粉丝',
         noFollows: '暂未关注任何人',
+        noFollowers: '暂无粉丝',
         noLocation: '未设置地点',
         serviceRatingLabel: '服务评分：',
         followers: '粉丝：',
@@ -292,6 +295,8 @@ export class LanguageService {
         eventCard: {
           eventImage: '事件图片',
           userAvatar: '用户头像',
+          requestLabel: '求助',
+          helpLabel: '帮助',
         },
         // edit-event-modal 组件
         editEventModal: {
@@ -345,6 +350,8 @@ export class LanguageService {
           addTag: '添加',
           locationPrice: '位置与价格',
           location: '位置',
+          onlineService: '线上服务',
+          onlineServiceHint: '选择后无需填写具体地址，距离将不显示',
           price: '价格',
           priceHint: '期望价格 (¥)',
           details: '详细描述',
@@ -452,6 +459,7 @@ export class LanguageService {
         serviceRating: '服务评分：',
         serviceCount: '服务次数：',
         registerTime: '注册时间：',
+        followerCount: '粉丝',
         followed: '已关注',
         follow: '关注',
         unfollowed: '已取消关注',
@@ -493,6 +501,8 @@ export class LanguageService {
         editSuccess: '修改成功',
         editFailed: '修改失败',
         networkError: '网络错误，请稍后重试',
+        scoreUnit: '分',
+        countUnit: '次',
       },
       // 用户详情页
       userParticular: {
@@ -503,6 +513,7 @@ export class LanguageService {
         buyerRating: '买家评分:',
         serviceRating: '服务评分：',
         serviceCount: '服务次数：',
+        followerCount: '粉丝',
         noIntroduction: '暂无介绍',
         personalIntro: '个人介绍:',
         edit: '编辑',
@@ -719,6 +730,9 @@ export class LanguageService {
         cancel: '取消',
         aiAssistSearch: 'AI 辅助搜索',
         inputKeyword: '请输入搜索关键词',
+        searchHistory: '搜索记录',
+        clearHistory: '清除记录',
+        noHistory: '暂无搜索记录',
       },
       // 地点选择器组件
       locationPicker: {
@@ -805,6 +819,7 @@ export class LanguageService {
         buyerRating: 'Buyer Rating',
         serviceRating: 'Service Rating',
         orderCount: 'Orders',
+        followerCount: 'Followers',
         // 按钮
         editProfile: 'Edit Profile',
         logout: 'Logout',
@@ -901,7 +916,9 @@ export class LanguageService {
         noFavorites: 'No favorites',
         // Follows modal
         followsTitle: 'Following',
+        followersTitle: 'My Followers',
         noFollows: 'Not following anyone',
+        noFollowers: 'No followers yet',
         noLocation: 'No location',
         serviceRatingLabel: 'Service Rating: ',
         followers: 'Followers: ',
@@ -1020,6 +1037,8 @@ export class LanguageService {
         eventCard: {
           eventImage: 'Event Image',
           userAvatar: 'User Avatar',
+          requestLabel: 'Request',
+          helpLabel: 'Help',
         },
         // edit-event-modal 组件
         editEventModal: {
@@ -1073,6 +1092,8 @@ export class LanguageService {
           addTag: 'Add',
           locationPrice: 'Location & Price',
           location: 'Location',
+          onlineService: 'Online Service',
+          onlineServiceHint: 'No address needed, distance will not be shown',
           price: 'Price',
           priceHint: 'Price (¥)',
           details: 'Details',
@@ -1182,6 +1203,7 @@ export class LanguageService {
         serviceRating: 'Service Rating: ',
         serviceCount: 'Orders: ',
         registerTime: 'Registered: ',
+        followerCount: 'Followers',
         followed: 'Following',
         follow: 'Follow',
         unfollowed: 'Unfollowed',
@@ -1223,6 +1245,8 @@ export class LanguageService {
         editSuccess: 'Edit successful',
         editFailed: 'Edit failed',
         networkError: 'Network error, please try again later',
+        scoreUnit: '',
+        countUnit: 'times',
       },
       // User Particular Page
       userParticular: {
@@ -1233,8 +1257,9 @@ export class LanguageService {
         buyerRating: 'Buyer Rating: ',
         serviceRating: 'Service Rating: ',
         serviceCount: 'Orders: ',
-        noIntroduction: 'No introduction',
+        followerCount: 'Followers',
         personalIntro: 'Bio: ',
+        noIntroduction: 'No introduction',
         edit: 'Edit',
         followed: 'Following',
         follow: 'Follow',
@@ -1453,6 +1478,9 @@ export class LanguageService {
         cancel: 'Cancel',
         aiAssistSearch: 'AI Search',
         inputKeyword: 'Please enter search keyword',
+        searchHistory: 'Search History',
+        clearHistory: 'Clear',
+        noHistory: 'No search history',
       },
       // Location Picker Component
       locationPicker: {

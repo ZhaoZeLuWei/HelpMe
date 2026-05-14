@@ -168,7 +168,8 @@ export class UserParticularPage implements OnInit {
       if (resp.ok) {
         const data = await resp.json().catch(() => null);
         if (Array.isArray(data)) {
-          this.activeEvents = data;
+          // 只显示当前上架中的活动
+          this.activeEvents = data.filter((item: any) => item.Status === 0);
         }
       }
     } catch (e) {
@@ -211,6 +212,7 @@ export class UserParticularPage implements OnInit {
         const data = await resp.json().catch(() => null);
         if (Array.isArray(data)) {
           this.activityFeed = [...data]
+            .filter((item: any) => item.Status !== 2) // 手动下架的不进历史
             .sort((a, b) => {
               const dateA = new Date(a.CreateTime || 0).getTime();
               const dateB = new Date(b.CreateTime || 0).getTime();
@@ -220,9 +222,10 @@ export class UserParticularPage implements OnInit {
               id: event.EventId,
               title: event.EventTitle,
               description: event.EventDetails || this.t.noDescription,
-              activityType: this.getActivityType(event.status),
+              activityType: this.getActivityType(event.Status),
               date: event.CreateTime,
               EventType: event.EventType,
+              Status: event.Status,
             }));
         }
       }
@@ -231,14 +234,10 @@ export class UserParticularPage implements OnInit {
     }
   }
 
-  getActivityType(status: string): string {
-    const map: Record<string, string> = {
-      published: this.t.activityPublished,
-      inProgress: this.t.activityInProgress,
-      completed: this.t.activityCompleted,
-      review: this.t.activityReview,
-    };
-    return map[status] || this.t.activityDefault;
+  getActivityType(status: number): string {
+    if (status === 0) return this.t.activityPublished;
+    if (status === 1) return this.t.activityCompleted;
+    return this.t.activityDefault;
   }
 
   formatDate(dateString: string): string {
@@ -266,6 +265,7 @@ export class UserParticularPage implements OnInit {
           this.userInfo.providerRole = data.user.ProviderRole ?? 0;
           this.userInfo.orderCount = data.user.OrderCount ?? 0;
           this.userInfo.serviceRanking = data.user.ServiceRanking ?? 0;
+          this.userInfo.followerCount = data.user.FollowerCount ?? 0;
           this.userInfo.CreateTime = data.user.CreateTime || '';
         }
       }
@@ -390,8 +390,8 @@ export class UserParticularPage implements OnInit {
 
       const data = await resp.json().catch(() => null);
       if (resp.ok && data?.success) {
-        // 更新本地状态
-        event.Status = newStatus;
+        // 使用后台返回的实际状态
+        event.Status = data.status;
 
         const toast = await this.toastController.create({
           message:
@@ -480,6 +480,7 @@ export class UserParticularPage implements OnInit {
     const result = await this.authService.toggleFollow(this.userId);
     if (result !== null) {
       this.isFollowing = result;
+      this.userInfo.followerCount = Math.max(0, (this.userInfo.followerCount || 0) + (result ? 1 : -1));
       const toast = await this.toastController.create({
         message: result ? this.t.followed : this.t.unfollowed,
         duration: 2000,

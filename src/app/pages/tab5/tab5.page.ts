@@ -37,6 +37,7 @@ import {
   addCircleOutline,
   close,
   closeCircle,
+  globeOutline,
   handLeftOutline,
   heartOutline,
   imageOutline,
@@ -136,6 +137,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       add,
       close,
       locationOutline,
+      globeOutline,
       handLeftOutline,
       heartOutline,
       shieldCheckmarkOutline,
@@ -165,6 +167,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       EventTitle: ['', Validators.required],
       EventType: [0],
       EventCategory: [''],
+      isOnlineService: [false],
       Location: ['', Validators.required],
       LocationPlaceId: [''],
       LocationLng: [null],
@@ -177,6 +180,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       EventTitle: ['', Validators.required],
       EventType: [1],
       EventCategory: [''],
+      isOnlineService: [false],
       Location: ['', Validators.required],
       LocationPlaceId: [''],
       LocationLng: [null],
@@ -247,6 +251,30 @@ export class Tab5Page implements OnInit, OnDestroy {
       LocationLng: picked.lng,
       LocationLat: picked.lat,
     });
+  }
+
+  /** 切换线上服务模式 */
+  toggleOnlineService(formType: 'request' | 'help') {
+    const form = formType === 'request' ? this.requestForm : this.helpForm;
+    const current = form.get('isOnlineService')?.value ?? false;
+    const newVal = !current;
+    form.patchValue({ isOnlineService: newVal });
+
+    const locCtrl = form.get('Location');
+    if (newVal) {
+      // 开启线上服务：清除位置，移除必填验证
+      locCtrl?.clearValidators();
+      form.patchValue({
+        Location: '',
+        LocationPlaceId: '',
+        LocationLng: null,
+        LocationLat: null,
+      });
+    } else {
+      // 关闭线上服务：恢复必填验证
+      locCtrl?.setValidators(Validators.required);
+    }
+    locCtrl?.updateValueAndValidity();
   }
 
   private async toast(message: string) {
@@ -357,7 +385,8 @@ export class Tab5Page implements OnInit, OnDestroy {
       if (f.get('EventTitle')?.invalid) msgs.push(this.t.titleRequired);
       if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim())
         msgs.push(this.t.tagsRequired);
-      if (f.get('Location')?.invalid) msgs.push(this.t.locationRequired);
+      if (f.get('Location')?.invalid && !f.get('isOnlineService')?.value)
+        msgs.push(this.t.locationRequired);
       if (f.get('EventDetails')?.invalid) msgs.push(this.t.detailsRequired);
       if (f.get('Price')?.invalid) msgs.push(this.t.priceInvalid);
     }
@@ -367,7 +396,8 @@ export class Tab5Page implements OnInit, OnDestroy {
       if (f.get('EventTitle')?.invalid) msgs.push(this.t.titleRequired);
       if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim())
         msgs.push(this.t.tagsRequired);
-      if (f.get('Location')?.invalid) msgs.push(this.t.serviceLocationRequired);
+      if (f.get('Location')?.invalid && !f.get('isOnlineService')?.value)
+        msgs.push(this.t.serviceLocationRequired);
       if (f.get('EventDetails')?.invalid)
         msgs.push(this.t.serviceDetailsRequired);
       if (f.get('Price')?.invalid) msgs.push(this.t.servicePriceInvalid);
@@ -600,10 +630,15 @@ export class Tab5Page implements OnInit, OnDestroy {
           ? this.aiTags.join('、')
           : String(v.EventCategory ?? ''),
       );
-      fd.append('Location', String(v.Location ?? ''));
-      this.appendLocationMeta(fd, v);
+      const location = v.isOnlineService ? '线上服务' : (v.Location ?? '');
+      fd.append('Location', String(location));
+      if (!v.isOnlineService) this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
       fd.append('EventDetails', String(v.EventDetails ?? ''));
+      // 将标签以 JSON 数组形式传给后端，写入 EventTags 表
+      if (this.aiTags.length > 0) {
+        fd.append('Tags', JSON.stringify(this.aiTags));
+      }
 
       for (const f of this.requestFiles) fd.append('images', f);
 
@@ -620,6 +655,7 @@ export class Tab5Page implements OnInit, OnDestroy {
         EventTitle: '',
         EventType: 0,
         EventCategory: '',
+        isOnlineService: false,
         Location: '',
         LocationPlaceId: '',
         LocationLng: null,
@@ -658,10 +694,15 @@ export class Tab5Page implements OnInit, OnDestroy {
           ? this.aiTags.join('、')
           : String(v.EventCategory ?? ''),
       );
-      fd.append('Location', String(v.Location ?? ''));
-      this.appendLocationMeta(fd, v);
+      const location = v.isOnlineService ? '线上服务' : (v.Location ?? '');
+      fd.append('Location', String(location));
+      if (!v.isOnlineService) this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
       fd.append('EventDetails', String(v.EventDetails ?? ''));
+      // 将标签以 JSON 数组形式传给后端，写入 EventTags 表
+      if (this.aiTags.length > 0) {
+        fd.append('Tags', JSON.stringify(this.aiTags));
+      }
 
       for (const f of this.helpFiles) fd.append('images', f);
 
@@ -678,6 +719,7 @@ export class Tab5Page implements OnInit, OnDestroy {
         EventTitle: '',
         EventType: 1,
         EventCategory: '',
+        isOnlineService: false,
         Location: '',
         LocationPlaceId: '',
         LocationLng: null,
