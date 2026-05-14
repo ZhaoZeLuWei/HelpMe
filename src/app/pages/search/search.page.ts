@@ -33,7 +33,6 @@ import {
   imports: [
     CommonModule,
     FormsModule,
-    HttpClientModule,
     IonHeader,
     IonContent,
     IonButton,
