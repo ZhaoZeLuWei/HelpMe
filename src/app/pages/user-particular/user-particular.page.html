@@ -33,7 +33,7 @@
         <div class="publisher-text">
           <div class="user-name-row">
             <h3>
-              {{ userInfo.name }}
+              {{ userInfo.name | tText }}
               <ion-badge
                 [color]="getServiceRoleColor(userInfo.providerRole)"
                 class="service-badge"
@@ -43,7 +43,7 @@
             </h3>
           </div>
           <p class="publisher-meta">
-            {{ t.address }}{{ userInfo.location }}
+            {{ t.address }}{{ userInfo.location | tText }}
             <br />
             {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }}{{ t.scoreUnit
             }}
@@ -53,7 +53,7 @@
             {{ t.serviceCount }}{{ userInfo.orderCount }} {{ t.countUnit }}
           </p>
           <p class="user-introduction">
-            {{ t.personalIntro }}{{ userInfo.introduction || t.noIntroduction }}
+            {{ t.personalIntro }}{{ (userInfo.introduction | tText) || t.noIntroduction }}
           </p>
         </div>
         <!-- 关注/编辑按钮 -->
@@ -136,7 +136,7 @@
             </span>
             <div class="list-item-main">
               <div class="list-item-title">
-                {{ event.EventTitle }} @if (event.Status === 1) {
+                {{ event.EventTitle | tText }} @if (event.Status === 1) {
                 <ion-badge color="medium" class="status-badge"
                   >{{ t.deactivated }}</ion-badge
                 >
@@ -144,7 +144,7 @@
               </div>
               <div class="list-item-meta">
                 <span class="price">¥{{ event.Price }}</span>
-                <span>{{ event.EventCategory }}</span>
+                <span>{{ event.EventCategory | tText }}</span>
               </div>
             </div>
             <div class="list-item-end">{{ formatDate(event.CreateTime) }}</div>
@@ -199,12 +199,12 @@
                   [src]="getCommentAvatarUrl(comment.authorAvatar)"
                   class="comment-avatar"
                 />
-                <span class="comment-author">{{ comment.authorName }}</span>
+                <span class="comment-author">{{ comment.authorName | tText }}</span>
                 <span class="comment-score"
                   >{{ comment.rating }}{{ t.scoreUnit }}</span
                 >
               </div>
-              <p class="comment-content">{{ comment.content }}</p>
+              <p class="comment-content">{{ comment.content | tText }}</p>
             </div>
             <div class="list-item-end">
               {{ formatDate(comment.createTime) }}
@@ -234,8 +234,8 @@
               {{ activity.activityType }}
             </span>
             <div class="list-item-main">
-              <div class="list-item-title">{{ activity.title }}</div>
-              <div class="list-item-meta">{{ activity.description }}</div>
+              <div class="list-item-title">{{ activity.title | tText }}</div>
+              <div class="list-item-meta">{{ activity.description | tText }}</div>
             </div>
             <div class="list-item-end">{{ formatDate(activity.date) }}</div>
           </div>

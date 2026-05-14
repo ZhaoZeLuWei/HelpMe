@@ -31,7 +31,7 @@
         </div>
         <div class="publisher-text">
           <h3>
-            {{ userInfo.name || event?.name }}
+            {{ (userInfo.name || event?.name) | tText }}
             <ion-badge
               [color]="getServiceRoleColor(userInfo.providerRole)"
               class="service-badge"
@@ -69,11 +69,11 @@
 
       <!-- 任务核心信息 -->
       <div class="event-info">
-        <h2 class="event-title">{{event?.title}}</h2>
+        <h2 class="event-title">{{ event?.title | tText }}</h2>
         <div class="event-details">
           <p>
             <ion-icon name="location-outline"></ion-icon> {{ t.location }}{{
-            event?.address }}
+            event?.address | tText }}
           </p>
           <p>
             <ion-icon name="time-outline"></ion-icon> {{ t.time }}{{
@@ -84,7 +84,7 @@
             event?.price }}
           </p>
         </div>
-        <p class="event-description">{{ event?.demand }}</p>
+        <p class="event-description">{{ event?.demand | tText }}</p>
       </div>
 
       <!-- 任务图片区 -->

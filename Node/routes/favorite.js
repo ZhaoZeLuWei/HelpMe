@@ -1,6 +1,7 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { authRequired } = require("./auth.js");
+const { translateFields } = require("./translateHelper.js");
 
 const router = express.Router();
 
@@ -101,6 +102,9 @@ router.get("/favorites", authRequired, async (req, res) => {
        ORDER BY f.CreateTime DESC`,
       [userId]
     );
+    if (res.locals.targetLang) {
+      await translateFields(rows, ['EventTitle', 'EventCategory', 'Location', 'EventDetails', 'UserName'], res.locals.targetLang);
+    }
     return res.json({ success: true, favorites: rows });
   } catch (err) {
     console.error("获取收藏列表失败:", err);
@@ -228,6 +232,9 @@ router.get("/follows", authRequired, async (req, res) => {
        ORDER BY fl.CreateTime DESC`,
       [followerId]
     );
+    if (res.locals.targetLang) {
+      await translateFields(rows, ['UserName', 'Location', 'Introduction'], res.locals.targetLang);
+    }
     return res.json({ success: true, follows: rows });
   } catch (err) {
     console.error("获取关注列表失败:", err);

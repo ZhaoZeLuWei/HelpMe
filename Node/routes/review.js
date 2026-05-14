@@ -4,6 +4,7 @@ const { authRequired, adminRequired } = require("./auth.js");
 const { sendOrderSystemMessage } = require("../chatHandler.js");
 const { getIO } = require("../socketInstance.js");
 const { moderateContent } = require("../Services/contentModeration.js");
+const { translateFields } = require("./translateHelper.js");
 
 const router = express.Router();
 
@@ -278,6 +279,9 @@ router.get("/reviews", async (req, res) => {
       [orderId],
     );
 
+    if (res.locals.targetLang) {
+      await translateFields(rows, ['authorName', 'content'], res.locals.targetLang);
+    }
     return res.json({ success: true, reviews: rows });
   } catch (err) {
     console.error("查询评价失败:", err);

@@ -49,7 +49,7 @@
     <ion-card class="task-item">
       <ion-item lines="none">
         <ion-label>
-          <h2 class="task-title">{{ order.snapshotTitle || order.title }}</h2>
+          <h2 class="task-title">{{ (order.snapshotTitle || order.title) | tText }}</h2>
           <p class="task-meta">
             {{
               order.role === "buyer" ? t.orderPanel.buyer : t.orderPanel.seller
