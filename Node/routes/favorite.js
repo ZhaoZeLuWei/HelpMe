@@ -280,6 +280,36 @@ router.get("/follows", authRequired, async (req, res) => {
   }
 });
 
+// GET /follows/followers — 获取当前用户的粉丝列表
+router.get("/follows/followers", authRequired, async (req, res) => {
+  const userId = Number(req.user?.id);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(401).json({ success: false, error: "请先登录" });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT fl.FollowId, fl.CreateTime AS FollowedAt,
+              u.UserId, u.UserName, u.UserAvatar, u.Location, u.Introduction,
+              IFNULL(p.ServiceRanking, 0) AS ServiceRanking,
+              IFNULL(p.OrderCount, 0) AS OrderCount,
+              IFNULL(p.ProviderRole, 0) AS ProviderRole,
+              u.FollowerCount
+       FROM Follows fl
+       JOIN Users u ON fl.FollowerId = u.UserId
+       LEFT JOIN Providers p ON p.ProviderId = u.UserId
+       WHERE fl.FollowingId = ?
+       ORDER BY fl.CreateTime DESC`,
+      [userId]
+    );
+    return res.json({ success: true, followers: rows });
+  } catch (err) {
+    console.error("获取粉丝列表失败:", err);
+    return res.status(500).json({ success: false, error: "服务器内部错误" });
+  }
+});
+
 // GET /follows/count?userId= — 获取某用户的粉丝数和关注数
 router.get("/follows/count", async (req, res) => {
   const userId = Number(req.query.userId);

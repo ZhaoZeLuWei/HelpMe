@@ -176,7 +176,9 @@ export class LanguageService {
         noFavorites: '暂无收藏',
         // 关注弹窗
         followsTitle: '关注的人',
+        followersTitle: '我的粉丝',
         noFollows: '暂未关注任何人',
+        noFollowers: '暂无粉丝',
         noLocation: '未设置地点',
         serviceRatingLabel: '服务评分：',
         followers: '粉丝：',
@@ -909,7 +911,9 @@ export class LanguageService {
         noFavorites: 'No favorites',
         // Follows modal
         followsTitle: 'Following',
+        followersTitle: 'My Followers',
         noFollows: 'Not following anyone',
+        noFollowers: 'No followers yet',
         noLocation: 'No location',
         serviceRatingLabel: 'Service Rating: ',
         followers: 'Followers: ',

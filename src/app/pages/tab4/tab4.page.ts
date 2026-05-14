@@ -272,10 +272,13 @@ export class Tab4Page implements OnDestroy {
   // 收藏 & 关注弹窗
   isFavoritesModalOpen = false;
   isFollowsModalOpen = false;
+  isFollowersModalOpen = false;
   favoritesList: any[] = [];
   followsList: any[] = [];
+  followersList: any[] = [];
   isLoadingFavorites = false;
   isLoadingFollows = false;
+  isLoadingFollowers = false;
 
   userInfo: any = this.createDefaultUserInfo();
   tasks: any[] = [];
@@ -1591,6 +1594,43 @@ export class Tab4Page implements OnDestroy {
 
   goToUserFromFollow(user: any) {
     this.isFollowsModalOpen = false;
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.router.navigate(['/user-particular'], {
+        queryParams: { name: user.UserName, userId: user.UserId },
+      });
+    }, 150);
+  }
+
+  // ---- 粉丝弹窗 ----
+  async openFollowersModal() {
+    this.isFollowersModalOpen = true;
+    await this.loadFollowers();
+  }
+
+  closeFollowersModal() {
+    this.isFollowersModalOpen = false;
+  }
+
+  async loadFollowers() {
+    this.isLoadingFollowers = true;
+    try {
+      const resp = await fetch(`${this.API_BASE}/follows/followers`, {
+        headers: this.auth.getAuthHeader(),
+      });
+      const data = await resp.json().catch(() => null);
+      if (data?.success && Array.isArray(data.followers)) {
+        this.followersList = data.followers;
+      }
+    } catch (e) {
+      console.error('loadFollowers error', e);
+    } finally {
+      this.isLoadingFollowers = false;
+    }
+  }
+
+  goToUserFromFollower(user: any) {
+    this.isFollowersModalOpen = false;
     this.cdr.detectChanges();
     setTimeout(() => {
       this.router.navigate(['/user-particular'], {
