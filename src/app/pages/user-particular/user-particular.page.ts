@@ -14,9 +14,11 @@ import {
 } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
-import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
+import { Tab4EventService } from 'src/app/services/tab4/tab4-event.service';
+import { Tab4UserService } from 'src/app/services/tab4/tab4-user.service';
 import { LanguageService } from 'src/app/services/language.service';
+import { resolveMediaUrl } from 'src/app/utils/media-url.util';
 import { DynamicTranslationService } from 'src/app/services/dynamic-translation.service';
 import { TranslateTextPipe } from 'src/app/pipes/translate-text.pipe';
 import { ToastController } from '@ionic/angular';
@@ -64,7 +66,8 @@ export class UserParticularPage implements OnInit {
   private alertCtrl = inject(AlertController);
   private languageService = inject(LanguageService);
   private dynTrans = inject(DynamicTranslationService);
-  readonly apiBase = environment.apiBase;
+  private readonly eventService = inject(Tab4EventService);
+  private readonly userService = inject(Tab4UserService);
 
   // 翻译对象 - 声明时就初始化
   t = this.languageService.getTranslations('zh').userParticular;
@@ -147,12 +150,23 @@ export class UserParticularPage implements OnInit {
     this.isFollowing = await this.authService.checkFollow(this.userId);
   }
 
+  private get verificationLabels() {
+    const tab4 = this.languageService.getTranslations(
+      this.languageService.getCurrentLang(),
+    ).tab4;
+    return {
+      verified: tab4.verified,
+      rejected: tab4.rejected,
+      pending: tab4.pending,
+      notVerified: tab4.notVerified,
+    };
+  }
+
   private async loadDataForUser(userId: number) {
     await Promise.all([
-      this.loadUserFromStorage(userId),
-      this.loadActiveEvents(userId),
+      this.loadUserProfile(userId),
+      this.loadUserEventsData(userId),
       this.loadUserComments(userId),
-      this.loadActivityFeed(userId),
     ]);
     this.checkIsCurrentUser();
     this.checkFollowStatus();
@@ -162,33 +176,34 @@ export class UserParticularPage implements OnInit {
     this.activeTab = tab;
   }
 
-  async loadActiveEvents(userId: number): Promise<void> {
+  private async loadUserEventsData(userId: number): Promise<void> {
     try {
-      const resp = await fetch(`${this.apiBase}/users/${userId}/events`);
-      if (resp.ok) {
-        const data = await resp.json().catch(() => null);
-        if (Array.isArray(data)) {
-          // 只显示当前上架中的活动
-          this.activeEvents = data.filter((item: any) => item.Status === 0);
-        }
-      }
+      const rows = await this.eventService.fetchUserEventsRaw(userId);
+      this.activeEvents = rows.filter((item: any) => Number(item.Status) === 0);
+      this.activityFeed = [...rows]
+        .filter((item: any) => Number(item.Status) !== 2)
+        .sort((a, b) => {
+          const dateA = new Date(a.CreateTime || 0).getTime();
+          const dateB = new Date(b.CreateTime || 0).getTime();
+          return dateB - dateA;
+        })
+        .map((event) => ({
+          id: event.EventId,
+          title: event.EventTitle,
+          description: event.EventDetails || this.t.noDescription,
+          activityType: this.getActivityType(event.Status),
+          date: event.CreateTime,
+          EventType: event.EventType,
+          Status: event.Status,
+        }));
     } catch (e) {
-      console.error('loadActiveEvents error', e);
+      console.error('loadUserEventsData error', e);
     }
   }
 
   async loadUserComments(userId: number): Promise<void> {
     try {
-      const resp = await fetch(`${this.apiBase}/users/${userId}/comments`);
-      if (resp.ok) {
-        const data = await resp.json().catch(() => null);
-        if (data?.success) {
-          this.userComments = data.comments || [];
-        }
-      } else if (resp.status === 404) {
-        this.userComments = [];
-        console.log('Comments API not implemented, setting empty array');
-      }
+      this.userComments = await this.userService.fetchUserComments(userId);
     } catch (e) {
       console.error('loadUserComments error', e);
       this.userComments = [];
@@ -196,42 +211,7 @@ export class UserParticularPage implements OnInit {
   }
 
   getCommentAvatarUrl(avatarPath?: string): string {
-    if (!avatarPath || avatarPath.trim() === '') {
-      return '/assets/icon/user.svg';
-    }
-    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
-      return avatarPath;
-    }
-    return environment.apiBase + avatarPath;
-  }
-
-  async loadActivityFeed(userId: number): Promise<void> {
-    try {
-      const resp = await fetch(`${this.apiBase}/users/${userId}/events`);
-      if (resp.ok) {
-        const data = await resp.json().catch(() => null);
-        if (Array.isArray(data)) {
-          this.activityFeed = [...data]
-            .filter((item: any) => item.Status !== 2) // 手动下架的不进历史
-            .sort((a, b) => {
-              const dateA = new Date(a.CreateTime || 0).getTime();
-              const dateB = new Date(b.CreateTime || 0).getTime();
-              return dateB - dateA;
-            })
-            .map((event) => ({
-              id: event.EventId,
-              title: event.EventTitle,
-              description: event.EventDetails || this.t.noDescription,
-              activityType: this.getActivityType(event.Status),
-              date: event.CreateTime,
-              EventType: event.EventType,
-              Status: event.Status,
-            }));
-        }
-      }
-    } catch (e) {
-      console.error('loadActivityFeed error', e);
-    }
+    return resolveMediaUrl(avatarPath);
   }
 
   getActivityType(status: number): string {
@@ -251,26 +231,23 @@ export class UserParticularPage implements OnInit {
     });
   }
 
-  async loadUserFromStorage(userId: number): Promise<void> {
+  private async loadUserProfile(userId: number): Promise<void> {
     try {
-      const resp = await fetch(`${this.apiBase}/users/${userId}/profile`);
-      if (resp.ok) {
-        const data = await resp.json().catch(() => null);
-        if (data?.success && data.user) {
-          this.userInfo.name = data.user.UserName || '';
-          this.userInfo.location = data.user.Location || '';
-          this.userInfo.introduction = data.user.Introduction || '';
-          this.userInfo.avatar = data.user.UserAvatar || '';
-          this.userInfo.buyerRanking = data.user.BuyerRanking ?? 0;
-          this.userInfo.providerRole = data.user.ProviderRole ?? 0;
-          this.userInfo.orderCount = data.user.OrderCount ?? 0;
-          this.userInfo.serviceRanking = data.user.ServiceRanking ?? 0;
-          this.userInfo.followerCount = data.user.FollowerCount ?? 0;
-          this.userInfo.CreateTime = data.user.CreateTime || '';
-        }
+      const profile = await this.userService.fetchProfile(userId);
+      if (profile.unauthorized) {
+        await this.authService.handleAuthExpired();
+        return;
+      }
+      if (profile.user) {
+        this.userService.applyUserData(
+          this.userInfo,
+          profile.user,
+          this.verificationLabels,
+        );
+        this.userInfo.CreateTime = profile.user.CreateTime || '';
       }
     } catch (e) {
-      console.error('loadUserFromStorage error', e);
+      console.error('loadUserProfile error', e);
     }
   }
 
@@ -313,13 +290,7 @@ export class UserParticularPage implements OnInit {
   }
 
   getAvatarUrl(avatarPath?: string): string {
-    if (!avatarPath || avatarPath.trim() === '') {
-      return '/assets/icon/user.svg';
-    }
-    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
-      return avatarPath;
-    }
-    return environment.apiBase + avatarPath;
+    return resolveMediaUrl(avatarPath);
   }
 
   ionViewWillLeave() {
@@ -375,52 +346,35 @@ export class UserParticularPage implements OnInit {
   }
 
   private async doToggleStatus(event: any, newStatus: number) {
-    try {
-      const resp = await fetch(
-        `${this.apiBase}/events/${event.EventId}/status`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            ...this.authService.getAuthHeader(),
-          },
-          body: JSON.stringify({ Status: newStatus }),
-        },
-      );
+    const eventId = Number(event.EventId ?? event.id);
+    const result = await this.eventService.setEventStatus(eventId, newStatus);
 
-      const data = await resp.json().catch(() => null);
-      if (resp.ok && data?.success) {
-        // 使用后台返回的实际状态
-        event.Status = data.status;
-
-        const toast = await this.toastController.create({
-          message:
-            data.message ||
-            (newStatus === 0 ? this.t.eventActivated : this.t.eventDeactivated),
-          duration: 2000,
-          color: 'success',
-          position: 'top',
-        });
-        await toast.present();
-      } else {
-        const toast = await this.toastController.create({
-          message: data?.error || this.t.toggleFailed,
-          duration: 2000,
-          color: 'danger',
-          position: 'top',
-        });
-        await toast.present();
-      }
-    } catch (err) {
-      console.error('toggleEventStatus error', err);
+    if (result.success) {
+      event.Status = result.status ?? newStatus;
       const toast = await this.toastController.create({
-        message: this.t.networkError,
+        message:
+          result.message ||
+          (newStatus === 0 ? this.t.eventActivated : this.t.eventDeactivated),
         duration: 2000,
-        color: 'danger',
+        color: 'success',
         position: 'top',
       });
       await toast.present();
+      return;
     }
+
+    if (result.unauthorized) {
+      await this.authService.handleAuthExpired();
+      return;
+    }
+
+    const toast = await this.toastController.create({
+      message: result.error || this.t.toggleFailed,
+      duration: 2000,
+      color: 'danger',
+      position: 'top',
+    });
+    await toast.present();
   }
 
   goBack() {

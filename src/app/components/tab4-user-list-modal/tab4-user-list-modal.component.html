@@ -1,0 +1,64 @@
+<ion-modal [isOpen]="isOpen" (didDismiss)="onDismiss()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ title }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="onDismiss()">{{
+            t.close
+          }}</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      @if (isLoading) {
+        <div class="empty-state">
+          <ion-text color="medium"
+            ><p>{{ t.loading }}</p></ion-text
+          >
+        </div>
+      } @else if (users.length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon-wrapper">
+            <ion-icon [name]="emptyIcon" class="empty-icon"></ion-icon>
+          </div>
+          <p class="empty-title">{{ emptyTitle }}</p>
+          <p class="empty-sub">{{ emptyHint }}</p>
+        </div>
+      } @else {
+        <div class="follows-list">
+          @for (user of users; track user.UserId) {
+            <div class="follow-item" (click)="userClick.emit(user)">
+              <div class="follow-avatar-container">
+                <img
+                  [src]="getAssetUrl(user.UserAvatar)"
+                  alt="Avatar"
+                  class="follow-avatar"
+                />
+              </div>
+              <div class="follow-info">
+                <h4>{{ user.UserName | tText }}</h4>
+                <p>{{ (user.Location | tText) || t.noLocation }}</p>
+                <p class="follow-meta">
+                  {{ t.followers }}{{ user.FollowerCount || 0 }} ·
+                  {{ t.serviceRatingLabel }}{{ user.ServiceRanking || 0 }} ·
+                  {{ t.orderCount }}{{ user.OrderCount || 0 }}
+                </p>
+              </div>
+              @if (mode === "follows") {
+                <ion-button
+                  fill="outline"
+                  color="danger"
+                  size="small"
+                  (click)="removeFollow(user.UserId, $event)"
+                >
+                  {{ t.unfollow }}
+                </ion-button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>

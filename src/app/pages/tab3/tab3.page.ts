@@ -1,8 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { HttpClient } from '@angular/common/http';
-import { io } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
+import { resolveMediaUrl } from '../../utils/media-url.util';
+import { RealtimeService } from '../../services/realtime.service';
 //Standalone need to import specific component tag
 import {
   IonContent,
@@ -48,6 +49,7 @@ export class Tab3Page implements OnInit {
   private toastCtrl = inject(ToastController);
   private langService = inject(LanguageService);
   private dynTrans = inject(DynamicTranslationService);
+  private realtime = inject(RealtimeService);
 
   private isFirstLangEmit = true;
 
@@ -87,11 +89,9 @@ export class Tab3Page implements OnInit {
 
     // Init Connection
     //用户独享socket 房间 ，用于实时更新聊天列表 ！！！（重要突破）
-    this.socket = io(environment.apiBase, {
-      auth: {
-        token: this.auth.token,
-        serverOffset: this.serverOffset,
-      },
+    this.socket = this.realtime.connect({
+      token: this.auth.token,
+      serverOffset: this.serverOffset,
     });
 
     // Socket 断连重连后自动加入房间
@@ -217,8 +217,7 @@ export class Tab3Page implements OnInit {
   }
 
   getAvatarUrl(path: string): string {
-    if (!path) return '';
-    return path.startsWith('http') ? path : `${environment.apiBase}${path}`;
+    return resolveMediaUrl(path, '');
   }
 
   //根据登陆用户信息来进入对应用户的通知聊天房间

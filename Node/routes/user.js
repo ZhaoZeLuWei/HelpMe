@@ -1,11 +1,18 @@
 //用户相关内容
 
 const express = require("express");
+const path = require("node:path");
+const fs = require("node:fs");
 const bcrypt = require("bcrypt");
 const pool = require("../help_me_db.js");
 const { signToken, authRequired, adminRequired } = require("./auth.js");
 const { translateFields } = require("./translateHelper.js");
-const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
+const {
+  upload,
+  uploadDir,
+  withMulter,
+  cleanupUploadedFiles,
+} = require("./upload.js");
 const {
   moderateContent,
   moderateContents,
@@ -24,7 +31,38 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 // 环境变量
 const NODE_ENV = process.env.NODE_ENV || "development";
+const IS_PROD = NODE_ENV === "production";
 const DEV_VERIFY_CODE = process.env.DEV_VERIFY_CODE || "1234";
+
+function devLog(...args) {
+  if (!IS_PROD) console.log(...args);
+}
+
+/** 注册时接受 /upload/images 返回的相对路径，拒绝路径穿越 */
+function normalizePreUploadedAvatarPath(value) {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("/img/") || trimmed.includes("..")) return "";
+  return trimmed;
+}
+
+function cleanupPreUploadedAvatar(avatarPath) {
+  if (!avatarPath) return;
+  try {
+    const filename = path.basename(avatarPath);
+    fs.unlinkSync(path.join(uploadDir, filename));
+  } catch (_) {}
+}
+
+const registerAvatarRateLimit = new Map();
+
+function checkRegisterAvatarRateLimit(ip) {
+  const now = Date.now();
+  const last = registerAvatarRateLimit.get(ip);
+  if (last && now - last < 2000) return false;
+  registerAvatarRateLimit.set(ip, now);
+  return true;
+}
 
 // 检查必要环境变量是否配置
 if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
@@ -33,6 +71,50 @@ if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
 
 // 简单的验证码发送频率限制（内存级，生产环境应使用 Redis）
 const smsRateLimit = new Map(); // phone -> { count, lastSendTime }
+
+// 校验验证码失败次数限制（按手机号 + IP）
+const verifyCodeAttempts = new Map(); // key -> { count, lockedUntil }
+const VERIFY_MAX_ATTEMPTS = 10;
+const VERIFY_LOCK_MS = 15 * 60 * 1000;
+
+function getVerifyAttemptKey(phone, ip) {
+  return `${phone}:${ip}`;
+}
+
+function checkVerifyCodeLimit(phone, ip) {
+  const now = Date.now();
+  for (const key of [getVerifyAttemptKey(phone, ip), `phone:${phone}`]) {
+    const record = verifyCodeAttempts.get(key);
+    if (record?.lockedUntil && now < record.lockedUntil) {
+      const remainingSeconds = Math.ceil((record.lockedUntil - now) / 1000);
+      return {
+        allowed: false,
+        error: `尝试次数过多，请 ${remainingSeconds} 秒后再试`,
+      };
+    }
+    if (record?.lockedUntil && now >= record.lockedUntil) {
+      verifyCodeAttempts.delete(key);
+    }
+  }
+  return { allowed: true };
+}
+
+function recordVerifyCodeFailure(phone, ip) {
+  const now = Date.now();
+  for (const key of [getVerifyAttemptKey(phone, ip), `phone:${phone}`]) {
+    const record = verifyCodeAttempts.get(key) || { count: 0 };
+    record.count += 1;
+    if (record.count >= VERIFY_MAX_ATTEMPTS) {
+      record.lockedUntil = now + VERIFY_LOCK_MS;
+    }
+    verifyCodeAttempts.set(key, record);
+  }
+}
+
+function resetVerifyCodeAttempts(phone, ip) {
+  verifyCodeAttempts.delete(getVerifyAttemptKey(phone, ip));
+  verifyCodeAttempts.delete(`phone:${phone}`);
+}
 
 function checkSmsRateLimit(phone) {
   const now = Date.now();
@@ -61,18 +143,18 @@ async function sendCode(phone) {
 
   // 是否启用真实短信服务（开发环境也可开启）
   const USE_REAL_SMS = process.env.USE_REAL_SMS === "true";
-  console.log("[验证码] 环境:", NODE_ENV, "USE_REAL_SMS:", USE_REAL_SMS);
+  devLog("[验证码] 环境:", NODE_ENV, "USE_REAL_SMS:", USE_REAL_SMS);
 
   // 开发环境且未启用真实短信：使用固定验证码
-  if (NODE_ENV !== "production" && !USE_REAL_SMS) {
-    console.log(`[开发模式] 使用固定验证码: ${DEV_VERIFY_CODE}`);
+  if (!IS_PROD && !USE_REAL_SMS) {
+    devLog(`[开发模式] 使用固定验证码: ${DEV_VERIFY_CODE}`);
     return { success: true, message: "验证码已发送（开发模式）" };
   }
 
   // 调用阿里云号码认证服务
-  console.log("[验证码] 调用阿里云发送短信...");
+  devLog("[验证码] 调用阿里云发送短信...");
   const result = await sendVerifyCode(phone);
-  console.log("[验证码] 阿里云返回结果:", result);
+  devLog("[验证码] 阿里云返回结果:", result);
   return result;
 }
 
@@ -82,15 +164,15 @@ async function verifyCode(phone, code) {
   const USE_REAL_SMS = process.env.USE_REAL_SMS === "true";
 
   // 开发环境且未启用真实短信：使用固定验证码
-  if (NODE_ENV !== "production" && !USE_REAL_SMS) {
-    console.log(`[开发模式] 校验验证码: 输入=${code}, 期望=${DEV_VERIFY_CODE}`);
+  if (!IS_PROD && !USE_REAL_SMS) {
+    devLog(`[开发模式] 校验验证码: 输入=${code}, 期望=${DEV_VERIFY_CODE}`);
     return String(code) === String(DEV_VERIFY_CODE);
   }
 
   // 调用阿里云校验接口
-  console.log("[验证码] 调用阿里云校验接口...");
+  devLog("[验证码] 调用阿里云校验接口...");
   const result = await verifySmsCode(phone, code);
-  console.log("[验证码] 校验结果:", result);
+  devLog("[验证码] 校验结果:", result);
   return result.success;
 }
 
@@ -151,6 +233,7 @@ router.post("/send-code", async (req, res) => {
 // 校验验证码接口
 router.post("/verify-code", async (req, res) => {
   const { phone, code } = req.body || {};
+  const clientIp = req.ip || req.connection?.remoteAddress || "unknown";
 
   if (!phone || !code) {
     return res
@@ -158,12 +241,23 @@ router.post("/verify-code", async (req, res) => {
       .json({ success: false, error: "请填写手机号和验证码" });
   }
 
+  if (!/^1[3-9]\d{9}$/.test(phone)) {
+    return res.status(400).json({ success: false, error: "手机号格式不正确" });
+  }
+
+  const limitCheck = checkVerifyCodeLimit(phone, clientIp);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({ success: false, error: limitCheck.error });
+  }
+
   try {
     const result = await verifyCode(phone, code);
     if (result) {
+      resetVerifyCodeAttempts(phone, clientIp);
       return res.json({ success: true, message: "验证码校验通过" });
     }
 
+    recordVerifyCodeFailure(phone, clientIp);
     return res.status(401).json({ success: false, error: "验证码错误" });
   } catch (err) {
     console.error("验证码校验失败:", err);
@@ -349,7 +443,32 @@ router.post("/check-phone", async (req, res) => {
   }
 });
 
-// 注册：接收 { phone, code, userName, realName, location, birthDate, introduction } + 可选头像
+// 注册前上传头像（无需登录，魔数校验与 /upload/images 一致）
+router.post(
+  "/upload/register-avatar",
+  (req, res, next) => {
+    const ip = req.ip || req.socket?.remoteAddress || "unknown";
+    if (!checkRegisterAvatarRateLimit(ip)) {
+      return res.status(429).json({
+        success: false,
+        error: "上传过于频繁，请稍后再试",
+      });
+    }
+    next();
+  },
+  withMulter(upload.single("images")),
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "未上传任何图片" });
+    }
+    return res.json({
+      success: true,
+      paths: [`/img/${req.file.filename}`],
+    });
+  },
+);
+
+// 注册：JSON 提交；可选 userAvatar（预上传路径）或 multipart avatar（兼容旧客户端）
 router.post(
   "/register",
   withMulter(upload.single("avatar")),
@@ -365,6 +484,14 @@ router.post(
       birthDate,
       introduction,
     } = req.body || {};
+
+    const preUploadedAvatar = normalizePreUploadedAvatarPath(
+      req.body?.userAvatar,
+    );
+    const releaseAvatar = () => {
+      if (req.file) cleanupUploadedFiles([req.file]);
+      else if (preUploadedAvatar) cleanupPreUploadedAvatar(preUploadedAvatar);
+    };
 
     // 验证必填字段
     if (
@@ -394,7 +521,7 @@ router.post(
       });
 
       if (!checkResult.safe) {
-        if (req.file) cleanupUploadedFiles([req.file]);
+        releaseAvatar();
         return res.status(400).json({
           error: checkResult.message,
           code: "CONTENT_MODERATION_FAILED",
@@ -402,7 +529,7 @@ router.post(
       }
     } catch (moderationError) {
       console.error("内容审核异常:", moderationError);
-      if (req.file) cleanupUploadedFiles([req.file]);
+      releaseAvatar();
       return res.status(500).json({
         error: "内容安全检测暂时不可用，请稍后重试",
         code: "CONTENT_MODERATION_ERROR",
@@ -417,8 +544,7 @@ router.post(
       );
 
       if (existing && existing.length > 0) {
-        // 清理已上传的文件
-        if (req.file) cleanupUploadedFiles([req.file]);
+        releaseAvatar();
         return res.status(409).json({ error: "该手机号已注册" });
       }
 
@@ -429,15 +555,13 @@ router.post(
       );
 
       if (existingIdCard && existingIdCard.length > 0) {
-        // 清理已上传的文件
-        if (req.file) cleanupUploadedFiles([req.file]);
+        releaseAvatar();
         return res.status(409).json({ error: "该身份证号已被注册" });
       }
 
-      // 处理头像路径（SQL中UserAvatar是NOT NULL，所以必须提供默认值）
       const avatarPath = req.file
         ? `/img/${req.file.filename}`
-        : "/img/user.svg";
+        : preUploadedAvatar || "/img/user.svg";
 
       // 插入新用户
       const conn = await pool.getConnection();
@@ -480,8 +604,7 @@ router.post(
       }
     } catch (err) {
       console.error("DB query error (register):", err);
-      // 注册失败时清理已上传的头像文件
-      if (req.file) cleanupUploadedFiles([req.file]);
+      releaseAvatar();
 
       // 处理MySQL唯一约束冲突错误
       if (err.code === "ER_DUP_ENTRY") {
@@ -542,7 +665,11 @@ router.get("/users/:id/events", async (req, res) => {
 
     const [rows] = await pool.query(selectSql, [userId]);
     if (res.locals.targetLang) {
-      await translateFields(rows, ['EventTitle', 'EventCategory', 'Location'], res.locals.targetLang);
+      await translateFields(
+        rows,
+        ["EventTitle", "EventCategory", "Location"],
+        res.locals.targetLang,
+      );
     }
     return res.json(rows);
   } catch (err) {
@@ -559,7 +686,7 @@ router.get("/users/:id/profile", async (req, res) => {
     const userGeoSelect = "u.LocationPlaceId,";
 
     const [rows] = await pool.query(
-      `SELECT u.UserId, u.UserName, u.RealName, u.UserAvatar, u.Location, ${userGeoSelect} u.BirthDate, u.Introduction, 
+      `SELECT u.UserId, u.UserName, u.RealName, u.UserAvatar, u.Location, ${userGeoSelect} u.BirthDate, u.Introduction,
         u.FollowerCount, u.CreateTime,
                       (SELECT VerificationStatus FROM Verifications v WHERE v.ProviderId = u.UserId ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
               c.BuyerRanking, p.ProviderRole, p.OrderCount, p.ServiceRanking
@@ -576,7 +703,11 @@ router.get("/users/:id/profile", async (req, res) => {
 
     const user = rows[0];
     if (res.locals.targetLang) {
-      await translateFields(user, ['UserName', 'RealName', 'Location', 'Introduction'], res.locals.targetLang);
+      await translateFields(
+        user,
+        ["UserName", "RealName", "Location", "Introduction"],
+        res.locals.targetLang,
+      );
     }
     return res.json({ success: true, user });
   } catch (err) {
@@ -754,7 +885,11 @@ router.get("/users/:id/comments", async (req, res) => {
     );
 
     if (res.locals.targetLang) {
-      await translateFields(rows, ['authorName', 'content'], res.locals.targetLang);
+      await translateFields(
+        rows,
+        ["authorName", "content"],
+        res.locals.targetLang,
+      );
     }
     return res.json({
       success: true,

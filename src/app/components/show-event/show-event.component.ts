@@ -7,8 +7,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
-import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
+import { resolveMediaUrl } from '../../utils/media-url.util';
 import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 
 // ── 距离工具函数（全局缓存） ──
@@ -206,7 +206,6 @@ export class ShowEventComponent {
   @Input() event!: EventCardData;
   @Output() cardClick = new EventEmitter<EventCardData>();
 
-  private readonly API_BASE = environment.apiBase;
   private readonly PLACEHOLDER_IMG =
     'https://picsum.photos/seed/default/600/400';
   private readonly PLACEHOLDER_ICON = 'assets/icon/user.svg';
@@ -225,11 +224,7 @@ export class ShowEventComponent {
   }
 
   imgUrl(p: any): string {
-    if (!p) return this.PLACEHOLDER_IMG;
-    const s = String(p).trim();
-    if (!s) return this.PLACEHOLDER_IMG;
-    if (s.startsWith('/')) return this.API_BASE + s;
-    return this.PLACEHOLDER_IMG;
+    return resolveMediaUrl(p, this.PLACEHOLDER_IMG);
   }
 
   onImageError(event: any) {
@@ -239,11 +234,7 @@ export class ShowEventComponent {
   }
 
   avatarUrl(p?: string): string {
-    if (!p) return this.PLACEHOLDER_ICON;
-    const s = String(p).trim();
-    if (!s) return this.PLACEHOLDER_ICON;
-    if (s.startsWith('/')) return this.API_BASE + s;
-    return this.PLACEHOLDER_ICON;
+    return resolveMediaUrl(p, this.PLACEHOLDER_ICON);
   }
 
   onAvatarError(event: any) {

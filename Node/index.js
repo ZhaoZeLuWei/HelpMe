@@ -54,7 +54,10 @@ app.use(express.json());
 app.use(corsMiddleware);
 app.use(parseLang); // 解析客户端语言偏好（?lang=en）
 app.use("/img", express.static(uploadDir));
-app.use("/test", testRoutes);
+// 开发环境保留 /test 调试页，生产环境不挂载
+if (process.env.NODE_ENV !== "production") {
+  app.use("/test", testRoutes);
+}
 app.use(userRoutes);
 app.use(eventRoutes);
 app.use(orderRoutes);

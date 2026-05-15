@@ -106,16 +106,55 @@ function cleanupUploadedFiles(files) {
   }
 }
 
+function collectUploadedFiles(req) {
+  const all = flattenMulterFiles(req.files);
+  if (req.file) all.push(req.file);
+  return all;
+}
+
+/** multer 写盘成功后校验文件头魔数，伪造 mimetype 的文件会被删除并拒绝 */
+function validateUploadedImages(req, res, next) {
+  const files = collectUploadedFiles(req);
+  if (files.length === 0) return next();
+
+  for (const f of files) {
+    if (!f?.path) continue;
+    try {
+      const fd = fs.openSync(f.path, "r");
+      const header = Buffer.alloc(12);
+      fs.readSync(fd, header, 0, 12, 0);
+      fs.closeSync(fd);
+      if (!validateImageMagicNumber(header)) {
+        cleanupUploadedFiles(req.files);
+        if (req.file?.path) safeUnlink(req.file.path);
+        return res.status(400).json({
+          success: false,
+          error: "文件内容与图片格式不符，请上传有效的图片文件",
+        });
+      }
+    } catch {
+      cleanupUploadedFiles(req.files);
+      if (req.file?.path) safeUnlink(req.file.path);
+      return res.status(400).json({
+        success: false,
+        error: "无法读取上传文件，请重试",
+      });
+    }
+  }
+  return next();
+}
+
 function withMulter(mw) {
   return (req, res, next) => {
     mw(req, res, (err) => {
       if (err) {
         cleanupUploadedFiles(req.files);
+        if (req.file?.path) safeUnlink(req.file.path);
         return res
           .status(400)
           .json({ success: false, error: err.message || "upload failed" });
       }
-      return next();
+      return validateUploadedImages(req, res, next);
     });
   };
 }
@@ -127,4 +166,6 @@ module.exports = {
   sensitiveUpload,
   withMulter,
   cleanupUploadedFiles,
+  validateUploadedImages,
+  validateImageMagicNumber,
 };

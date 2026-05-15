@@ -1,0 +1,11 @@
+<div class="login-prompt">
+  <ion-icon name="person-circle" class="prompt-icon"></ion-icon>
+  <h2>{{ t.welcome }}</h2>
+  <p>{{ t.loginHint }}</p>
+  <div class="auth-buttons">
+    <ion-button (click)="login.emit()">{{ t.loginBtn }}</ion-button>
+    <ion-button fill="outline" (click)="register.emit()">{{
+      t.registerBtn
+    }}</ion-button>
+  </div>
+</div>

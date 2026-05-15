@@ -20,10 +20,16 @@ const { filter: sensitiveFilter } = require("../services/sensitiveFilter.js");
 const dailyUsage = new Map();
 const DAILY_LIMIT = Number(process.env.AI_RATE_LIMIT_DAILY) || 100;
 
+function getClientIp(req) {
+  return req.ip || req.socket?.remoteAddress || "unknown";
+}
+
 function getDailyKey(req) {
-  const userId = req.user?.id || "anonymous";
   const today = new Date().toISOString().slice(0, 10);
-  return `${userId}_${today}`;
+  if (req.user?.id) {
+    return `user_${req.user.id}_${today}`;
+  }
+  return `ip_${getClientIp(req)}_${today}`;
 }
 
 function checkRateLimit(req) {
@@ -35,44 +41,43 @@ function checkRateLimit(req) {
 }
 
 // ---------- 1. 描述生成 ----------
-router.post(
-  "/api/ai/fill-form",
-  authOptional,
-  async (req, res) => {
-    try {
-      if (!checkRateLimit(req)) {
-        return res
-          .status(429)
-          .json({ success: false, error: "今日 AI 调用次数已达上限，请明天再试" });
-      }
-
-      const { input, type = "request" } = req.body;
-
-      if (!input || input.trim().length < 2) {
-        return res
-          .status(400)
-          .json({ success: false, error: "请输入至少 2 个字符" });
-      }
-
-      const check = sensitiveFilter(input);
-      if (!check.safe) {
-        return res.status(400).json({
-          success: false,
-          error: "输入包含敏感词汇，请修改后重试",
-          matches: check.matched,
-        });
-      }
-
-      const result = await fillForm(input, type);
-      return res.json({ success: true, data: result });
-    } catch (err) {
-      console.error("AI fill-form error:", err.message);
+router.post("/api/ai/fill-form", authOptional, async (req, res) => {
+  try {
+    if (!checkRateLimit(req)) {
       return res
-        .status(500)
-        .json({ success: false, error: "AI 填表失败，请稍后重试" });
+        .status(429)
+        .json({
+          success: false,
+          error: "今日 AI 调用次数已达上限，请明天再试",
+        });
     }
-  },
-);
+
+    const { input, type = "request" } = req.body;
+
+    if (!input || input.trim().length < 2) {
+      return res
+        .status(400)
+        .json({ success: false, error: "请输入至少 2 个字符" });
+    }
+
+    const check = sensitiveFilter(input);
+    if (!check.safe) {
+      return res.status(400).json({
+        success: false,
+        error: "输入包含敏感词汇，请修改后重试",
+        matches: check.matched,
+      });
+    }
+
+    const result = await fillForm(input, type);
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    console.error("AI fill-form error:", err.message);
+    return res
+      .status(500)
+      .json({ success: false, error: "AI 填表失败，请稍后重试" });
+  }
+});
 
 // ---------- 2. 标签提取 ----------
 router.post("/api/ai/extract-tags", authOptional, async (req, res) => {
@@ -80,7 +85,10 @@ router.post("/api/ai/extract-tags", authOptional, async (req, res) => {
     if (!checkRateLimit(req)) {
       return res
         .status(429)
-        .json({ success: false, error: "今日 AI 调用次数已达上限，请明天再试" });
+        .json({
+          success: false,
+          error: "今日 AI 调用次数已达上限，请明天再试",
+        });
     }
 
     const { text } = req.body;
@@ -107,7 +115,10 @@ router.post("/api/ai/enhance-search", authOptional, async (req, res) => {
     if (!checkRateLimit(req)) {
       return res
         .status(429)
-        .json({ success: false, error: "今日 AI 调用次数已达上限，请明天再试" });
+        .json({
+          success: false,
+          error: "今日 AI 调用次数已达上限，请明天再试",
+        });
     }
 
     const { keyword, location = "" } = req.body;
@@ -130,7 +141,9 @@ router.post("/api/ai/enhance-search", authOptional, async (req, res) => {
     }
 
     // 用多个关键词 OR 搜索，匹配更多事件
-    const likeClauses = searchKeywords.map(() => "(e.EventDetails LIKE ? OR e.EventTitle LIKE ?)");
+    const likeClauses = searchKeywords.map(
+      () => "(e.EventDetails LIKE ? OR e.EventTitle LIKE ?)",
+    );
     const likeParams = searchKeywords.flatMap((kw) => [`%${kw}%`, `%${kw}%`]);
 
     const [events] = await pool.query(
@@ -171,7 +184,11 @@ router.post("/api/ai/enhance-search", authOptional, async (req, res) => {
 
     return res.json({
       success: true,
-      data: { recommendation, matchedEvents: events, matchedProviders: providers },
+      data: {
+        recommendation,
+        matchedEvents: events,
+        matchedProviders: providers,
+      },
     });
   } catch (err) {
     console.error("AI enhance-search error:", err.message);

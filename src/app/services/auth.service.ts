@@ -265,8 +265,9 @@ export class AuthService {
 
       birthDate: string;
       introduction?: string;
+      userAvatar?: string;
     },
-    avatarFile?: File | null,
+    avatarPath?: string | null,
   ): Promise<LoginOk | LoginFail> {
     if (
       !data.phone ||
@@ -286,37 +287,16 @@ export class AuthService {
     const url = `${this.API_BASE}/register`;
 
     try {
-      // 如果有头像文件，使用 FormData
-      let resp: Response;
-      if (avatarFile) {
-        const formData = new FormData();
-        formData.append('phone', data.phone);
-        formData.append('code', data.code);
-        formData.append('userName', data.userName);
-        formData.append('realName', data.realName);
-        formData.append('idCardNumber', data.idCardNumber);
-        formData.append('location', data.location);
-        if (data.locationPlaceId) {
-          formData.append('locationPlaceId', data.locationPlaceId);
-        }
-        formData.append('birthDate', data.birthDate);
-        if (data.introduction)
-          formData.append('introduction', data.introduction);
-        formData.append('avatar', avatarFile);
-
-        resp = await fetch(url, {
-          method: 'POST',
-          headers: this.getAuthHeader(),
-          body: formData,
-        });
-      } else {
-        // 没有头像，使用 JSON
-        resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
+      const payload = { ...data };
+      if (avatarPath) {
+        payload.userAvatar = avatarPath;
       }
+
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
       const resData = await resp.json().catch(() => null);
 

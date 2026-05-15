@@ -1,0 +1,74 @@
+.order-detail-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-section {
+  padding: 16px;
+  background: var(--ion-card-background, #ffffff);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  h3 {
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ion-color-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--ion-background-color-step-150);
+
+    ion-icon {
+      font-size: 20px;
+    }
+  }
+
+  p {
+    margin: 0 0 10px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ion-text-color);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    strong {
+      color: var(--ion-color-medium);
+      font-weight: 500;
+      min-width: 80px;
+      display: inline-block;
+    }
+  }
+}
+
+.cancelled-info {
+  color: var(--ion-color-danger, #eb445a) !important;
+  font-weight: 500;
+}
+
+.snapshot-photos {
+  margin-top: 8px;
+
+  p {
+    margin: 0 0 8px;
+  }
+}
+
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.snapshot-photo {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--ion-color-light);
+}

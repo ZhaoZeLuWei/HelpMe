@@ -16,6 +16,7 @@ import {
 } from '../../components/show-event/show-event.component';
 import { LanguageService } from '../../services/language.service';
 import { DynamicTranslationService } from '../../services/dynamic-translation.service';
+import { mapApiCardToEventCardData } from '../../utils/event-card.mapper';
 
 // 卡片数据接口
 interface CardItem {
@@ -117,22 +118,10 @@ export class Tab1Page implements OnInit {
     return this.http.get<any[]>(`${this.API_BASE}/api/cards?type=${type}`).pipe(
       map((rawData) => {
         const processedData = rawData.map((item: any) => ({
-          id: String(item.id),
-          creatorId: Number(item.creatorId),
-          cardImage: item.cardImage,
+          ...mapApiCardToEventCardData(item),
           icon: 'navigate-outline',
           distance: this.t.unknownDistance,
-          name: item.name,
-          address: item.address,
-          demand: item.demand,
-          price: item.price ? item.price.toString() : '0.00',
-          avatar: item.avatar,
-          createTime: item.createTime,
-          title: item.title,
           tags: item.tags || '',
-          eventType: item.eventType != null ? Number(item.eventType) : null,
-          lng: item.lng != null ? Number(item.lng) : null,
-          lat: item.lat != null ? Number(item.lat) : null,
         }));
         let finalData = processedData;
         if (processedData.length > 4) {
