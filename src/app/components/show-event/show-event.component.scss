@@ -1,6 +1,13 @@
 // 引入字体
 @import url("https://fonts.googleapis.com/icon?family=Material+Icons");
 
+// 宿主元素：必须 block + min-width:0，否则在 grid/flex 中长文本会撑开格子
+:host {
+  display: block;
+  min-width: 0;
+  height: 100%;
+}
+
 // 小卡片通用图标样式
 .material-icons {
   display: inline-block;
@@ -31,6 +38,12 @@ $help-bg: rgba(2, 132, 199, 0.04);
     background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
     border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  // 等高布局：flex 列方向，footer 撑到底部
+  display: flex;
+  flex-direction: column;
   // 默认透明左边框占位
   border-left: 4px solid transparent;
 
@@ -211,13 +224,17 @@ $help-bg: rgba(2, 132, 199, 0.04);
     white-space 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-// 卡片标签
+// 卡片标签（固定两行高度，避免 1 行/2 行标签导致卡片高度不一）
 .card-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   margin: 4px 0 2px;
   overflow: hidden;
+  flex-shrink: 0;
+  align-content: flex-start;
+  // 10px 字号 + 1px 内边距 + 1px 边框 ≈ 单行 18px，两行 + gap = 40px
+  min-height: 40px;
 }
 
 .card-tag {
@@ -228,6 +245,7 @@ $help-bg: rgba(2, 132, 199, 0.04);
   border-radius: 10px;
   font-size: 10px;
   font-weight: 500;
+  line-height: 1.4;
   color: #0f766e;
   white-space: nowrap;
 }
@@ -237,6 +255,7 @@ $help-bg: rgba(2, 132, 199, 0.04);
   align-items: center;
   gap: 6px;
   overflow: hidden;
+  min-width: 0;
 }
 
 .user-name {
@@ -266,14 +285,14 @@ $help-bg: rgba(2, 132, 199, 0.04);
   min-height: 34px;
 }
 
-// 卡片底部
+// 卡片底部（margin-top: auto 撑到底，保证同行卡片 footer 对齐）
 .card-footer {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   border-top: 1px solid var(--ion-background-color-step-100);
   padding-top: 6px;
-  margin-top: 4px;
+  margin-top: auto;
 }
 
 // 价格
@@ -313,38 +332,105 @@ $help-bg: rgba(2, 132, 199, 0.04);
 // ===== 长辈模式适配 =====
 :host-context(body.elderly-mode) .small-card,
 body.elderly-mode .small-card {
-  padding: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  border-left-width: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 :host-context(body.elderly-mode) .card-image-wrapper,
 body.elderly-mode .card-image-wrapper {
-  min-height: 180px;
-  height: 180px;
+  min-height: 190px;
+  height: 190px;
+  border-radius: 10px;
+  margin-bottom: 10px;
 }
 
-:host-context(body.elderly-mode) .event-title,
-body.elderly-mode .event-title {
-  font-size: 20px;
-  white-space: normal;
+:host-context(body.elderly-mode) .card-type-strip,
+body.elderly-mode .card-type-strip {
+  padding: 8px 14px;
+
+  .strip-left {
+    gap: 6px;
+
+    .type-icon {
+      font-size: 20px;
+    }
+
+    .type-text {
+      font-size: 16px;
+      letter-spacing: 0.8px;
+    }
+  }
+
+  .strip-right {
+    font-size: 16px;
+    gap: 4px;
+
+    .material-icons {
+      font-size: 16px;
+    }
+  }
+}
+
+:host-context(body.elderly-mode) .user-info-row,
+body.elderly-mode .user-info-row {
+  gap: 10px;
+  margin: 8px 0;
 }
 
 :host-context(body.elderly-mode) .user-avatar,
 body.elderly-mode .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
+}
+
+:host-context(body.elderly-mode) .user-info,
+body.elderly-mode .user-info {
+  gap: 8px;
 }
 
 :host-context(body.elderly-mode) .user-name,
 body.elderly-mode .user-name {
-  font-size: 16px;
+  font-size: 17px;
 }
 
 :host-context(body.elderly-mode) .user-address,
 body.elderly-mode .user-address {
-  font-size: 14px;
+  font-size: 17px;
+}
+
+:host-context(body.elderly-mode) .event-title,
+body.elderly-mode .event-title {
+  font-size: 22px;
+  white-space: normal;
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+
+:host-context(body.elderly-mode) .card-tags,
+body.elderly-mode .card-tags {
+  gap: 6px;
+  margin: 6px 0 4px;
+  min-height: 56px;
+}
+
+:host-context(body.elderly-mode) .card-tag,
+body.elderly-mode .card-tag {
+  font-size: 16px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+:host-context(body.elderly-mode) .card-footer,
+body.elderly-mode .card-footer {
+  padding-top: 10px;
+  margin-top: auto;
 }
 
 :host-context(body.elderly-mode) .price,
 body.elderly-mode .price {
-  font-size: 24px;
+  font-size: 26px;
+  font-weight: 900;
 }

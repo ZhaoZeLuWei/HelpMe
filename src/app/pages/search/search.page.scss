@@ -677,42 +677,50 @@
 }
 
 /* =========================================================================
-   Elderly Mode (长辈模式)
+   Elderly Mode (长辈模式) — 详见 theme/elderly-mode.scss .search-page
+   此处补充 host 内兜底
    ========================================================================= */
 :host-context(body.elderly-mode) {
-  ion-searchbar {
-    font-size: 20px;
-    --border-radius: 16px;
+  .search-card {
+    padding: 28px 20px 24px;
   }
-  ion-button {
-    font-size: 20px;
-    font-weight: 700;
-    height: 56px;
-    max-width: none;
+
+  .search-input-group {
+    min-height: 56px;
+    border-width: 2px;
   }
-  .button-container {
-    gap: 16px;
-    margin-top: 32px;
-  }
-  .back-btn {
-    font-size: 16px !important;
-  }
-  .search-card-header .search-card-title {
-    font-size: 20px !important;
-  }
+
   .input-field {
     font-size: 18px !important;
   }
+
   .action-btn {
-    font-size: 17px !important;
-  }
-  .history-chip {
-    font-size: 16px !important;
-  }
-  .empty-main {
+    height: 52px;
     font-size: 18px !important;
   }
+
+  .history-section {
+    padding: 22px 20px;
+  }
+
+  .history-title {
+    font-size: 18px;
+  }
+
+  .clear-btn {
+    font-size: 16px;
+  }
+
+  .history-chip {
+    font-size: 17px !important;
+    padding: 10px 16px;
+  }
+
+  .empty-main {
+    font-size: 20px !important;
+  }
+
   .empty-sub {
-    font-size: 16px !important;
+    font-size: 17px !important;
   }
 }

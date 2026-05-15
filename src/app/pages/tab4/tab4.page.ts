@@ -41,9 +41,11 @@ import {
   ribbon,
   briefcase,
   starOutline,
+  people,
   peopleOutline,
   receiptOutline,
   clipboardOutline,
+  chevronForward,
 } from 'ionicons/icons';
 
 import {
@@ -323,9 +325,11 @@ export class Tab4Page implements OnDestroy {
       ribbon,
       briefcase,
       starOutline,
+      people,
       peopleOutline,
       receiptOutline,
       clipboardOutline,
+      chevronForward,
     });
 
     // 订阅登录状态
@@ -439,6 +443,8 @@ export class Tab4Page implements OnDestroy {
 
     if (this.isLoggedIn) {
       await this.loadUserFromStorage();
+      // 加载收藏和关注数据用于显示计数
+      await Promise.all([this.loadFavorites(), this.loadFollows()]);
     }
   }
 
@@ -1530,6 +1536,18 @@ export class Tab4Page implements OnDestroy {
     await this.loadFavorites();
   }
 
+  // 获取格式化的收藏描述
+  getFavoritesDesc(): string {
+    const count = this.favoritesList.length;
+    return this.t.favoritesDesc.replace('{count}', String(count));
+  }
+
+  // 获取格式化的关注描述
+  getFollowsDesc(): string {
+    const count = this.followsList.length;
+    return this.t.followsDesc.replace('{count}', String(count));
+  }
+
   closeFavoritesModal() {
     this.isFavoritesModalOpen = false;
   }
@@ -1611,6 +1629,7 @@ export class Tab4Page implements OnDestroy {
     const result = await this.auth.toggleFollow(userId);
     if (result === false) {
       this.followsList = this.followsList.filter((f) => f.UserId !== userId);
+      this.cdr.detectChanges();
       await this.presentDeleteToast('已取消关注');
     }
   }

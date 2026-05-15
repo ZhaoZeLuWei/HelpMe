@@ -30,6 +30,31 @@
     (showFollowers)="openFollowersModal()"
   ></app-tab4-profile-card>
 
+  <!-- 快捷入口：收藏与关注 -->
+  <div class="quick-actions-grid">
+    <div class="quick-action-card" (click)="openFavoritesModal()">
+      <div class="quick-action-icon favorites">
+        <ion-icon name="star"></ion-icon>
+      </div>
+      <div class="quick-action-info">
+        <span class="quick-action-title">{{ t.favoritesTitle }}</span>
+        <span class="quick-action-desc">{{ getFavoritesDesc() }}</span>
+      </div>
+      <ion-icon name="chevron-forward" class="quick-action-arrow"></ion-icon>
+    </div>
+    <div class="quick-action-card" (click)="openFollowsModal()">
+      <div class="quick-action-icon follows">
+        <ion-icon name="people"></ion-icon>
+      </div>
+      <div class="quick-action-info">
+        <span class="quick-action-title">{{ t.followsTitle }}</span>
+        <span class="quick-action-desc">{{ getFollowsDesc() }}</span>
+      </div>
+      <ion-icon name="chevron-forward" class="quick-action-arrow"></ion-icon>
+    </div>
+  </div>
+
+  <!-- 分段控制器 -->
   <ion-segment [value]="activeSection" (ionChange)="onSectionChange($event)">
     <ion-segment-button value="events"
       ><ion-label>{{ t.myEvents }}</ion-label></ion-segment-button
@@ -38,17 +63,6 @@
       ><ion-label>{{ t.myOrders }}</ion-label></ion-segment-button
     >
   </ion-segment>
-
-  <div class="action-buttons-row">
-    <ion-button fill="outline" size="small" (click)="openFavoritesModal()">
-      <ion-icon slot="start" name="star-outline"></ion-icon>
-      {{ t.favoritesTitle }}
-    </ion-button>
-    <ion-button fill="outline" size="small" (click)="openFollowsModal()">
-      <ion-icon slot="start" name="people-outline"></ion-icon>
-      {{ t.followsTitle }}
-    </ion-button>
-  </div>
 
   @if (activeSection === 'events') {
   <app-tab4-events-panel

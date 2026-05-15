@@ -56,13 +56,13 @@
   </div>
 
   <div class="event-title">{{ event.title }}</div>
-  @if (event.tags) {
-    <div class="card-tags">
+  <div class="card-tags">
+    @if (event.tags) {
       @for (tag of event.tags.split(",").slice(0, 3); track $index) {
         <span class="card-tag">#{{ tag }}</span>
       }
-    </div>
-  }
+    }
+  </div>
   <div class="card-footer">
     <span class="price">￥{{ event.price }}</span>
   </div>

@@ -1,0 +1,560 @@
+/* =========================================================================
+   长辈模式全局排版兜底（覆盖各页面/组件遗漏的小字号）
+   启用方式：body.elderly-mode
+   ========================================================================= */
+body.elderly-mode {
+  font-size: 17px;
+  line-height: 1.5;
+
+  /* Ionic 通用组件 */
+  ion-button {
+    font-size: 17px;
+  }
+
+  ion-button.button-small {
+    font-size: 15px;
+  }
+
+  ion-label {
+    font-size: 18px !important;
+  }
+
+  ion-item {
+    font-size: 17px;
+    --min-height: 52px;
+  }
+
+  ion-note {
+    font-size: 16px;
+  }
+
+  ion-badge {
+    font-size: 15px;
+    padding: 5px 10px;
+  }
+
+  ion-searchbar {
+    font-size: 18px;
+  }
+
+  ion-input,
+  ion-textarea,
+  ion-select {
+    font-size: 18px;
+  }
+
+  ion-tab-button ion-label {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  ion-card {
+    font-size: 17px;
+  }
+
+  ion-text,
+  ion-text p {
+    font-size: 17px;
+  }
+
+  ion-chip {
+    font-size: 16px;
+  }
+
+  ion-segment-button {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  ion-title {
+    font-size: 24px;
+    font-weight: 800;
+  }
+
+  ion-back-button {
+    font-size: 18px;
+  }
+
+  ion-toolbar ion-button {
+    font-size: 17px;
+  }
+
+  ion-alert .alert-title {
+    font-size: 22px;
+  }
+
+  ion-alert .alert-message,
+  ion-alert .alert-input {
+    font-size: 18px;
+  }
+
+  ion-alert .alert-button {
+    font-size: 18px;
+  }
+
+  ion-toast {
+    font-size: 18px;
+  }
+
+  ion-action-sheet .action-sheet-button {
+    font-size: 18px;
+  }
+
+  ion-popover {
+    font-size: 17px;
+  }
+
+  ion-modal ion-toolbar ion-title {
+    font-size: 22px;
+  }
+
+  ion-modal ion-content {
+    font-size: 17px;
+  }
+
+  /* 业务通用类名 */
+  .filter-chip {
+    font-size: 17px;
+    padding: 12px 18px;
+
+    .chip-count {
+      min-width: 26px;
+      height: 26px;
+      font-size: 15px;
+    }
+  }
+
+  .filter-option-left {
+    font-size: 18px;
+  }
+
+  .filter-current-tag {
+    font-size: 16px;
+  }
+
+  .filter-search-input {
+    font-size: 18px;
+  }
+
+  .filter-hint {
+    font-size: 16px;
+  }
+
+  .empty-title {
+    font-size: 20px !important;
+  }
+
+  .empty-sub,
+  .empty-state p {
+    font-size: 17px !important;
+  }
+
+  .task-meta {
+    font-size: 17px;
+  }
+
+  .task-actions ion-button {
+    font-size: 17px;
+    min-height: 44px;
+  }
+
+  .status-badge,
+  .order-tag {
+    font-size: 15px;
+  }
+
+  /* ===== 原生表单控件（非 Ionic 封装） ===== */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  textarea,
+  select {
+    font-size: 18px;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    font-size: 17px;
+  }
+
+  /* ===== 弹窗内表单（ion-modal 挂载在 body，须用全局选择器） ===== */
+  ion-modal {
+    ion-header ion-toolbar ion-title {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    ion-header ion-toolbar ion-button {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    ion-item {
+      --min-height: 60px;
+      font-size: 17px;
+    }
+
+    ion-item ion-label {
+      font-size: 18px !important;
+      font-weight: 600;
+    }
+
+    ion-item ion-note {
+      font-size: 17px !important;
+    }
+
+    ion-input,
+    ion-textarea,
+    ion-select {
+      font-size: 18px !important;
+    }
+
+    ion-select::part(text),
+    ion-select::part(placeholder) {
+      font-size: 18px;
+    }
+
+    ion-button[expand="block"] {
+      font-size: 18px;
+      font-weight: 700;
+      height: 56px;
+    }
+
+    .avatar-hint,
+    .hint-text,
+    .upload-hint {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .modal-actions ion-button {
+      font-size: 18px;
+      font-weight: 700;
+      min-height: 52px;
+    }
+  }
+
+  .edit-profile-modal-content {
+    ion-item ion-label {
+      font-size: 20px !important;
+    }
+
+    ion-input,
+    ion-textarea {
+      font-size: 18px !important;
+    }
+
+    ion-item ion-note {
+      font-size: 17px !important;
+    }
+  }
+
+  /* 编辑事件弹窗 */
+  .edit-modal-content {
+    .form-section .section-title {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    ion-item ion-label {
+      font-size: 20px !important;
+    }
+
+    ion-input,
+    ion-textarea,
+    ion-select {
+      font-size: 18px !important;
+    }
+
+    .upload-hint {
+      font-size: 16px;
+    }
+
+    .upload-placeholder p {
+      font-size: 17px;
+    }
+
+    .modal-actions ion-button {
+      font-size: 18px;
+      min-height: 52px;
+    }
+  }
+
+  /* 聊天页顶部订单信息条 */
+  .order-detail-bar .order-detail-content {
+    font-size: 17px;
+    line-height: 1.7;
+    padding: 10px 16px 14px;
+
+    p,
+    strong {
+      font-size: 17px;
+    }
+  }
+
+  .order-detail-bar .order-actions ion-button {
+    font-size: 17px;
+    min-height: 44px;
+  }
+
+  /* 聊天详情 — 订单预览弹窗（ion-modal 挂 body，组件样式无法穿透） */
+  ion-modal.chat-order-preview-modal,
+  .chat-order-preview-modal {
+    ion-header ion-toolbar ion-title {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    ion-header ion-toolbar ion-button {
+      font-size: 17px;
+    }
+  }
+
+  .order-preview-content {
+    .order-status-card {
+      margin: 16px;
+      padding: 24px;
+      border-radius: 16px;
+
+      .status-header {
+        margin-bottom: 16px;
+      }
+
+      .status-label {
+        font-size: 17px;
+        opacity: 1;
+      }
+
+      .status-badge,
+      ion-badge.status-badge {
+        font-size: 16px;
+        padding: 6px 12px;
+      }
+
+      .order-title {
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.35;
+        margin-bottom: 10px;
+      }
+
+      .order-price {
+        font-size: 36px;
+        font-weight: 800;
+      }
+    }
+
+    .order-info-section {
+      margin: 0 16px 16px;
+      padding: 20px;
+      border-radius: 14px;
+
+      .info-row {
+        padding: 14px 0;
+        align-items: flex-start;
+        gap: 8px;
+
+        .info-label {
+          font-size: 18px;
+          font-weight: 600;
+          min-width: 96px;
+        }
+
+        .info-value {
+          font-size: 18px;
+          line-height: 1.65;
+          text-align: right;
+
+          &.description {
+            max-height: none;
+            font-size: 18px;
+          }
+        }
+      }
+    }
+
+    .order-actions-section {
+      margin: 16px;
+      gap: 12px;
+
+      ion-button {
+        font-size: 18px;
+        font-weight: 700;
+        min-height: 56px;
+        --padding-top: 16px;
+        --padding-bottom: 16px;
+      }
+    }
+  }
+
+  /* 订单详情（快照信息展示，Tab4 等，含 .detail-section） */
+  .order-detail-content:has(.detail-section) {
+    padding: 20px 16px;
+
+    .detail-section {
+      padding: 20px;
+      border-radius: 16px;
+
+      h3 {
+        font-size: 22px;
+        font-weight: 800;
+        margin-bottom: 16px;
+
+        ion-icon {
+          font-size: 26px;
+        }
+      }
+
+      p {
+        font-size: 18px;
+        line-height: 1.75;
+        margin-bottom: 12px;
+
+        strong {
+          font-size: 18px;
+          font-weight: 600;
+          min-width: 110px;
+        }
+      }
+    }
+
+    .snapshot-photos p {
+      font-size: 17px;
+    }
+  }
+
+  /* ===== 独立搜索页（自定义 input，非 ion-searchbar） ===== */
+  .search-page {
+    .back-btn {
+      font-size: 18px;
+
+      ion-icon {
+        font-size: 22px;
+      }
+    }
+
+    .search-card-title {
+      font-size: 20px;
+    }
+
+    .search-card-header ion-icon {
+      font-size: 26px;
+    }
+
+    .search-input-group {
+      min-height: 56px;
+
+      .input-icon ion-icon {
+        font-size: 24px;
+      }
+
+      .input-field {
+        font-size: 18px;
+      }
+
+      .input-clear ion-icon {
+        font-size: 20px;
+      }
+
+      .input-go-btn {
+        width: 44px;
+        height: 44px;
+
+        ion-icon {
+          font-size: 22px;
+        }
+      }
+    }
+
+    .action-btn {
+      height: 52px;
+      font-size: 18px;
+
+      ion-icon {
+        font-size: 22px;
+      }
+    }
+
+    .history-title {
+      font-size: 18px;
+      font-weight: 700;
+
+      ion-icon {
+        font-size: 20px;
+      }
+    }
+
+    .clear-btn {
+      font-size: 16px;
+      padding: 8px 12px;
+
+      ion-icon {
+        font-size: 18px;
+      }
+    }
+
+    .history-chip {
+      font-size: 17px;
+      padding: 10px 16px;
+
+      ion-icon {
+        font-size: 17px;
+      }
+    }
+
+    .empty-main {
+      font-size: 20px;
+    }
+
+    .empty-sub {
+      font-size: 17px;
+    }
+  }
+
+  /* 发布页自定义表单行 */
+  .form-section-title {
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  .form-row-label {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .form-input,
+  .textarea-input,
+  .location-btn {
+    font-size: 18px;
+  }
+
+  /* Tab2 内嵌搜索组件 */
+  .search-actions-container {
+    padding: 14px 16px;
+
+    .search-bar-custom {
+      font-size: 18px;
+      min-height: 52px;
+    }
+
+    ion-button {
+      height: 48px;
+      font-size: 17px;
+    }
+  }
+
+  /* 评价弹窗 */
+  .review-modal-content,
+  app-review-modal ion-content {
+    .section-label {
+      font-size: 20px;
+    }
+
+    .star-hint,
+    .char-count {
+      font-size: 16px;
+    }
+
+    .review-textarea {
+      font-size: 18px;
+    }
+  }
+}

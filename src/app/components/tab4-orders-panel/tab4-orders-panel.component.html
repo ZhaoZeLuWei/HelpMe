@@ -1,40 +1,60 @@
-<div class="section-toolbar">
-  <ion-button
-    fill="clear"
-    [class.active-filter]="filter === 'all'"
-    (click)="setFilter('all')"
-    >{{ t.orderPanel.all }} {{ orderStats?.all || 0 }}</ion-button
-  >
-  <ion-button
-    fill="clear"
-    [class.active-filter]="filter === 'pending'"
-    (click)="setFilter('pending')"
-    >{{ t.orderPanel.pending }} {{ orderStats?.pending || 0 }}</ion-button
-  >
-  <ion-button
-    fill="clear"
-    [class.active-filter]="filter === 'active'"
-    (click)="setFilter('active')"
-    >{{ t.orderPanel.active }} {{ orderStats?.active || 0 }}</ion-button
-  >
-  <ion-button
-    fill="clear"
-    [class.active-filter]="filter === 'review'"
-    (click)="setFilter('review')"
-    >{{ t.orderPanel.review }} {{ orderStats?.review || 0 }}</ion-button
-  >
-  <ion-button
-    fill="clear"
-    [class.active-filter]="filter === 'done'"
-    (click)="setFilter('done')"
-    >{{ t.orderPanel.done }} {{ orderStats?.done || 0 }}</ion-button
-  >
-  <ion-button
-    fill="clear"
-    [class.active-filter]="filter === 'cancelled'"
-    (click)="setFilter('cancelled')"
-    >{{ t.orderPanel.cancelled }} {{ orderStats?.cancelled || 0 }}</ion-button
-  >
+<div class="order-filter-bar">
+  <div class="order-filter-scroll">
+    <button
+      type="button"
+      class="filter-chip"
+      [class.is-active]="filter === 'all'"
+      (click)="setFilter('all')"
+    >
+      <span class="chip-label">{{ t.orderPanel.all }}</span>
+      <span class="chip-count">{{ orderStats?.all || 0 }}</span>
+    </button>
+    <button
+      type="button"
+      class="filter-chip"
+      [class.is-active]="filter === 'pending'"
+      (click)="setFilter('pending')"
+    >
+      <span class="chip-label">{{ t.orderPanel.pending }}</span>
+      <span class="chip-count">{{ orderStats?.pending || 0 }}</span>
+    </button>
+    <button
+      type="button"
+      class="filter-chip"
+      [class.is-active]="filter === 'active'"
+      (click)="setFilter('active')"
+    >
+      <span class="chip-label">{{ t.orderPanel.active }}</span>
+      <span class="chip-count">{{ orderStats?.active || 0 }}</span>
+    </button>
+    <button
+      type="button"
+      class="filter-chip"
+      [class.is-active]="filter === 'review'"
+      (click)="setFilter('review')"
+    >
+      <span class="chip-label">{{ t.orderPanel.review }}</span>
+      <span class="chip-count">{{ orderStats?.review || 0 }}</span>
+    </button>
+    <button
+      type="button"
+      class="filter-chip"
+      [class.is-active]="filter === 'done'"
+      (click)="setFilter('done')"
+    >
+      <span class="chip-label">{{ t.orderPanel.done }}</span>
+      <span class="chip-count">{{ orderStats?.done || 0 }}</span>
+    </button>
+    <button
+      type="button"
+      class="filter-chip"
+      [class.is-active]="filter === 'cancelled'"
+      (click)="setFilter('cancelled')"
+    >
+      <span class="chip-label">{{ t.orderPanel.cancelled }}</span>
+      <span class="chip-count">{{ orderStats?.cancelled || 0 }}</span>
+    </button>
+  </div>
 </div>
 
 <div class="tasks-list">

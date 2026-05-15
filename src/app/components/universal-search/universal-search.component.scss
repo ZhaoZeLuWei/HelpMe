@@ -43,13 +43,129 @@
   --border-radius: 20px;
 }
 
-/* ===== 筛选按钮行 – 与小卡片筛选条同风格 ===== */
+/* ===== 分类标签行 – 现代化切换风格 ===== */
+.category-row {
+  padding: 12px 16px;
+  gap: 12px;
+  background: var(--ion-card-background, var(--ion-background-color));
+  border-bottom: 1px solid var(--ion-background-color-step-150);
+
+  ion-col {
+    padding: 0;
+  }
+
+  ion-button {
+    --border-radius: 12px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+    text-transform: none;
+    margin: 0;
+
+    &[fill="solid"] {
+      --background: var(--ion-color-primary);
+      --color: white;
+      box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.3);
+    }
+
+    &[fill="outline"] {
+      --background: transparent;
+      --color: var(--ion-color-primary);
+      --border-color: var(--ion-color-primary);
+      border-width: 1.5px;
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+}
+
+/* 长辈模式分类标签适配 */
+:host-context(body.elderly-mode) .category-row,
+body.elderly-mode .category-row {
+  padding: 16px;
+  gap: 16px;
+
+  ion-button {
+    height: 52px;
+    font-size: 18px;
+    --border-radius: 16px;
+
+    &[fill="solid"] {
+      box-shadow: 0 6px 16px rgba(var(--ion-color-primary-rgb), 0.35);
+    }
+  }
+}
+
+/* ===== 筛选按钮行 – 现代化标签风格 ===== */
 .filter-row {
   background: var(--ion-card-background, var(--ion-background-color));
-  padding: 10px 0;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--ion-background-color-step-150);
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
   ion-col {
-    padding: 0 5px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  ion-button {
+    --border-radius: 20px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    height: 36px;
+    font-size: 13px;
+    font-weight: 600;
+    --background: var(--ion-color-step-100, #f1f5f9);
+    --color: var(--ion-text-color);
+    margin: 0;
+    text-transform: none;
+
+    ion-icon {
+      font-size: 16px;
+      margin-right: 4px;
+    }
+
+    &[fill="clear"] {
+      --background: transparent;
+    }
+
+    &:hover {
+      --background: var(--ion-color-step-150);
+    }
+
+    &:active {
+      transform: scale(0.96);
+    }
+  }
+}
+
+/* 长辈模式筛选栏适配 */
+:host-context(body.elderly-mode) .filter-row,
+body.elderly-mode .filter-row {
+  padding: 16px;
+  gap: 12px;
+
+  ion-button {
+    height: 44px;
+    font-size: 16px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --border-radius: 24px;
+
+    ion-icon {
+      font-size: 20px;
+    }
   }
 }
 
@@ -86,28 +202,99 @@
   }
 }
 
-/* ===== 小卡片网格布局 – 与首页保持一致 ===== */
+/* ===== 小卡片网格布局 – 多列显示 ===== */
 .small-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
-  padding: 0 10px;
+  padding: 10px;
+  align-items: stretch;
 
   @media (min-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
   }
 }
 
-/* 长辈模式下强制单列，防止卡片被挤碎 */
+/* 长辈模式下适配：和tab1保持一致 */
 :host-context(body.elderly-mode) .small-card-grid,
 body.elderly-mode .small-card-grid {
-  grid-template-columns: 1fr !important;
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 12px;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+:host-context(body.elderly-mode),
+body.elderly-mode {
+  .search-actions-container {
+    padding: 14px 16px;
+  }
+
+  .search-bar-custom {
+    font-size: 18px;
+    min-height: 52px;
+    --padding-start: 18px;
+    --padding-end: 18px;
+  }
+
+  .search-actions-container ion-button {
+    height: 48px;
+    font-size: 17px;
+    min-width: 48px;
+  }
+
+  .empty-state {
+    p {
+      font-size: 18px;
+    }
+
+    ion-icon {
+      font-size: 56px;
+    }
+  }
+
+  .filter-option-left {
+    font-size: 18px;
+
+    ion-icon {
+      font-size: 24px;
+    }
+  }
+
+  .filter-current-tag {
+    font-size: 17px;
+    padding: 14px 20px 6px;
+  }
+
+  .filter-search-input {
+    font-size: 18px;
+    padding: 16px 12px;
+  }
+
+  .filter-hint {
+    font-size: 16px;
+  }
 }
 
 .card-item {
   width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 /* ===== 模态框 – 与队友自定义弹窗同风格 ===== */
@@ -251,4 +438,138 @@ ion-modal {
 
 .filter-hint ion-icon {
   font-size: 14px;
+}
+
+/* =========================================================================
+   Dark Mode Overrides (深色模式适配)
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  /* 搜索区域 */
+  .search-actions-container {
+    background: var(--ion-background-color);
+    border-bottom-color: var(--ion-color-step-100);
+  }
+
+  .search-bar-custom {
+    --background: var(--ion-card-background, var(--ion-color-step-50));
+  }
+
+  /* 分类标签行 */
+  .category-row {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    border-bottom-color: var(--ion-color-step-100);
+
+    ion-button {
+      &[fill="solid"] {
+        box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.4);
+      }
+
+      &[fill="outline"] {
+        --color: var(--ion-color-primary);
+        --border-color: var(--ion-color-primary);
+      }
+    }
+  }
+
+  /* 筛选按钮行 */
+  .filter-row {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    border-bottom-color: var(--ion-color-step-100);
+
+    ion-button {
+      --background: var(--ion-color-step-100);
+      --color: var(--ion-text-color);
+
+      &::part(native) {
+        color: var(--ion-text-color);
+      }
+
+      ion-icon {
+        color: var(--ion-text-color);
+      }
+
+      &:hover {
+        --background: var(--ion-color-step-150);
+      }
+    }
+  }
+
+  /* 列表容器 */
+  .event-list-container {
+    background: var(--ion-background-color);
+  }
+
+  /* 空状态 */
+  .empty-state {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    border-color: var(--ion-color-step-100);
+
+    .material-icons {
+      color: var(--ion-color-step-300);
+    }
+  }
+
+  /* 筛选选项卡片 */
+  .filter-option {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  /* 地点筛选搜索框 */
+  .filter-search-area {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    border-color: var(--ion-color-step-100);
+  }
+
+  /* 模态框 */
+  ion-modal {
+    --background: var(--ion-card-background, var(--ion-color-step-50));
+
+    ion-toolbar {
+      --background: var(--ion-card-background, var(--ion-color-step-50));
+      --color: var(--ion-text-color);
+    }
+
+    ion-title {
+      color: var(--ion-text-color);
+    }
+  }
+
+  /* 筛选弹窗文字 */
+  .filter-current-tag {
+    color: var(--ion-color-medium);
+
+    ion-icon {
+      color: var(--ion-color-medium);
+    }
+  }
+
+  .filter-option-left {
+    color: var(--ion-text-color);
+
+    ion-icon {
+      color: var(--ion-color-medium);
+    }
+  }
+
+  .filter-option.active .filter-option-left {
+    color: var(--ion-color-primary);
+  }
+
+  .filter-hint {
+    color: var(--ion-color-medium);
+  }
+
+  /* 地点筛选搜索框 */
+  .filter-search-input {
+    color: var(--ion-text-color);
+
+    &::placeholder {
+      color: var(--ion-color-medium);
+    }
+  }
 }
