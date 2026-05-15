@@ -9,13 +9,8 @@ const {
   moderateContent,
   moderateContents,
 } = require("../Services/contentModeration.js");
+const { normalizeLocationPlaceId } = require("./utils.js");
 const router = express.Router();
-
-function normalizeLocationPlaceId(value) {
-  if (value === undefined || value === null) return null;
-  const text = String(value).trim();
-  return text ? text : null;
-}
 
 // 图片上传接口（仅上传，不入库，需登录）
 router.post(
@@ -127,7 +122,11 @@ router.get("/api/cards", async (req, res) => {
     });
 
     if (res.locals.targetLang) {
-      await translateFields(cardData, ['title', 'name', 'address', 'demand'], res.locals.targetLang);
+      await translateFields(
+        cardData,
+        ["title", "name", "address", "demand"],
+        res.locals.targetLang,
+      );
     }
     return res.status(200).json(cardData);
   } catch (error) {
@@ -294,14 +293,14 @@ router.post(
         insertValues,
       );
 
-      await conn.commit();
-
-      // 存储 AI 标签
+      // 存储 AI 标签（在事务内执行，确保数据一致性）
       if (tagsArray.length > 0) {
         const tagSql = "INSERT INTO EventTags (EventId, Tag) VALUES ?";
         const tagValues = tagsArray.map((tag) => [result.insertId, tag]);
         await conn.query(tagSql, [tagValues]);
       }
+
+      await conn.commit();
 
       await sendSystemMessage({
         roomId: `system_${creatorId}`,
@@ -336,8 +335,7 @@ router.get("/events/:id", async (req, res) => {
   }
 
   try {
-    const selectSql =
-      `SELECT e.EventId, e.CreatorId, e.EventTitle, e.EventType, e.EventCategory, e.Photos, e.Location, e.LocationPlaceId, e.Price, e.EventDetails, e.Status, e.FavoriteCount, e.CreateTime,
+    const selectSql = `SELECT e.EventId, e.CreatorId, e.EventTitle, e.EventType, e.EventCategory, e.Photos, e.Location, e.LocationPlaceId, e.Price, e.EventDetails, e.Status, e.FavoriteCount, e.CreateTime,
        GROUP_CONCAT(et.Tag SEPARATOR ',') AS Tags
        FROM Events e
        LEFT JOIN EventTags et ON e.EventId = et.EventId
@@ -357,7 +355,11 @@ router.get("/events/:id", async (req, res) => {
     if (Number(event.Status) === 1) {
       const eventData = { ...event, canCreateOrder: false, activeOrder: null };
       if (res.locals.targetLang) {
-        await translateFields(eventData, ['EventTitle', 'Location', 'EventDetails'], res.locals.targetLang);
+        await translateFields(
+          eventData,
+          ["EventTitle", "Location", "EventDetails"],
+          res.locals.targetLang,
+        );
       }
       return res.json({ success: true, event: eventData });
     }
@@ -377,7 +379,11 @@ router.get("/events/:id", async (req, res) => {
       activeOrder: activeOrders[0] || null,
     };
     if (res.locals.targetLang) {
-      await translateFields(eventData, ['EventTitle', 'Location', 'EventDetails'], res.locals.targetLang);
+      await translateFields(
+        eventData,
+        ["EventTitle", "Location", "EventDetails"],
+        res.locals.targetLang,
+      );
     }
     return res.json({ success: true, event: eventData });
   } catch (err) {

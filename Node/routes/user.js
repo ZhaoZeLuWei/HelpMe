@@ -22,6 +22,7 @@ const {
   verifyCode: verifySmsCode,
 } = require("../Services/smsService.js");
 const { verifyCaptcha } = require("../Services/captchaService.js");
+const { normalizeLocationPlaceId } = require("./utils.js");
 
 const router = express.Router();
 
@@ -414,12 +415,6 @@ router.get("/admin/stats", adminRequired, async (_req, res) => {
     return res.status(500).json({ error: "获取统计数据失败" });
   }
 });
-
-function normalizeLocationPlaceId(value) {
-  if (value === undefined || value === null) return null;
-  const text = String(value).trim();
-  return text ? text : null;
-}
 
 // 检查手机号是否已注册
 router.post("/check-phone", async (req, res) => {

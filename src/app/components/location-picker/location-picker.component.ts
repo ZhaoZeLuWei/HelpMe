@@ -189,41 +189,6 @@ export class LocationPickerComponent
     this.searchByAMap(keyword, flyToFirst); // 👈 把参数传下去
   }
 
-  private searchFromCache(keyword: string): LocationOption[] | null {
-    try {
-      const data = localStorage.getItem(this.CACHE_KEY);
-      if (!data) return null;
-
-      const cached: any[] = JSON.parse(data);
-      const lowerKeyword = keyword.toLowerCase();
-
-      const matched = cached.filter((item) => {
-        const name = (item.text || '').toLowerCase();
-        const address = (item.address || '').toLowerCase();
-        return name.includes(lowerKeyword) || address.includes(lowerKeyword);
-      });
-
-      if (matched.length > 0) {
-        return matched
-          .sort((a: any, b: any) => (b.useCount || 0) - (a.useCount || 0))
-          .slice(0, 10)
-          .map((item: any) => ({
-            id: item.placeId,
-            name: item.text,
-            address: item.address,
-            district: '',
-            lng: item.lng,
-            lat: item.lat,
-            distanceMeters: null,
-          }));
-      }
-
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
   private searchByAMap(keyword: string, flyToFirst: boolean = false) {
     this.loading.set(true);
 
@@ -668,30 +633,7 @@ export class LocationPickerComponent
     this.saveToCache(payload);
   }
 
-  // private async loadNearbyLocations(lng: number, lat: number) {
-  //   const params = new URLSearchParams();
-  //   params.append('lng', String(lng));
-  //   params.append('lat', String(lat));
-  //   params.append('limit', '10');
-
-  //   try {
-  //     const resp = await fetch(`${this.apiBase}/locations/suggest?${params.toString()}&_t=${Date.now()}`);
-  //     const data = await resp.json().catch(() => null);
-
-  //     // 如果后端有你们自己的私有数据，直接用
-  //     if (resp.ok && data?.success && Array.isArray(data.locations) && data.locations.length > 0) {
-  //       this.nearbyLocations.set(data.locations);
-  //       return; // 有数据就结束，不打扰高德
-  //     }
-  //   } catch (err) {
-  //     // 后端报错也不管，继续走下面的高德兜底
-  //   }
-
-  //   // 👇 核心兜底逻辑：后端没数据，用高德地图搜索周边填充列表
-  //   this.loadNearbyFromAMap(lng, lat);
-  // }
-
-  // 新增：调用高德地图搜索周边
+  // 调用高德地图搜索周边
   private loadNearbyFromAMap(lng: number, lat: number) {
     // 确保高德插件加载完毕
     if (typeof AMap === 'undefined' || !AMap.PlaceSearch) {
@@ -718,26 +660,8 @@ export class LocationPickerComponent
         }));
 
         this.nearbyLocations.set(list);
-        // ✅ 保存到后端数据库
-        //this.saveNearbyToBackend(list);
       }
     });
-  }
-  // 新增：保存附近地点到后端数据库
-  private async saveNearbyToBackend(locations: LocationOption[]) {
-    try {
-      const resp = await fetch(`${this.apiBase}/locations/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locations }),
-      });
-      const data = await resp.json();
-      if (data.success) {
-        console.log(`成功保存 ${data.count} 个地点到数据库`);
-      }
-    } catch (err) {
-      console.error('保存地点到后端失败:', err);
-    }
   }
   // ================= 缓存方法 =================
 

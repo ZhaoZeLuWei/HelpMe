@@ -475,20 +475,6 @@ export class AuthService {
     }
   }
 
-  async getProviderProfile(userId: number): Promise<ProviderProfile | null> {
-    try {
-      const res = await fetch(
-        `${this.API_BASE}/api/provider-profile?userId=${userId}`,
-      );
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.success ? (json.data as ProviderProfile) : null;
-    } catch (e) {
-      console.error('getProviderProfile error:', e);
-      return null;
-    }
-  }
-
   // ----------------- 收藏 & 关注 -----------------
   async toggleFavorite(eventId: number): Promise<boolean | null> {
     try {

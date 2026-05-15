@@ -1,11 +1,14 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>{{ t.title }}</ion-title>
+    @if (isLoggedIn) {
     <ion-buttons slot="end">
-      <ion-button fill="clear" color="medium" (click)="logout()">
-        <ion-icon slot="icon-only" name="log-out"></ion-icon>
+      <ion-button fill="clear" color="medium" (click)="confirmLogout()">
+        <ion-icon slot="start" name="log-out"></ion-icon>
+        <span>{{ t.logout }}</span>
       </ion-button>
     </ion-buttons>
+    }
   </ion-toolbar>
 </ion-header>
 

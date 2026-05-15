@@ -187,8 +187,9 @@ export class Tab2Page implements OnInit {
     try {
       const res = await fetch(url);
       const list = await res.json();
+      const safeList = Array.isArray(list) ? list : [];
 
-      const transformed = list.map((item: any) => ({
+      const transformed = safeList.map((item: any) => ({
         ...mapApiCardToEventCardData(item),
         icon: item.icon || 'navigate-outline',
         distance: item.distance || this.t.unknownDistance,

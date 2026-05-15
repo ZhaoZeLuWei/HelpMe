@@ -541,6 +541,7 @@ ion-modal {
     border-radius: 12px;
     --border-radius: 12px;
     --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    flex-wrap: wrap;
 
     ion-label {
       font-size: 14px;
@@ -552,6 +553,9 @@ ion-modal {
     ion-note {
       font-size: 14px;
       font-weight: 500;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      max-width: 100%;
     }
 
     ion-input,
@@ -592,6 +596,9 @@ body.elderly-mode ion-modal {
 
     ion-note {
       font-size: 17px;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      max-width: 100%;
     }
 
     ion-input,

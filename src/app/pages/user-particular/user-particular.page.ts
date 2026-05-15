@@ -9,7 +9,6 @@ import {
   IonButtons,
   IonTitle,
   IonBadge,
-  ModalController,
   AlertController,
 } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -19,6 +18,14 @@ import { Tab4EventService } from 'src/app/services/tab4/tab4-event.service';
 import { Tab4UserService } from 'src/app/services/tab4/tab4-user.service';
 import { LanguageService } from 'src/app/services/language.service';
 import { resolveMediaUrl } from 'src/app/utils/media-url.util';
+import {
+  goBack as navGoBack,
+  goHome as navGoHome,
+} from 'src/app/utils/nav.util';
+import {
+  getServiceRoleColor as getRoleColor,
+  getServiceRoleText as getRoleText,
+} from 'src/app/utils/role.util';
 import { DynamicTranslationService } from 'src/app/services/dynamic-translation.service';
 import { TranslateTextPipe } from 'src/app/pipes/translate-text.pipe';
 import { ToastController } from '@ionic/angular';
@@ -61,7 +68,6 @@ export class UserParticularPage implements OnInit {
   private router = inject(Router);
   private location = inject(Location);
   private authService = inject(AuthService);
-  private modalCtrl = inject(ModalController);
   private toastController = inject(ToastController);
   private alertCtrl = inject(AlertController);
   private languageService = inject(LanguageService);
@@ -252,29 +258,16 @@ export class UserParticularPage implements OnInit {
   }
 
   getServiceRoleText(providerRole: number): string {
-    switch (providerRole) {
-      case 1:
-        return this.t.roleEnthusiast;
-      case 2:
-        return this.t.roleProfessional;
-      case 3:
-        return this.t.roleMerchant;
-      default:
-        return this.t.roleRegular;
-    }
+    return getRoleText(providerRole, {
+      roleEnthusiast: this.t.roleEnthusiast,
+      roleProfessional: this.t.roleProfessional,
+      roleMerchant: this.t.roleMerchant,
+      roleRegular: this.t.roleRegular,
+    });
   }
 
   getServiceRoleColor(providerRole: number): string {
-    switch (providerRole) {
-      case 1:
-        return 'warning';
-      case 2:
-        return 'success';
-      case 3:
-        return 'success';
-      default:
-        return 'medium';
-    }
+    return getRoleColor(providerRole);
   }
 
   getTypeIcon(eventType: number): string {
@@ -378,15 +371,11 @@ export class UserParticularPage implements OnInit {
   }
 
   goBack() {
-    if (window.history.length > 1) {
-      this.location.back();
-    } else {
-      this.router.navigate(['/tabs/tab1']);
-    }
+    navGoBack(this.location, this.router);
   }
 
   goHome() {
-    this.router.navigate(['/tabs/tab1']);
+    navGoHome(this.router);
   }
 
   async onChat() {

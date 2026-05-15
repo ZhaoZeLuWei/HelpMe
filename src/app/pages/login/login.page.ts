@@ -189,7 +189,7 @@ export class LoginPage {
     const u = this.auth.currentUser;
     const name = u?.UserName ?? u?.userName ?? u?.name ?? '';
     const message = name
-      ? `${this.t.loginSuccess.replace('！', '')}，${name}，${this.t.loginSuccess}`
+      ? `${this.t.loginSuccess.replace('！', '')}，${name}！`
       : this.t.loginSuccess;
 
     const t = await this.toastCtrl.create({

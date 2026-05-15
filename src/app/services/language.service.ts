@@ -159,6 +159,7 @@ export class LanguageService {
         statusUnknown: '未知',
         // Toast 消息
         logoutSuccess: '已成功登出',
+        logoutConfirm: '确定要退出登录吗？',
         deleteSuccess: '删除成功',
         saveSuccess: '保存成功',
         notLoggedIn: '未登录，无法操作',
@@ -927,6 +928,7 @@ export class LanguageService {
         statusUnknown: 'Unknown',
         // Toast 消息
         logoutSuccess: 'Logged out successfully',
+        logoutConfirm: 'Are you sure you want to logout?',
         deleteSuccess: 'Deleted successfully',
         saveSuccess: 'Saved successfully',
         notLoggedIn: 'Please login first',

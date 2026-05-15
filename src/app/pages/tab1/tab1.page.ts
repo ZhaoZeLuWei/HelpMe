@@ -1,9 +1,8 @@
 /* src/app/tab1/tab1.page.ts（修复版） */
-import { Component, OnInit, inject } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { map, firstValueFrom } from 'rxjs';
+import { map, firstValueFrom, Subscription } from 'rxjs';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
@@ -40,14 +39,15 @@ interface CardItem {
   templateUrl: './tab1.page.html',
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, ShowEventComponent],
+  imports: [CommonModule, ShowEventComponent],
 })
-export class Tab1Page implements OnInit {
+export class Tab1Page implements OnInit, OnDestroy {
   private readonly API_BASE = environment.apiBase;
   private http = inject(HttpClient);
   private router = inject(Router);
   private langService = inject(LanguageService);
   private dynTrans = inject(DynamicTranslationService);
+  private langSub?: Subscription;
 
   // --- 原有功能变量 ---
   requestList: CardItem[] = [];
@@ -56,11 +56,7 @@ export class Tab1Page implements OnInit {
   showLangConfirmModal = false;
   t = this.langService.getTranslations('zh').tab1;
 
-  // --- 翻译与适老化功能变量 ---
-  public dynamicSourceText: string = '你好，这是测试翻译的文本';
-  public translatedText: string = '';
-  public sourceLang: string = 'zh';
-  public targetLang: string = 'en';
+  // --- 适老化功能变量 ---
   public isElderlyMode: boolean = false; // 长辈模式开关
 
   get currentLangBtnText() {
@@ -77,16 +73,22 @@ export class Tab1Page implements OnInit {
     }
     let isFirstEmit = true;
     // 语言监听：切换语言时重新拉取数据（服务端根据 ?lang= 返回译文）
-    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
-      this.t = this.langService.getTranslations(lang).tab1;
-      if (isFirstEmit) {
-        isFirstEmit = false;
-        return;
-      }
-      this.loadCardLists();
-    });
+    this.langSub = this.langService.currentLang$.subscribe(
+      (lang: 'zh' | 'en') => {
+        this.t = this.langService.getTranslations(lang).tab1;
+        if (isFirstEmit) {
+          isFirstEmit = false;
+          return;
+        }
+        this.loadCardLists();
+      },
+    );
 
     this.loadCardLists();
+  }
+
+  ngOnDestroy() {
+    this.langSub?.unsubscribe();
   }
 
   ionViewWillEnter() {
@@ -108,10 +110,6 @@ export class Tab1Page implements OnInit {
 
     // 触发动态文本翻译（管道已注册文本，此处批量调用API）
     setTimeout(() => this.dynTrans.translateAll().subscribe(), 200);
-  }
-
-  private updateEventData() {
-    this.eventData = [...this.requestList, ...this.helpList];
   }
 
   private getCardData(type: 'request' | 'help') {
@@ -240,11 +238,6 @@ export class Tab1Page implements OnInit {
 
   trackById(_index: number, item: CardItem): string {
     return item.id;
-  }
-
-  // 翻译按钮 - 切换整个项目的中英文
-  public onTranslateBtnClick(): void {
-    this.showLangConfirmModal = true;
   }
 
   toggleLanguage() {

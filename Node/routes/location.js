@@ -254,9 +254,6 @@ router.get("/admin/locations", adminRequired, async (req, res) => {
     return res.status(500).json({ success: false, error: "查询地点失败" });
   }
 });
-router.get("/test", (req, res) => {
-  res.json({ message: "location routes working" });
-});
 // 地点详情
 router.get("/locations/:id", async (req, res) => {
   const db = await getLocationDb();

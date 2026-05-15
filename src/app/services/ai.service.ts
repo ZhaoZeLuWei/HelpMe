@@ -8,10 +8,6 @@ export interface AiFillFormResult {
   details: string;
 }
 
-export interface AiTagsResult {
-  tags: string[];
-}
-
 export interface AiSearchResult {
   recommendation: string;
   matchedEvents: any[];
@@ -31,7 +27,10 @@ export class AiService {
   }
 
   /** 1. AI 智能填表：根据输入生成标题、标签、详细描述 */
-  async fillForm(input: string, type: 'request' | 'help' = 'request'): Promise<AiFillFormResult | null> {
+  async fillForm(
+    input: string,
+    type: 'request' | 'help' = 'request',
+  ): Promise<AiFillFormResult | null> {
     try {
       const res = await fetch(`${this.API_BASE}/api/ai/fill-form`, {
         method: 'POST',
@@ -50,27 +49,7 @@ export class AiService {
     }
   }
 
-  /** 2. 从文本中提取标签 */
-  async extractTags(text: string): Promise<AiTagsResult | null> {
-    try {
-      const res = await fetch(`${this.API_BASE}/api/ai/extract-tags`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ text }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data?.success) {
-        console.warn('AI extractTags 失败:', data?.error);
-        return null;
-      }
-      return data.data as AiTagsResult;
-    } catch (err) {
-      console.error('AI extractTags 错误:', err);
-      return null;
-    }
-  }
-
-  /** 3. AI 增强搜索 */
+  /** 2. AI 增强搜索 */
   async enhanceSearch(
     keyword: string,
     location?: string,

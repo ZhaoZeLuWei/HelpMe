@@ -18,7 +18,6 @@ import {
   IonLabel,
 } from '@ionic/angular/standalone';
 import { NavController, ToastController } from '@ionic/angular';
-import { DynamicTranslationService } from '../../services/dynamic-translation.service';
 import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 import { LanguageService } from '../../services/language.service';
 
@@ -48,7 +47,6 @@ export class Tab3Page implements OnInit {
   private http = inject(HttpClient);
   private toastCtrl = inject(ToastController);
   private langService = inject(LanguageService);
-  private dynTrans = inject(DynamicTranslationService);
   private realtime = inject(RealtimeService);
 
   private isFirstLangEmit = true;

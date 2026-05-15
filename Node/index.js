@@ -70,6 +70,15 @@ app.use(translationRoutes);
 app.use(configRoutes);
 app.use(aiRoutes);
 
+// 全局错误处理中间件
+app.use((err, req, res, next) => {
+  console.error("未捕获的错误:", err);
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ success: false, error: "请求体格式错误" });
+  }
+  return res.status(500).json({ success: false, error: "服务器内部错误" });
+});
+
 // JWT secret（必须从环境变量读取）
 const JWT_SECRET = process.env.JWT_SECRET;
 

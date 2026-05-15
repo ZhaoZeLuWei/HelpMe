@@ -484,6 +484,27 @@ export class Tab4Page implements OnDestroy {
     void this.openEditModal(taskId);
   }
 
+  async confirmLogout() {
+    const alert = await this.alertController.create({
+      header: this.t.logout,
+      message: this.t.logoutConfirm || '确定要退出登录吗？',
+      buttons: [
+        {
+          text: this.t.cancel || '取消',
+          role: 'cancel',
+        },
+        {
+          text: this.t.logout,
+          role: 'destructive',
+          handler: () => {
+            this.logout();
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
   logout() {
     this.auth.logout(); // 登出会触发状态变更
     this.toastController

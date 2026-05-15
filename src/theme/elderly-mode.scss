@@ -190,6 +190,7 @@ body.elderly-mode {
     ion-item {
       --min-height: 60px;
       font-size: 17px;
+      flex-wrap: wrap;
     }
 
     ion-item ion-label {
@@ -199,6 +200,9 @@ body.elderly-mode {
 
     ion-item ion-note {
       font-size: 17px !important;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      max-width: 100%;
     }
 
     ion-input,
@@ -244,6 +248,9 @@ body.elderly-mode {
 
     ion-item ion-note {
       font-size: 17px !important;
+      word-break: break-all;
+      overflow-wrap: break-word;
+      max-width: 100%;
     }
   }
 

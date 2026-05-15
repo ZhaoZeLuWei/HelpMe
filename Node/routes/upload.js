@@ -25,23 +25,60 @@ const storage = multer.diskStorage({
 
 // 文件头魔数校验（验证真实文件类型）
 const IMAGE_SIGNATURES = {
-  // PNG: 89 50 4E 47
+  // PNG: 89 50 4E 47 (也支持 APNG)
   png: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
-  // JPEG: FF D8 FF
+  // JPEG: FF D8 FF (支持 jpg/jpe/jfif/pjp/pjpeg)
   jpeg: Buffer.from([0xff, 0xd8, 0xff]),
   // GIF: 47 49 46 38
   gif: Buffer.from([0x47, 0x49, 0x46, 0x38]),
-  // WebP: 52 49 46 46 ... 57 45 42 50
+  // WebP: 52 49 46 46
   webp: Buffer.from([0x52, 0x49, 0x46, 0x46]),
+  // BMP: 42 4D
+  bmp: Buffer.from([0x42, 0x4d]),
+  // TIFF (little-endian): 49 49 2A 00
+  tiff_le: Buffer.from([0x49, 0x49, 0x2a, 0x00]),
+  // TIFF (big-endian): 4D 4D 00 2A
+  tiff_be: Buffer.from([0x4d, 0x4d, 0x00, 0x2a]),
+  // ICO: 00 00 01 00
+  ico: Buffer.from([0x00, 0x00, 0x01, 0x00]),
+  // HEIF/HEIC: 66 74 79 70 68 65 69 63 (ftyp heic)
+  heic: Buffer.from([0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63]),
+  // HEIF: 66 74 79 70 68 65 69 66 (ftyp heif)
+  heif: Buffer.from([0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x66]),
+  // AVIF: 66 74 79 70 61 76 69 66 (ftyp avif)
+  avif: Buffer.from([0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66]),
+  // JPEG XL (JXL): FF 0A (裸流) 或 00 00 00 0C 4A 58 4C 20 (容器)
+  jxl_stream: Buffer.from([0xff, 0x0a]),
+  jxl_container: Buffer.from([0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20]),
+  // SVG: 以 <svg 或 <?xml 开头（文本格式）
+  // SVGZ: 1F 8B 08 (gzip压缩的SVG)
+  svgz: Buffer.from([0x1f, 0x8b, 0x08]),
 };
+
+// SVG/XBM 等文本格式需要特殊处理
+function validateTextBasedImage(buffer) {
+  if (!buffer || buffer.length < 10) return false;
+  const head = buffer.toString('ascii', 0, Math.min(buffer.length, 512));
+  // SVG: 以 <svg 或 <?xml 开头
+  if (head.startsWith('<svg') || head.startsWith('<?xml')) return true;
+  // XBM: 以 #define 开头
+  if (head.startsWith('#define')) return true;
+  return false;
+}
 
 function validateImageMagicNumber(buffer) {
   if (!buffer || buffer.length < 4) return false;
 
+  // 先检查二进制格式的魔数
   for (const [type, signature] of Object.entries(IMAGE_SIGNATURES)) {
     if (buffer.subarray(0, signature.length).equals(signature)) {
       return true;
     }
+  }
+
+  // 再检查文本格式（SVG、XBM）
+  if (validateTextBasedImage(buffer)) {
+    return true;
   }
 
   return false;

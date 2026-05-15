@@ -1,14 +1,9 @@
 /* eslint-env node, es2021 */
 const jwt = require("jsonwebtoken");
 
-// JWT 配置（必须从环境变量读取）
+// JWT 配置（必须从环境变量读取，index.js 启动时已校验）
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
-
-// 检查必要环境变量是否配置
-if (!JWT_SECRET) {
-  console.error("错误: 缺少 JWT_SECRET 环境变量");
-}
 
 // 只放必要信息进 token（不要放手机号/身份证等敏感信息）
 // role: 'user' | 'admin'，默认 'user'
