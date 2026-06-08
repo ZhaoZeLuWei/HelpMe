@@ -2,13 +2,14 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ServeAPIService {
   // 基础URL
-  private baseUrl = 'http://localhost:3000';
+  private baseUrl = environment.apiBase;
 
   // 认证审核相关URL
   private adminVerifyUrl = `${this.baseUrl}/adminVerify`;
@@ -24,6 +25,11 @@ export class ServeAPIService {
   // 获取基础URL
   getBaseUrl(): string {
     return this.baseUrl;
+  }
+
+  // 获取当前登录用户的token（用于图片等需要认证的资源请求）
+  getToken(): string | null {
+    return localStorage.getItem('admin_token');
   }
 
   // ========== 认证审核相关 ==========
@@ -89,5 +95,28 @@ export class ServeAPIService {
 
   deleteAdminEvent(eventId: number): Observable<any> {
     return this.http.delete<any>(`${this.baseUrl}/admin/events/${eventId}`);
+  }
+
+  // ========== 统计数据 ==========
+
+  getAdminStats(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/admin/stats`);
+  }
+
+  // ========== 评价管理相关 ==========
+
+  // 获取管理端评价列表
+  getAdminReviewsList(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/admin/reviews`);
+  }
+
+  // 删除管理端评价
+  deleteAdminReview(reviewId: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/admin/reviews/${reviewId}`);
+  }
+
+  // 获取订单的评价列表（用于订单详情）
+  getReviewsByOrderId(orderId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/reviews?orderId=${orderId}`);
   }
 }

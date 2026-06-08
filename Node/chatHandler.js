@@ -3,13 +3,28 @@ const pool = require("./help_me_db.js");
 const Room = require("./models/Room");
 const Message = require("./models/Message");
 const { getIO } = require("./socketInstance.js");
+const { moderateContent } = require("./Services/contentModeration.js");
 //socket.emit 个人错误提示
 //io.to(room).emit 指定房间包含自己，对话转发
 //socket.io(roon).emit “谁加入了房间”，这个东西自己看不到
 //io.emit  系统公告，全站广播
 
+// 校验用户是否有权限访问该房间
+const validateRoomAccess = async (roomId, userId) => {
+  // 系统房间校验：system_{userId} 格式，且 userId 必须与当前用户一致
+  if (String(roomId).startsWith("system_")) {
+    const roomUserId = String(roomId).replace("system_", "");
+    return Number(roomUserId) === Number(userId);
+  }
+
+  // 普通房间校验：用户必须是房间的 creatorId 或 partnerId
+  const room = await Room.findById(roomId);
+  if (!room) return false;
+  return room.creatorId === Number(userId) || room.partnerId === Number(userId);
+};
+
 //根据roomId， 读取mongodb中所有符合条件的消息
-const getChatHistory = async (queryParams) => {
+const getChatHistory = async (queryParams, currentUserId) => {
   try {
     const {
       roomId,
@@ -20,10 +35,20 @@ const getChatHistory = async (queryParams) => {
       sortOrder,
     } = queryParams;
 
-    const query = {}; // 默认为空对象，表示查询所有文档
-    if (roomId) {
-      query.roomId = roomId; // 如果传了 roomId，才加上筛选条件
+    // 必须提供 roomId 且必须校验用户权限
+    if (!roomId) {
+      return { success: false, message: "缺少 roomId 参数" };
     }
+
+    // 校验用户是否有权限访问该房间
+    if (currentUserId) {
+      const hasAccess = await validateRoomAccess(roomId, currentUserId);
+      if (!hasAccess) {
+        return { success: false, message: "无权访问此聊天房间", code: 403 };
+      }
+    }
+
+    const query = { roomId };
 
     const pageNum = parseInt(page, 10);
     const size = parseInt(pageSize, 10);
@@ -68,9 +93,13 @@ const getChatHistory = async (queryParams) => {
       id: msg._id.toString(),
       roomId: msg.roomId,
       senderId: msg.senderId,
-      text: msg.text,
+      messageType: msg.messageType || "text",
+      text: msg.text || "",
+      imageUrl: msg.imageUrl || "",
+      location: msg.location || null,
       sendTime: new Date(msg.sendTime).toLocaleString(),
       userName: msg.userName,
+      targetUserId: msg.targetUserId ?? null,
     }));
 
     // 返回结果
@@ -101,6 +130,15 @@ const getRoomList = async (queryParams) => {
     const query = {};
 
     if (roomId) {
+      // 如果指定了 roomId，必须校验当前用户是否为房间成员
+      const currentUserId = queryParams.currentUserId;
+      if (!currentUserId) {
+        return { success: false, message: "缺少用户身份信息" };
+      }
+      const hasAccess = await validateRoomAccess(roomId, currentUserId);
+      if (!hasAccess) {
+        return { success: false, message: "无权访问此房间", code: 403 };
+      }
       query._id = roomId;
     } else if (eventId) {
       query.eventId = eventId;
@@ -211,6 +249,7 @@ const getRoomList = async (queryParams) => {
           id: Number(room.eventId) || 0,
           name: eventMap[Number(room.eventId)] || "未知事件",
         },
+        orderId: room.orderId || null,
         lastMsg: room.lastMsg || "",
         unreadCount: room.unreadCount || {},
         updatedAt: room.updatedAt,
@@ -274,6 +313,58 @@ const sendSystemMessage = async ({ roomId, text, senderId }) => {
   }
 };
 
+// 订单房间系统消息发送：写入 MongoDB + 更新 Room + 通知买卖双方
+const sendOrderSystemMessage = async ({
+  roomId,
+  text,
+  senderId,
+  targetUserId,
+}) => {
+  try {
+    const messageData = {
+      roomId,
+      text,
+      senderId,
+      userName: "系统通知",
+      sendTime: new Date(),
+      targetUserId: targetUserId || null,
+    };
+
+    await Message.create(messageData);
+
+    // 更新房间的 lastMsg 和 updatedAt
+    await Room.updateOne(
+      { _id: roomId },
+      { $set: { lastMsg: text, updatedAt: new Date() } },
+    );
+
+    const io = getIO();
+    if (io) {
+      // 实时推送到订单房间（有 targetUserId 时只推给指定用户）
+      if (targetUserId) {
+        io.to(String(targetUserId)).emit("chat message", messageData);
+      } else {
+        io.to(roomId).emit("chat message", messageData);
+      }
+
+      // 通知买卖双方刷新聊天列表
+      const room = await Room.findById(roomId);
+      if (room) {
+        const userIds = [room.creatorId, room.partnerId].filter(Boolean);
+        for (const uid of userIds) {
+          io.to(String(uid)).emit("listUpdate", {
+            roomId,
+            lastMsg: text,
+            updatedAt: new Date(),
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("sendOrderSystemMessage 失败:", err);
+  }
+};
+
 module.exports.registerChatHandler = (io, socket) => {
   //join the room 加入聊天房间代码
   const joinRoom = async (roomId) => {
@@ -283,38 +374,90 @@ module.exports.registerChatHandler = (io, socket) => {
     //user join into private chat list server room
     if (socket.user && socket.user.id) {
       socket.join(socket.user.id.toString());
-      console.log(`User ${socket.user.id} joined private room`);
     }
 
     if (!roomId) return;
+
+    // 校验 roomId 格式（白名单）
+    const isValidRoomId =
+      String(roomId).startsWith("system_") ||
+      /^\d+_\d+_\d+$/.test(String(roomId)); // eventId_creatorId_partnerId 格式
+
+    if (!isValidRoomId) {
+      socket.emit("joinRoomError", { message: "无效的房间 ID 格式" });
+      return;
+    }
+
     try {
       let room = await Room.findById(roomId);
-      if (!room) {
-        const parts = roomId.split("_");
 
-        const eventId = parseInt(parts[0], 10);
-        const creatorId = parseInt(parts[1], 10);
-        const partnerId = parseInt(parts[2], 10);
-
-        room = await Room.create({
-          _id: roomId,
-          eventId,
-          creatorId,
-          partnerId,
-        });
-
-        console.log(`Room created in MongoDB: ${roomId}`);
+      // 系统房间：必须校验 userId 与当前用户一致
+      if (String(roomId).startsWith("system_")) {
+        const roomUserId = String(roomId).replace("system_", "");
+        if (Number(roomUserId) !== socket.user.id) {
+          socket.emit("joinRoomError", { message: "无权加入此系统房间" });
+          return;
+        }
       }
+
+      // 如果房间不存在，自动创建（普通房间和系统房间均支持）
+      if (!room) {
+        if (String(roomId).startsWith("system_")) {
+          // 系统房间：creatorId 和 partnerId 均为当前用户
+          room = await Room.create({
+            _id: roomId,
+            creatorId: socket.user.id,
+            partnerId: socket.user.id,
+          });
+          console.log(`系统房间已创建: ${roomId}`);
+        } else {
+          // 普通房间：从 roomId（eventId_creatorId_partnerId）中解析用户 ID
+          const parts = String(roomId).split("_");
+          if (parts.length === 3) {
+            const [, partA, partB] = parts.map(Number);
+            // 校验当前用户是否为房间成员之一
+            if (socket.user.id !== partA && socket.user.id !== partB) {
+              socket.emit("joinRoomError", { message: "无权加入此聊天房间" });
+              return;
+            }
+            room = await Room.create({
+              _id: roomId,
+              eventId: Number(parts[0]),
+              creatorId: partA,
+              partnerId: partB,
+            });
+            console.log(`普通房间已创建: ${roomId}`);
+          } else {
+            socket.emit("joinRoomError", { message: "无效的房间 ID 格式" });
+            return;
+          }
+        }
+      } else {
+        // 房间已存在，校验用户是否为成员
+        const isMember =
+          room.creatorId === socket.user.id ||
+          room.partnerId === socket.user.id;
+        if (!isMember) {
+          socket.emit("joinRoomError", { message: "无权加入此聊天房间" });
+          return;
+        }
+      }
+
       socket.join(roomId);
 
       //share the room id to all socket functions!
       socket.currentRoom = roomId;
-      const joined = `connect to room ${roomId} SUCCESS ✅`;
-      console.log(joined);
+      console.log(`connect to room ${roomId} SUCCESS`);
+
+      // 根据房间类型发送不同的连接提示
+      const isSystemRoom = roomId.startsWith("system_");
+      const connectText = isSystemRoom
+        ? "已连接至通知中心"
+        : `${socket.user?.name || "对方"}已加入，可以开始聊天了`;
 
       //send connectSuccess Msg
       io.to(roomId).emit("connectSuccess", {
-        text: joined,
+        text: connectText,
         senderId: "system_bot",
         userName: "系统通知",
         sendTime: new Date(),
@@ -342,9 +485,51 @@ module.exports.registerChatHandler = (io, socket) => {
         return;
       }
 
+      // 校验用户是否有权限在该房间发送消息
+      const room = await Room.findById(roomId);
+      if (!room) {
+        socket.emit("messageError", { message: "房间不存在" });
+        return;
+      }
+
+      const isMember =
+        room.creatorId === socket.user.id || room.partnerId === socket.user.id;
+      if (!isMember) {
+        socket.emit("messageError", { message: "无权在此房间发送消息" });
+        return;
+      }
+
+      // 内容安全审核（仅审核文本消息）
+      let finalText = msg.text || "";
+      if (msg.messageType === "text" && msg.text && msg.text.trim()) {
+        try {
+          const moderationResult = await moderateContent(
+            msg.text,
+            "chatText",
+            socket.user.id.toString(),
+          );
+          if (!moderationResult.safe) {
+            // 使用打码后的内容
+            finalText = moderationResult.maskedContent || msg.text;
+            console.log(`聊天内容已打码处理: ${moderationResult.message}`);
+          }
+        } catch (moderationError) {
+          console.error("聊天内容审核异常:", moderationError);
+          // 审核异常时也阻止发送，避免违规内容漏检
+          socket.emit("moderationFailed", {
+            message: "内容安全检测暂时不可用，请稍后重试",
+            code: "CONTENT_MODERATION_ERROR",
+          });
+          return;
+        }
+      }
+
       const messageData = {
         roomId: roomId,
-        text: msg.text,
+        messageType: msg.messageType || "text",
+        text: finalText,
+        imageUrl: msg.imageUrl || "",
+        location: msg.location || null,
         senderId: socket.user.id,
         userName: socket.user.name,
         timestamp: new Date(),
@@ -361,8 +546,6 @@ module.exports.registerChatHandler = (io, socket) => {
 
       //update room last Msg
       const senderId = socket.user.id;
-
-      const room = await Room.findById(roomId);
 
       const receiverId =
         senderId === room.creatorId ? room.partnerId : room.creatorId;
@@ -407,3 +590,4 @@ module.exports.registerChatHandler = (io, socket) => {
 module.exports.getChatHistory = getChatHistory;
 module.exports.getRoomList = getRoomList;
 module.exports.sendSystemMessage = sendSystemMessage;
+module.exports.sendOrderSystemMessage = sendOrderSystemMessage;

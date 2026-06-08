@@ -1,27 +1,62 @@
+/* 详情页面样式 – 与 particular.page.scss 风格保持一致 */
+
+ion-content {
+  --background: var(--ion-background-color);
+  --offset-top: 0px;
+  --offset-bottom: 0px;
+}
+
+/* ===== 全局渐入动画 ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .detail-container {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+  height: 100%;
+  padding: 16px;
 }
 
-.content-area {
-  max-width: 800px;
-  margin: 0 auto;
+/* ===== 白色卡片容器 ===== */
+.info-card {
+  background: var(--ion-card-background, #fff);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
-/* 发布者信息 */
+/* 卡片渐入：依次出现 */
+.info-card:nth-child(1) {
+  animation: fadeInUp 0.4s ease-out both;
+}
+.info-card:nth-child(2) {
+  animation: fadeInUp 0.4s ease-out 0.12s both;
+}
+.info-card:nth-child(3) {
+  animation: fadeInUp 0.4s ease-out 0.24s both;
+}
+
+/* 发布者信息 – 与 particular.publisher-info 对齐 */
 .publisher-info {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  gap: 12px;
+  padding: 16px;
   cursor: pointer;
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--ion-color-step-150, rgba(0, 0, 0, 0.05));
   }
 
   .follow-button-container {
@@ -40,7 +75,7 @@
   height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #0F766E;
+  border: 2px solid var(--ion-color-light, var(--ion-background-color-step-200));
 }
 
 .publisher-text {
@@ -51,16 +86,16 @@
 .user-name-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
   white-space: nowrap;
 }
 
 .user-name-row h3 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #1E293B;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ion-text-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -69,102 +104,240 @@
 
 .service-badge {
   font-size: 12px;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
   white-space: nowrap;
 }
 
 .publisher-meta {
+  margin: 0;
   font-size: 14px;
-  color: #64748B;
-  margin: 8px 0;
+  color: var(--ion-color-medium);
   line-height: 1.4;
 }
 
 .user-introduction {
   font-size: 14px;
-  color: #64748B;
-  margin: 12px 0;
+  color: var(--ion-color-medium);
+  margin: 12px 0 0 0;
   line-height: 1.5;
-  background: #F8FAFC;
+  background: var(--ion-item-background, var(--ion-background-color-step-50));
   padding: 12px;
   border-radius: 8px;
-  border-left: 4px solid #0F766E;
+  border-left: 4px solid #0f766e;
 }
 
-/* 用户其他信息 */
-.user-other-info {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+/* 标签页导航 */
+.tab-navigation {
+  display: flex;
+  background: var(--ion-card-background, var(--ion-background-color));
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.user-other-info h3 {
-  margin: 0 0 20px 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1E293B;
-  border-left: 4px solid #0F766E;
-  padding-left: 12px;
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+
+  &:hover {
+    background-color: var(--ion-color-step-150, rgba(0, 0, 0, 0.05));
+  }
+
+  &.active {
+    background: #0f766e;
+    color: #ffffff;
+    font-weight: 600;
+  }
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 20px;
+/* 标签页内容 – 与 particular.event-info 风格一致 */
+.tab-content {
+  background-color: var(--ion-card-background, var(--ion-background-color));
+  padding: 12px;
+  max-height: 420px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.stat-item {
+.tab-pane h3 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  padding-left: 0;
+  border: none;
+}
+
+/* 空状态 */
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: #F8FAFC;
-  border-radius: 8px;
+  justify-content: center;
+  padding: 60px 20px;
   text-align: center;
-  transition: transform 0.2s, box-shadow 0.2s;
+  color: var(--ion-color-medium);
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  ion-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+    font-size: 16px;
   }
 }
 
-.stat-item ion-icon {
-  font-size: 24px;
-  color: #0F766E;
+/* ===== 列表项通用样式 ===== */
+.list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--ion-background-color-step-100);
+  transition: background-color 0.15s;
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background-color: var(--ion-color-step-50, rgba(0, 0, 0, 0.03));
+  }
+  &:active {
+    background-color: var(--ion-color-step-100, rgba(0, 0, 0, 0.06));
+  }
 }
 
-.stat-item span {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1E293B;
+.type-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+
+  ion-icon {
+    font-size: 22px;
+    margin-bottom: 2px;
+  }
 }
 
-.stat-item p {
-  font-size: 12px;
-  color: #64748B;
+.list-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ion-text-color);
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* 底部操作栏 */
-.bottom-actions {
-  gap: 10px;
+.list-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ion-color-medium);
+
+  .price {
+    font-weight: 700;
+    color: #d97706;
+  }
 }
 
-/* 响应式设计 */
+.list-item-end {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ion-color-medium-shade);
+  text-align: right;
+}
+
+/* 活动项应用通用样式 */
+.event-item {
+  @extend .list-item;
+}
+
+/* 已下架事件样式 */
+.event-deactivated {
+  opacity: 0.55;
+}
+
+.status-badge {
+  font-size: 10px;
+  vertical-align: middle;
+  margin-left: 4px;
+  font-weight: 500;
+}
+.comment-item {
+  @extend .list-item;
+}
+.activity-item {
+  @extend .list-item;
+}
+
+/* 评价独有的 header */
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.comment-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-author {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ion-text-color);
+}
+
+.comment-score {
+  font-size: 12px;
+  color: #ff9500;
+  font-weight: 600;
+}
+
+.comment-content {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  line-height: 1.4;
+  margin: 2px 0;
+}
+
+/* 响应式 */
 @media (max-width: 768px) {
   .detail-container {
-    padding: 16px;
+    flex-direction: column;
+    padding: 12px;
   }
 
   .publisher-info {
-    padding: 16px;
-    gap: 16px;
+    gap: 12px;
   }
 
   .user-avatar {
@@ -182,279 +355,8 @@
     align-self: flex-start;
   }
 
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-}
-/* 标签页导航样式 */
-.tab-navigation {
-  display: flex;
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 4px;
-  margin: 20px 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.tab-item {
-  flex: 1;
-  text-align: center;
-  padding: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-  color: #64748B;
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
-
-  &.active {
-    background: #0F766E;
-    color: #ffffff;
-    font-weight: 600;
-  }
-}
-
-/* 标签页内容样式 */
-.tab-content {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-height: 400px;
-}
-
-.tab-pane h3 {
-  margin: 0 0 20px 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1E293B;
-  border-left: 4px solid #0F766E;
-  padding-left: 12px;
-}
-
-/* 空状态样式 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  color: #94A3B8;
-
-  ion-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-
-  p {
-    margin: 0;
-    font-size: 16px;
-  }
-}
-
-/* 活动项样式 */
-.event-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid #F1F5F9;
-  transition: background-color 0.2s;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background-color: #F8FAFC;
-  }
-
-  .event-info {
-    flex: 1;
-    
-    h4 {
-      margin: 0 0 8px 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: #1E293B;
-    }
-  }
-
-  .event-category {
-    margin: 0 0 4px 0;
-    font-size: 14px;
-    color: #64748B;
-  }
-
-  .event-price {
-    margin: 0 0 4px 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: #0F766E;
-  }
-
-  .event-time {
-    margin: 0;
-    font-size: 12px;
-    color: #94A3B8;
-  }
-}
-
-/* 类型指示器样式 */
-.type-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 60px;
-  padding: 8px;
-  background: #F8FAFC;
-  border-radius: 8px;
-  flex-shrink: 0;
-
-  ion-icon {
-    font-size: 28px;
-    margin-bottom: 4px;
-  }
-
-  .type-label {
-    font-size: 12px;
-    font-weight: 600;
-  }
-}
-
-/* 评价项样式 */
-.comment-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid #F1F5F9;
-  transition: background-color 0.2s;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background-color: #F8FAFC;
-  }
-
-  .comment-content-wrapper {
-    flex: 1;
-  }
-
-  // 评论头像样式
-  .comment-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 10px;
-    vertical-align: middle;
-  }
-
-  // 评论头部布局
-  .comment-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  // 评论作者名称
-  .comment-author {
-    font-weight: 500;
-    color: #333;
-  }
-
-  // 评论分数
-  .comment-score {
-    color: #ff9500;
-    font-weight: bold;
-  }
-
-  // 评论内容
-  .comment-content {
-    color: #666;
-    line-height: 1.5;
-    margin: 8px 0;
-  }
-
-  // 评论时间
-  .comment-time {
-    font-size: 12px;
-    color: #999;
-  }
-}
-
-/* 活动动态项样式 */
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid #F1F5F9;
-  transition: background-color 0.2s;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    background-color: #F8FAFC;
-  }
-
-  .activity-content-wrapper {
-    flex: 1;
-  }
-
-  .activity-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-
-    .activity-type {
-      font-size: 12px;
-      padding: 4px 12px;
-      background: #E0F2FE;
-      color: #0284C7;
-      border-radius: 12px;
-      font-weight: 500;
-    }
-
-    .activity-time {
-      font-size: 12px;
-      color: #94A3B8;
-    }
-  }
-
-  .activity-content h4 {
-    margin: 0 0 8px 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #1E293B;
-  }
-
-  .activity-content p {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.5;
-    color: #475569;
-  }
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
   .tab-navigation {
-    margin: 16px 0;
+    margin: 12px 0;
   }
 
   .tab-item {
@@ -463,7 +365,7 @@
   }
 
   .tab-content {
-    padding: 16px;
+    padding: 12px;
   }
 
   .event-item,
@@ -472,16 +374,118 @@
     padding: 12px;
   }
 }
-.event-item,
-.activity-item {
-  cursor: pointer;
-  transition: background-color 0.2s;
 
-  &:hover {
-    background-color: #f5f5f5;
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .user-avatar {
+    width: 96px;
+    height: 96px;
+  }
+  .user-name-row h3 {
+    font-size: 26px;
+    font-weight: 800;
+  }
+  .service-badge {
+    font-size: 16px;
+    padding: 4px 12px;
+  }
+  .publisher-meta {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  .user-introduction {
+    font-size: 18px;
+    line-height: 1.6;
+    padding: 16px;
   }
 
-  &:active {
-    background-color: #e0e0e0;
+  .tab-item {
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .tab-pane h3 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .list-item-title {
+    font-size: 20px;
+    font-weight: 700;
+    white-space: normal;
+  }
+  .list-item-meta {
+    font-size: 16px;
+    gap: 12px;
+    .price {
+      font-size: 18px;
+    }
+  }
+  .list-item-end {
+    font-size: 16px;
+  }
+  .type-badge {
+    min-width: 72px;
+    font-size: 16px;
+    ion-icon {
+      font-size: 28px;
+    }
+  }
+
+  .comment-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  .comment-author {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .comment-score {
+    font-size: 16px;
+  }
+  .comment-content {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  .empty-state {
+    ion-icon {
+      font-size: 64px;
+    }
+    p {
+      font-size: 20px;
+    }
+  }
+
+  .follow-button-container ion-button {
+    font-size: 18px;
+    height: 48px;
+  }
+}
+
+/* =========================================================================
+   Dark Mode Overrides (深色模式适配)
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  /* 价格文字在深色模式下使用更亮的琥珀色 */
+  .list-item-meta .price {
+    color: #fbbf24;
+  }
+
+  /* 评论评分在深色模式下使用更亮的橙色 */
+  .comment-score {
+    color: #ffb340;
+  }
+
+  /* 标签页活跃状态在深色模式下降低饱和度 */
+  .tab-item.active {
+    background: #0d6b63;
+  }
+
+  /* 用户介绍左边框颜色适配深色模式 */
+  .user-introduction {
+    border-left-color: #14b8a6;
   }
 }

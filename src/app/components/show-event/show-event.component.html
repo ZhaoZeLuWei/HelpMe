@@ -1,16 +1,40 @@
-<div class="small-card clickable-card" (click)="onCardClick()">
+<div
+  class="small-card clickable-card"
+  [ngClass]="{
+    'type-request': event.eventType === 0,
+    'type-help': event.eventType === 1,
+  }"
+  (click)="onCardClick()"
+>
   <!-- 图片区域 -->
   <div class="card-image-wrapper">
-    <!--  调用图片 on-image-url" 存在则显示图片；不存在则显示占位图 -->
     <img
       [src]="imgUrl(event.cardImage)"
       (error)="onImageError($event)"
       class="card-image-img"
       [alt]="t.eventImage"
     />
-    <div class="distance-in-image">
-      <span class="material-icons">location_on</span>
-      <span>{{ event.distance }}</span>
+    <!-- 类型标识条（整合距离信息在右下角） -->
+    <div
+      class="card-type-strip"
+      [class.strip-request]="event.eventType === 0"
+      [class.strip-help]="event.eventType === 1"
+    >
+      <span class="strip-left">
+        @if (event.eventType === 0) {
+          <span class="type-icon material-icons">handyman</span>
+          <span class="type-text">{{ t.requestLabel }}</span>
+        } @else if (event.eventType === 1) {
+          <span class="type-icon material-icons">volunteer_activism</span>
+          <span class="type-text">{{ t.helpLabel }}</span>
+        }
+      </span>
+      @if (!isOnline && event.distance) {
+        <span class="strip-right">
+          <span class="material-icons">location_on</span>
+          <span>{{ event.distance }}</span>
+        </span>
+      }
     </div>
   </div>
 
@@ -24,7 +48,6 @@
       />
     </div>
     <div class="name-address-wrapper">
-
       <div class="user-info">
         <span class="user-name">{{ event.name }}</span>
         <span class="user-address">{{ event.address }}</span>
@@ -33,7 +56,14 @@
   </div>
 
   <div class="event-title">{{ event.title }}</div>
+  <div class="card-tags">
+    @if (event.tags) {
+      @for (tag of event.tags.split(",").slice(0, 3); track $index) {
+        <span class="card-tag">#{{ tag }}</span>
+      }
+    }
+  </div>
   <div class="card-footer">
-    <span class="price">{{ event.price }}</span>
+    <span class="price">￥{{ event.price }}</span>
   </div>
 </div>

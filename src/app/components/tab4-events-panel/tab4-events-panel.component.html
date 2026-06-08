@@ -1,7 +1,9 @@
 <div class="tasks-list">
   @if (isLoading) {
     <div class="empty-state">
-      <ion-text color="medium"><p>事件加载中...</p></ion-text>
+      <ion-text color="medium"
+        ><p>{{ t.eventPanel.loading }}</p></ion-text
+      >
     </div>
   }
   @for (event of events; track event.id) {
@@ -13,10 +15,19 @@
         (click)="viewDetail.emit(event.id)"
       >
         <ion-label>
-          <h2 class="task-title">{{ event.title }}</h2>
-          <p class="task-meta">{{ event.location || "未填写地点" }}</p>
+          <h2 class="task-title">
+            {{ event.title | tText }}
+            @if (event.Status !== 0) {
+              <ion-badge color="medium" class="status-badge">{{
+                t.eventPanel.deactivated || "已下架"
+              }}</ion-badge>
+            }
+          </h2>
           <p class="task-meta">
-            事件号：{{ event.id }} · {{ event.createdAt }}
+            {{ (event.location | tText) || t.eventPanel.noLocation }}
+          </p>
+          <p class="task-meta">
+            {{ t.eventPanel.eventId }}{{ event.id }} · {{ event.createdAt }}
           </p>
         </ion-label>
         <ion-badge slot="end" [color]="event.statusColor">{{
@@ -25,25 +36,53 @@
       </ion-item>
       <ion-item lines="none" class="task-actions">
         <ion-buttons slot="end">
-          <ion-button (click)="viewDetail.emit(event.id)">详情</ion-button>
-          @if (blockedEditIds.has(event.id)) {
-            <ion-button disabled color="medium"
-              >订单进行中，禁止编辑</ion-button
-            >
-            <ion-button disabled color="medium"
-              >有关联订单，禁止删除</ion-button
-            >
+          <ion-button (click)="viewDetail.emit(event.id)">{{
+            t.eventPanel.details
+          }}</ion-button>
+          @if (event.Status !== 0) {
+            @if (blockedToggleIds.has(event.id)) {
+              <ion-button disabled color="medium">{{
+                t.eventPanel.activeOrderToggleBlocked || "订单进行中，禁止上架"
+              }}</ion-button>
+            } @else {
+              <ion-button color="success" (click)="toggleStatus.emit(event)">{{
+                t.eventPanel.activate || "上架"
+              }}</ion-button>
+            }
           } @else {
-            <ion-button (click)="edit.emit(event.id)">编辑</ion-button>
+            @if (blockedToggleIds.has(event.id)) {
+              <ion-button disabled color="medium">{{
+                t.eventPanel.activeOrderToggleBlocked || "订单进行中，禁止下架"
+              }}</ion-button>
+            } @else {
+              <ion-button color="warning" (click)="toggleStatus.emit(event)">{{
+                t.eventPanel.deactivate || "下架"
+              }}</ion-button>
+            }
+          }
+          @if (blockedEditOnlyIds.has(event.id)) {
+            <ion-button disabled color="medium">{{
+              t.eventPanel.editBlocked
+            }}</ion-button>
+          } @else {
+            <ion-button (click)="edit.emit(event.id)">{{
+              t.eventPanel.edit
+            }}</ion-button>
+          }
+          @if (blockedEditIds.has(event.id)) {
+            <ion-button disabled color="medium">{{
+              t.eventPanel.deleteBlocked
+            }}</ion-button>
+          } @else {
             <ion-button
               color="danger"
               [disabled]="deletingIds.has(event.id)"
               (click)="remove.emit(event.id)"
             >
               @if (deletingIds.has(event.id)) {
-                删除中...
+                {{ t.eventPanel.deleting }}
               } @else {
-                删除
+                {{ t.eventPanel.delete }}
               }
             </ion-button>
           }
@@ -53,8 +92,11 @@
   }
   @if (!isLoading && events.length === 0) {
     <div class="empty-state">
-      <ion-icon name="document-text" class="empty-icon"></ion-icon>
-      <ion-text color="medium"><p>暂无事件</p></ion-text>
+      <div class="empty-icon-wrapper">
+        <ion-icon name="clipboard-outline" class="empty-icon"></ion-icon>
+      </div>
+      <p class="empty-title">{{ t.eventPanel.noEvents }}</p>
+      <p class="empty-sub">{{ t.eventPanel.emptyHint }}</p>
     </div>
   }
 </div>

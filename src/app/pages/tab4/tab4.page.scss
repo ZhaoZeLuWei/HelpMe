@@ -30,7 +30,73 @@
 
 .review-form,
 .edit-profile-modal-content {
-  padding: 16px;
+  --background: var(--ion-background-color);
+}
+
+ion-modal {
+  --background: var(--ion-card-background, #ffffff);
+  --border-radius: 20px;
+  --box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+
+  ion-toolbar {
+    --background: var(--ion-card-background, #ffffff);
+    --border-color: transparent;
+
+    ion-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ion-text-color);
+    }
+
+    ion-button {
+      font-size: 16px;
+    }
+  }
+
+  ion-content {
+    --background: var(--ion-background-color);
+  }
+
+  ion-list {
+    background: transparent;
+    padding: 8px 0;
+  }
+
+  ion-item {
+    --background: var(--ion-card-background, #ffffff);
+    --min-height: 56px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --inner-padding-end: 16px;
+    margin: 8px 16px;
+    border-radius: 12px;
+    --border-radius: 12px;
+    --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+    ion-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ion-text-color);
+      margin-bottom: 4px;
+    }
+
+    ion-input,
+    ion-textarea {
+      --placeholder-color: var(--ion-color-medium);
+      --color: var(--ion-text-color);
+      font-size: 16px;
+    }
+  }
+
+  ion-button[expand="block"] {
+    --border-radius: 12px;
+    --padding-top: 16px;
+    --padding-bottom: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 16px;
+    height: 52px;
+  }
 }
 
 .modal-actions {
@@ -94,51 +160,86 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 16px;
-}
-
-.empty-icon {
-  font-size: 48px;
-  color: var(--ion-color-light);
-  margin-bottom: 12px;
-}
-
-.avatar-hint,
-.hint-text {
-  font-size: 13px;
-  color: var(--ion-color-medium);
+  padding: 48px 24px;
   text-align: center;
+  animation: fadeIn 0.4s ease-out;
+
+  .empty-icon-wrapper {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(156, 163, 175, 0.1);
+    border-radius: 50%;
+    margin-bottom: 16px;
+
+    .empty-icon {
+      font-size: 36px;
+      --color: #9ca3af;
+    }
+  }
+
+  .empty-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ion-text-color);
+    margin: 0 0 6px;
+  }
+
+  .empty-sub {
+    font-size: 13px;
+    color: var(--ion-color-medium);
+    margin: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 // 订单详情弹窗
 .order-detail-content {
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .detail-section {
-  margin-bottom: 20px;
-  padding: 12px;
-  background: var(--ion-color-light-tint, #f8f8f8);
-  border-radius: 12px;
+  padding: 16px;
+  background: var(--ion-card-background, #ffffff);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 
   h3 {
-    margin: 0 0 12px;
-    font-size: 15px;
-    font-weight: 600;
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 700;
     color: var(--ion-color-primary);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--ion-background-color-step-150);
 
     ion-icon {
-      font-size: 18px;
+      font-size: 20px;
     }
   }
 
   p {
-    margin: 0 0 8px;
+    margin: 0 0 10px;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
+    color: var(--ion-text-color);
 
     &:last-child {
       margin-bottom: 0;
@@ -146,8 +247,16 @@
 
     strong {
       color: var(--ion-color-medium);
+      font-weight: 500;
+      min-width: 80px;
+      display: inline-block;
     }
   }
+}
+
+.cancelled-info {
+  color: var(--ion-color-danger, #eb445a) !important;
+  font-weight: 500;
 }
 
 // 快照照片网格
@@ -171,4 +280,518 @@
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid var(--ion-color-light);
+}
+
+/* ===== 分段控制器美化 ===== */
+ion-segment {
+  box-sizing: border-box;
+  // 避免 width:100% + 左右 margin 导致右侧溢出（勿设 display:block，会破坏横向布局）
+  width: calc(100% - 32px);
+  max-width: calc(100% - 32px);
+  margin: 16px 16px 4px;
+  padding: 4px;
+  overflow: hidden;
+  --background: var(--ion-color-step-100, #f1f5f9);
+  border-radius: 12px;
+  border: 1px solid var(--ion-background-color-step-150, #e2e8f0);
+
+  ion-segment-button {
+    flex: 1;
+    min-width: 0;
+    --border-radius: 8px;
+    --indicator-box-shadow: none;
+    // 浅色模式：未选中灰字，选中主色字 + 浅绿底（避免白字落在浅灰底上）
+    --indicator-color: rgba(var(--ion-color-primary-rgb, 16, 185, 129), 0.14);
+    --indicator-height: calc(100% - 8px);
+    --color: var(--ion-color-medium, #64748b);
+    --color-checked: var(--ion-color-primary, #10b981);
+    --padding-top: 10px;
+    --padding-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0.2px;
+    transition:
+      color 0.2s ease,
+      --indicator-color 0.2s ease;
+
+    ion-label {
+      color: var(--color);
+      transition: color 0.2s ease;
+    }
+
+    &.segment-button-checked ion-label {
+      color: var(--color-checked);
+      font-weight: 700;
+    }
+
+    &::part(indicator) {
+      border-radius: 8px;
+    }
+
+    &::part(indicator-background) {
+      border-radius: 8px;
+      background: var(--indicator-color);
+    }
+
+    &::part(native) {
+      border-radius: 8px;
+      color: var(--color);
+    }
+
+    &.segment-button-checked::part(native) {
+      color: var(--color-checked);
+    }
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-segment {
+    --background: var(--ion-color-step-100, #2a2a2a);
+    border-color: var(--ion-color-step-150, #30363d);
+
+    ion-segment-button {
+      // 深色模式：未选中半透白，选中白字 + 实心主色底
+      --color: rgba(255, 255, 255, 0.55);
+      --color-checked: #ffffff;
+      --indicator-color: var(--ion-color-primary, #10b981);
+
+      ion-label {
+        color: var(--color);
+      }
+
+      &.segment-button-checked ion-label {
+        color: var(--color-checked);
+      }
+
+      &::part(native) {
+        color: var(--color);
+      }
+
+      &.segment-button-checked::part(native) {
+        color: var(--color-checked);
+      }
+    }
+  }
+}
+
+/* ===== 快捷入口卡片 ===== */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.quick-action-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--ion-card-background, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.quick-action-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  ion-icon {
+    font-size: 22px;
+    color: white;
+  }
+
+  &.favorites {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+  }
+
+  &.follows {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  }
+}
+
+.quick-action-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.quick-action-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.quick-action-desc {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+
+.quick-action-arrow {
+  font-size: 16px;
+  color: var(--ion-color-medium);
+  flex-shrink: 0;
+}
+
+// 收藏列表
+.favorites-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// 关注列表
+.follows-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.follow-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--ion-card-background, #ffffff);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  .follow-avatar-container {
+    flex-shrink: 0;
+  }
+
+  .follow-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid
+      var(--ion-color-light, var(--ion-background-color-step-200));
+  }
+
+  .follow-info {
+    flex: 1;
+    min-width: 0;
+
+    h4 {
+      margin: 0 0 4px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ion-text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--ion-color-medium);
+    }
+
+    .follow-meta {
+      font-size: 12px;
+      color: var(--ion-color-medium-shade, var(--ion-color-medium));
+    }
+  }
+
+  ion-button {
+    flex-shrink: 0;
+    --border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+/* =========================================================================
+   Elderly Mode CSS Overrides (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .login-prompt {
+    padding: 120px 32px;
+    h2 {
+      font-size: 32px;
+      font-weight: 800;
+    }
+    p {
+      font-size: 20px;
+    }
+    .prompt-icon {
+      font-size: 100px;
+    }
+    ion-button {
+      font-size: 20px;
+      height: 56px;
+    }
+  }
+
+  /* 分段控制器 */
+  ion-segment {
+    width: calc(100% - 32px);
+    max-width: calc(100% - 32px);
+    margin: 16px;
+    --border-radius: 14px;
+  }
+
+  ion-segment-button {
+    font-size: 20px;
+    font-weight: 700;
+    --padding-top: 14px;
+    --padding-bottom: 14px;
+    --indicator-height: calc(100% - 8px);
+  }
+
+  /* 快捷入口卡片 */
+  .quick-actions-grid {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .quick-action-card {
+    padding: 16px;
+    gap: 12px;
+    border-radius: 16px;
+  }
+
+  .quick-action-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+
+    ion-icon {
+      font-size: 24px;
+    }
+  }
+
+  .quick-action-title {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .quick-action-desc {
+    font-size: 17px;
+  }
+
+  .quick-action-arrow {
+    font-size: 18px;
+  }
+
+  /* 订单详情弹窗 */
+  .order-detail-content {
+    padding: 24px;
+    gap: 24px;
+  }
+
+  .detail-section {
+    padding: 24px;
+    border-radius: 20px;
+
+    h3 {
+      font-size: 22px;
+      gap: 12px;
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+
+      ion-icon {
+        font-size: 28px;
+      }
+    }
+
+    p {
+      font-size: 18px;
+      line-height: 1.8;
+      margin-bottom: 14px;
+
+      strong {
+        min-width: 120px;
+        font-size: 18px;
+      }
+    }
+  }
+
+  /* 表单与弹窗（弹窗内容另见 body.elderly-mode ion-modal 全局规则） */
+  ion-item {
+    --padding-start: 24px;
+    --min-height: 64px;
+  }
+  ion-label {
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  ion-input,
+  ion-textarea,
+  ion-select {
+    font-size: 18px !important;
+  }
+
+  .edit-profile-modal-content {
+    ion-item ion-label {
+      font-size: 20px !important;
+    }
+
+    .avatar-hint,
+    .hint-text {
+      font-size: 16px;
+    }
+
+    .modal-actions ion-button {
+      font-size: 18px;
+      min-height: 52px;
+      font-weight: 700;
+    }
+
+    .avatar-actions ion-button {
+      font-size: 17px;
+      height: 48px;
+    }
+  }
+
+  /* 关注列表 */
+  .follows-list {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .follow-item {
+    padding: 20px;
+    gap: 16px;
+    border-radius: 18px;
+  }
+
+  .follow-avatar {
+    width: 60px;
+    height: 60px;
+  }
+
+  .follow-info h4 {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .follow-info p {
+    font-size: 17px;
+  }
+
+  .follow-info .follow-meta {
+    font-size: 16px;
+  }
+
+  .follow-item ion-button {
+    font-size: 17px;
+    height: 44px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    padding: 64px 24px;
+    .empty-icon-wrapper {
+      width: 88px;
+      height: 88px;
+      .empty-icon {
+        font-size: 44px;
+      }
+    }
+    .empty-title {
+      font-size: 20px;
+    }
+    .empty-sub {
+      font-size: 17px;
+    }
+  }
+}
+
+/* =========================================================================
+   Dark Mode Overrides (深色模式适配)
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  ion-modal {
+    --background: var(--ion-card-background, var(--ion-color-step-50));
+    --box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+
+    ion-toolbar {
+      --background: var(--ion-card-background, var(--ion-color-step-50));
+    }
+
+    ion-item {
+      --background: var(--ion-card-background, var(--ion-color-step-50));
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  /* 快捷入口卡片 */
+  .quick-action-card {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .avatar-upload-section {
+    background: var(--ion-item-background, var(--ion-color-step-100));
+  }
+
+  /* 订单详情弹窗 */
+  .detail-section {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+    h3 {
+      border-bottom-color: var(--ion-color-step-100);
+    }
+  }
+
+  /* 关注列表 */
+  .follow-item {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .follow-avatar {
+      border-color: var(--ion-color-step-200);
+    }
+  }
+
+  .snapshot-photo {
+    border-color: var(--ion-color-step-200);
+  }
 }

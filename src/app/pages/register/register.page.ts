@@ -14,8 +14,14 @@ import {
 } from '@angular/forms';
 import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
+import { LanguageService } from '../../services/language.service';
 import { environment } from '../../../environments/environment';
-import { LocationPickerComponent } from '../../components/location-picker/location-picker.component';
+import { LocationPickerService } from '../../services/location-picker.service';
+import { UploadService } from '../../services/upload.service';
+import {
+  AliyunCaptchaService,
+  CAPTCHA_BUSY_ERROR,
+} from '../../services/aliyun-captcha.service';
 
 @Component({
   selector: 'app-register',
@@ -28,6 +34,18 @@ export class RegisterPage {
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
+  private languageService = inject(LanguageService);
+  private captchaService = inject(AliyunCaptchaService);
+  private locationPicker = inject(LocationPickerService);
+  private uploadService = inject(UploadService);
+
+  t = this.languageService.getTranslations('zh').register;
+
+  constructor() {
+    this.languageService.currentLang$.subscribe((lang) => {
+      this.t = this.languageService.getTranslations(lang).register;
+    });
+  }
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 
@@ -78,11 +96,12 @@ export class RegisterPage {
   sending = signal(false);
   sendCooldown = signal(0); // 秒
   registering = signal(false);
+  private cooldownTimer: ReturnType<typeof setInterval> | null = null;
 
   async sendCode() {
     if (this.verifyForm.controls.phone.invalid) {
       const t = await this.toastCtrl.create({
-        message: '请输入有效的11位手机号',
+        message: this.t.invalidPhone,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -91,69 +110,107 @@ export class RegisterPage {
       return;
     }
 
-    if (this.sendCooldown() > 0) return;
+    if (this.sending() || this.sendCooldown() > 0) return;
 
-    // 先检查手机号是否已注册
     const phone = this.verifyForm.controls.phone.value || '';
+    this.sending.set(true);
+
     try {
-      const resp = await fetch(`${this.auth['API_BASE']}/check-phone`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
+      const checkResult = await this.auth.checkPhoneExists(phone);
+
+      if (!checkResult) {
+        const t = await this.toastCtrl.create({
+          message: this.t.phoneCheckFailed,
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await t.present();
+        return;
+      }
+
+      if (checkResult.exists) {
+        const t = await this.toastCtrl.create({
+          message: this.t.phoneExists,
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await t.present();
+        return;
+      }
+
+      let captchaData = null;
+      try {
+        captchaData = await this.captchaService.getValidate();
+      } catch (err) {
+        const message =
+          err instanceof Error && err.message === CAPTCHA_BUSY_ERROR
+            ? this.t.captchaInProgress
+            : err instanceof Error
+              ? err.message
+              : this.t.captchaLoadFailed;
+        const toast = await this.toastCtrl.create({
+          message,
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await toast.present();
+        return;
+      }
+
+      if (!captchaData) return;
+
+      const sendResult = await this.auth.sendVerificationCode(
+        phone,
+        captchaData,
+      );
+      if (!sendResult?.success) {
+        const toast = await this.toastCtrl.create({
+          message: sendResult?.error || this.t.codeSendFailed,
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await toast.present();
+        return;
+      }
+
+      const toast = await this.toastCtrl.create({
+        message: sendResult.message || this.t.codeSent,
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
       });
+      await toast.present();
 
-      const data = await resp.json().catch(() => null);
-
-      if (!resp.ok || !data?.success) {
-        const t = await this.toastCtrl.create({
-          message: data?.error || '检查手机号失败，请稍后重试',
-          duration: 2000,
-          position: 'bottom',
-          positionAnchor: 'main-tab-bar',
-        });
-        await t.present();
-        return;
-      }
-
-      if (data.exists) {
-        const t = await this.toastCtrl.create({
-          message: '该手机号已注册，请直接登录',
-          duration: 2000,
-          position: 'bottom',
-          positionAnchor: 'main-tab-bar',
-        });
-        await t.present();
-        return;
-      }
+      this.startSendCooldown();
     } catch (err) {
       console.error('Check phone error:', err);
       const t = await this.toastCtrl.create({
-        message: '无法连接到服务器',
+        message: this.t.networkError,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
       });
       await t.present();
-      return;
+    } finally {
+      this.sending.set(false);
     }
+  }
 
-    // 模拟发送验证码
-    const toast = await this.toastCtrl.create({
-      message: '验证码已发送，验证码为1234',
-      duration: 2000,
-      position: 'bottom',
-      positionAnchor: 'main-tab-bar',
-    });
-    await toast.present();
-
+  private startSendCooldown() {
+    if (this.cooldownTimer) {
+      clearInterval(this.cooldownTimer);
+    }
     this.sendCooldown.set(60);
-    this.sending.set(true);
-    const timer = setInterval(() => {
+    this.cooldownTimer = setInterval(() => {
       const next = this.sendCooldown() - 1;
       this.sendCooldown.set(next);
-      if (next <= 0) {
-        clearInterval(timer);
-        this.sending.set(false);
+      if (next <= 0 && this.cooldownTimer) {
+        clearInterval(this.cooldownTimer);
+        this.cooldownTimer = null;
       }
     }, 1000);
   }
@@ -161,7 +218,7 @@ export class RegisterPage {
   async nextStep() {
     if (this.verifyForm.invalid) {
       const t = await this.toastCtrl.create({
-        message: '请完善手机号和验证码',
+        message: this.t.formIncomplete,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -170,11 +227,12 @@ export class RegisterPage {
       return;
     }
 
-    // 验证验证码是否正确（简单验证）
+    const phone = this.verifyForm.controls.phone.value || '';
     const code = this.verifyForm.controls.code.value || '';
-    if (code !== '1234') {
+    const verifyResult = await this.auth.verifyVerificationCode(phone, code);
+    if (!verifyResult?.success) {
       const t = await this.toastCtrl.create({
-        message: '验证码错误',
+        message: verifyResult?.error || this.t.codeError,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -204,7 +262,7 @@ export class RegisterPage {
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
       const t = await this.toastCtrl.create({
-        message: '请选择图片文件',
+        message: this.t.selectImage,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -216,7 +274,7 @@ export class RegisterPage {
     // 验证文件大小（限制5MB）
     if (file.size > 5 * 1024 * 1024) {
       const t = await this.toastCtrl.create({
-        message: '图片大小不能超过5MB',
+        message: this.t.imageTooLarge,
         duration: 2000,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
@@ -245,17 +303,17 @@ export class RegisterPage {
 
   async submit() {
     if (this.infoForm.invalid) {
-      let message = '请完善必填信息';
+      let message = this.t.formRequired;
       if (this.infoForm.controls.userName.invalid)
-        message = '请输入用户名（2-20个字符）';
+        message = this.t.userNameInvalid;
       else if (this.infoForm.controls.realName.invalid)
-        message = '请输入真实姓名（2-20个字符）';
+        message = this.t.realNameInvalid;
       else if (this.infoForm.controls.idCardNumber.invalid)
-        message = '请输入有效的18位身份证号';
+        message = this.t.idCardInvalid;
       else if (this.infoForm.controls.location.invalid)
-        message = '请输入所在地';
+        message = this.t.locationInvalid;
       else if (this.infoForm.controls.birthDate.invalid)
-        message = '请选择出生日期';
+        message = this.t.birthDateInvalid;
 
       const t = await this.toastCtrl.create({
         message,
@@ -268,6 +326,37 @@ export class RegisterPage {
     }
 
     this.registering.set(true);
+
+    let avatarPath: string | null = null;
+    if (this.avatarFile) {
+      try {
+        const paths = await this.uploadService.uploadImages(this.avatarFile, {
+          guest: true,
+        });
+        avatarPath = paths[0] || null;
+        if (!avatarPath) {
+          this.registering.set(false);
+          const t = await this.toastCtrl.create({
+            message: this.t.avatarUploadFailed,
+            duration: 2000,
+            position: 'bottom',
+            positionAnchor: 'main-tab-bar',
+          });
+          await t.present();
+          return;
+        }
+      } catch (e) {
+        this.registering.set(false);
+        const t = await this.toastCtrl.create({
+          message: e instanceof Error ? e.message : this.t.avatarUploadFailed,
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await t.present();
+        return;
+      }
+    }
 
     const phone = this.verifyForm.controls.phone.value || '';
     const code = this.verifyForm.controls.code.value || '';
@@ -291,12 +380,15 @@ export class RegisterPage {
         birthDate,
         introduction,
       },
-      this.avatarFile,
+      avatarPath,
     );
 
     this.registering.set(false);
 
     if (!result.ok) {
+      if (avatarPath) {
+        await this.uploadService.deleteUploadedFile(avatarPath);
+      }
       const t = await this.toastCtrl.create({
         message: result.message,
         duration: 2000,
@@ -308,7 +400,7 @@ export class RegisterPage {
     }
 
     const t = await this.toastCtrl.create({
-      message: `注册成功，欢迎 ${userName}！`,
+      message: this.t.registerSuccess.replace('${userName}', userName),
       duration: 2000,
       position: 'bottom',
       positionAnchor: 'main-tab-bar',
@@ -324,22 +416,15 @@ export class RegisterPage {
   }
 
   async openLocationPicker() {
-    const modal = await this.modalCtrl.create({
-      component: LocationPickerComponent,
-      componentProps: {
-        selectedPlaceId:
-          this.infoForm.controls.locationPlaceId.value || undefined,
-        selectedText: this.infoForm.controls.location.value || undefined,
-      },
+    const picked = await this.locationPicker.pickLocation({
+      selectedPlaceId: this.infoForm.controls.locationPlaceId.value || '',
+      selectedText: this.infoForm.controls.location.value || '',
     });
-
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss();
-    if (role !== 'confirm' || !data?.selected) return;
+    if (!picked) return;
 
     this.infoForm.patchValue({
-      location: data.selected.text,
-      locationPlaceId: data.selected.placeId,
+      location: picked.text,
+      locationPlaceId: picked.placeId,
     });
   }
 }

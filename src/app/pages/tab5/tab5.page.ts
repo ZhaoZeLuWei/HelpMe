@@ -14,44 +14,43 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { NavController, ToastController } from '@ionic/angular';
+import {
+  NavController,
+  ToastController,
+  AlertController,
+} from '@ionic/angular';
 import {
   IonButton,
   IonButtons,
   IonContent,
   IonHeader,
   IonIcon,
-  IonInput,
-  IonItem,
-  IonLabel,
-  IonList,
   IonModal,
   IonText,
-  IonTextarea,
   IonTitle,
   IonToolbar,
-  IonSelect,
-  IonSelectOption,
   ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
+  add,
   addCircleOutline,
   close,
   closeCircle,
+  globeOutline,
   handLeftOutline,
   heartOutline,
   imageOutline,
+  locationOutline,
   shieldCheckmarkOutline,
+  sparklesOutline,
 } from 'ionicons/icons';
 
 import { AuthService } from '../../services/auth.service';
+import { AiService } from '../../services/ai.service';
 import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
-import {
-  LocationPickerComponent,
-  type PickedLocation,
-} from '../../components/location-picker/location-picker.component';
+import { LocationPickerService } from '../../services/location-picker.service';
 import type { Subscription } from 'rxjs';
 
 @Component({
@@ -71,13 +70,6 @@ import type { Subscription } from 'rxjs';
     IonIcon,
     IonText,
     IonModal,
-    IonList,
-    IonItem,
-    IonLabel,
-    IonInput,
-    IonTextarea,
-    IonSelect,
-    IonSelectOption,
   ],
 })
 export class Tab5Page implements OnInit, OnDestroy {
@@ -108,6 +100,10 @@ export class Tab5Page implements OnInit, OnDestroy {
   isSubmittingHelp = false;
   isSubmittingIdentity = false;
 
+  // ---- AI 辅助状态 ----
+  isAiGenerating = false;
+  aiTags: string[] = [];
+
   @ViewChild('requestFileInput')
   requestFileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('helpFileInput') helpFileInput!: ElementRef<HTMLInputElement>;
@@ -124,8 +120,11 @@ export class Tab5Page implements OnInit, OnDestroy {
   private navCtrl = inject(NavController);
   private modalCtrl = inject(ModalController);
   private toastCtrl = inject(ToastController);
+  private alertCtrl = inject(AlertController);
   private auth = inject(AuthService);
+  private aiService = inject(AiService);
   private langService = inject(LanguageService);
+  private locationPicker = inject(LocationPickerService);
   private langSub: Subscription | null = null;
 
   // 翻译对象
@@ -133,13 +132,17 @@ export class Tab5Page implements OnInit, OnDestroy {
 
   constructor() {
     addIcons({
+      add,
       close,
+      locationOutline,
+      globeOutline,
       handLeftOutline,
       heartOutline,
       shieldCheckmarkOutline,
       imageOutline,
       addCircleOutline,
       closeCircle,
+      sparklesOutline,
     });
 
     //监听语言变化
@@ -161,7 +164,8 @@ export class Tab5Page implements OnInit, OnDestroy {
     this.requestForm = this.fb.group({
       EventTitle: ['', Validators.required],
       EventType: [0],
-      EventCategory: ['', Validators.required],
+      EventCategory: [''],
+      isOnlineService: [false],
       Location: ['', Validators.required],
       LocationPlaceId: [''],
       LocationLng: [null],
@@ -173,7 +177,8 @@ export class Tab5Page implements OnInit, OnDestroy {
     this.helpForm = this.fb.group({
       EventTitle: ['', Validators.required],
       EventType: [1],
-      EventCategory: ['', Validators.required],
+      EventCategory: [''],
+      isOnlineService: [false],
       Location: ['', Validators.required],
       LocationPlaceId: [''],
       LocationLng: [null],
@@ -223,26 +228,42 @@ export class Tab5Page implements OnInit, OnDestroy {
           ? this.helpForm
           : this.identityForm;
 
-    const modal = await this.modalCtrl.create({
-      component: LocationPickerComponent,
-      componentProps: {
-        selectedPlaceId: form.get('LocationPlaceId')?.value || '',
-        selectedText: form.get('Location')?.value || '',
-      },
+    const picked = await this.locationPicker.pickLocation({
+      selectedPlaceId: form.get('LocationPlaceId')?.value || '',
+      selectedText: form.get('Location')?.value || '',
     });
+    if (!picked) return;
 
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss();
-
-    if (role !== 'confirm' || !data?.selected) return;
-
-    const picked: PickedLocation = data.selected;
     form.patchValue({
       Location: picked.text,
       LocationPlaceId: picked.placeId,
       LocationLng: picked.lng,
       LocationLat: picked.lat,
     });
+  }
+
+  /** 切换线上服务模式 */
+  toggleOnlineService(formType: 'request' | 'help') {
+    const form = formType === 'request' ? this.requestForm : this.helpForm;
+    const current = form.get('isOnlineService')?.value ?? false;
+    const newVal = !current;
+    form.patchValue({ isOnlineService: newVal });
+
+    const locCtrl = form.get('Location');
+    if (newVal) {
+      // 开启线上服务：清除位置，移除必填验证
+      locCtrl?.clearValidators();
+      form.patchValue({
+        Location: '',
+        LocationPlaceId: '',
+        LocationLng: null,
+        LocationLat: null,
+      });
+    } else {
+      // 关闭线上服务：恢复必填验证
+      locCtrl?.setValidators(Validators.required);
+    }
+    locCtrl?.updateValueAndValidity();
   }
 
   private async toast(message: string) {
@@ -255,6 +276,94 @@ export class Tab5Page implements OnInit, OnDestroy {
     await t.present();
   }
 
+  // ==================== AI 智能填表 ====================
+
+  /** 用户输关键词 → AI 自动填标题、标签、详细描述 */
+  async aiFillForm(formType: 'request' | 'help') {
+    const form = formType === 'request' ? this.requestForm : this.helpForm;
+    const input = form.get('EventTitle')?.value?.trim();
+    const existingDetails = form.get('EventDetails')?.value?.trim();
+
+    if (!input || input.length < 2) {
+      await this.toast(this.t.aiKeywordHint);
+      return;
+    }
+
+    // 如果详细描述已有内容，确认是否覆盖
+    if (existingDetails) {
+      const alert = await this.alertCtrl.create({
+        header: this.t.aiConfirmOverwrite,
+        message: this.t.aiConfirmOverwriteMsg,
+        buttons: [
+          { text: this.t.aiCancel, role: 'cancel' },
+          { text: this.t.aiConfirmOverwriteBtn, role: 'destructive' },
+        ],
+      });
+      await alert.present();
+      const { role } = await alert.onWillDismiss();
+      if (role !== 'destructive') return;
+    }
+
+    this.isAiGenerating = true;
+    try {
+      const result = await this.aiService.fillForm(input, formType);
+      if (result) {
+        this.aiTags = result.tags || [];
+        form.patchValue({
+          EventTitle: result.title,
+          EventCategory: this.aiTags.join('、'),
+          EventDetails: result.details,
+        });
+      } else {
+        await this.toast(this.t.aiFailed);
+      }
+    } catch {
+      await this.toast(this.t.aiFailed);
+    } finally {
+      this.isAiGenerating = false;
+    }
+  }
+
+  /** 手动添加自定义标签 */
+  async addManualTag(formType: 'request' | 'help') {
+    const alert = await this.alertCtrl.create({
+      header: this.t.addTagTitle,
+      inputs: [
+        { name: 'tag', type: 'text', placeholder: this.t.addTagPlaceholder },
+      ],
+      buttons: [
+        { text: this.t.aiCancel, role: 'cancel' },
+        {
+          text: this.t.addTagBtn,
+          handler: (data) => {
+            const tag = data.tag?.trim();
+            if (!tag || tag.length < 1) {
+              this.toast(this.t.tagRequired);
+              return false;
+            }
+            if (tag.length > 10) {
+              this.toast(this.t.tagTooLong);
+              return false;
+            }
+            this.aiTags.push(tag);
+            const form =
+              formType === 'request' ? this.requestForm : this.helpForm;
+            form.patchValue({ EventCategory: this.aiTags.join('、') });
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  /** 移除某个标签，同时更新类别栏 */
+  removeAiTag(formType: 'request' | 'help', index: number) {
+    this.aiTags.splice(index, 1);
+    const form = formType === 'request' ? this.requestForm : this.helpForm;
+    form.patchValue({ EventCategory: this.aiTags.join('、') });
+  }
+
   private collectInvalidMessages(
     formType: 'request' | 'help' | 'identity',
   ): string[] {
@@ -262,36 +371,36 @@ export class Tab5Page implements OnInit, OnDestroy {
 
     if (formType === 'request') {
       const f = this.requestForm;
-      if (f.get('EventTitle')?.invalid) msgs.push('标题必填');
-      if (f.get('EventCategory')?.invalid) msgs.push('类别必填');
-      if (f.get('Location')?.invalid) msgs.push('位置必填');
-      if (f.get('EventDetails')?.invalid) msgs.push('详细描述必填');
-      if (f.get('Price')?.invalid)
-        msgs.push('期望价格必填且必须在 0 ~ 1000000 之间');
+      if (f.get('EventTitle')?.invalid) msgs.push(this.t.titleRequired);
+      if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim())
+        msgs.push(this.t.tagsRequired);
+      if (f.get('Location')?.invalid && !f.get('isOnlineService')?.value)
+        msgs.push(this.t.locationRequired);
+      if (f.get('EventDetails')?.invalid) msgs.push(this.t.detailsRequired);
+      if (f.get('Price')?.invalid) msgs.push(this.t.priceInvalid);
     }
 
     if (formType === 'help') {
       const f = this.helpForm;
-      if (f.get('EventTitle')?.invalid) msgs.push('标题必填');
-      if (f.get('EventCategory')?.invalid) msgs.push('类别必填');
-      if (f.get('Location')?.invalid) msgs.push('服务区域必填');
-      if (f.get('EventDetails')?.invalid) msgs.push('服务详情必填');
-      if (f.get('Price')?.invalid)
-        msgs.push('服务价格必填且必须在 0 ~ 1000000 之间');
+      if (f.get('EventTitle')?.invalid) msgs.push(this.t.titleRequired);
+      if (this.aiTags.length === 0 && !f.get('EventCategory')?.value?.trim())
+        msgs.push(this.t.tagsRequired);
+      if (f.get('Location')?.invalid && !f.get('isOnlineService')?.value)
+        msgs.push(this.t.serviceLocationRequired);
+      if (f.get('EventDetails')?.invalid)
+        msgs.push(this.t.serviceDetailsRequired);
+      if (f.get('Price')?.invalid) msgs.push(this.t.servicePriceInvalid);
     }
 
     if (formType === 'identity') {
       const f = this.identityForm;
-      if (f.get('RealName')?.invalid) msgs.push('真实姓名必填');
-      if (f.get('IdCardNumber')?.invalid)
-        msgs.push('身份证号必填且格式正确（18位，末位可为X）');
-      if (f.get('Location')?.invalid) msgs.push('所在区域必填');
-      if (f.get('ProviderRole')?.invalid)
-        msgs.push('身份类型必填（只能填 1/2/3）');
+      if (f.get('RealName')?.invalid) msgs.push(this.t.realNameRequired);
+      if (f.get('IdCardNumber')?.invalid) msgs.push(this.t.idCardRequired);
+      if (f.get('Location')?.invalid) msgs.push(this.t.areaRequired);
+      if (f.get('ProviderRole')?.invalid) msgs.push(this.t.roleRequired);
 
-      if (this.idCardFiles.length === 0)
-        msgs.push('请上传身份证照片（正反面）');
-      if (this.certFiles.length === 0) msgs.push('请上传职业证书照片');
+      if (this.idCardFiles.length === 0) msgs.push(this.t.uploadIdCardRequired);
+      if (this.certFiles.length === 0) msgs.push(this.t.uploadCertRequired);
     }
 
     return msgs;
@@ -309,18 +418,18 @@ export class Tab5Page implements OnInit, OnDestroy {
 
     const msgs = this.collectInvalidMessages(formType);
     if (msgs.length === 0) {
-      await this.toast('请完善必填项后再提交');
+      await this.toast(this.t.completeRequired);
       return;
     }
 
-    await this.toast(`请先完善：${msgs.join('、')}`);
+    await this.toast(`${this.t.completeRequired}：${msgs.join('、')}`);
   }
 
   private async requireLogin(): Promise<number | null> {
     const uid = this.auth.currentUserId;
     if (uid) return uid;
 
-    await this.toast('请先登录后再发布');
+    await this.toast(this.t.loginRequired);
     this.router.navigate(['/tabs/tab4']);
     return null;
   }
@@ -345,11 +454,11 @@ export class Tab5Page implements OnInit, OnDestroy {
         return null;
       }
       if (resp.status === 404) {
-        await this.toast(`接口不存在（404）：${endpoint}`);
+        await this.toast(this.t.apiNotFound + ` (${endpoint})`);
         return null;
       }
 
-      const msg = data?.error || data?.msg || '请求失败';
+      const msg = data?.error || data?.msg || this.t.requestFailed;
       await this.toast(String(msg));
       return null;
     }
@@ -412,7 +521,7 @@ export class Tab5Page implements OnInit, OnDestroy {
     }
 
     if (photos.length >= max) {
-      void this.toast(`最多只能上传 ${max} 张图片`);
+      void this.toast(this.t.maxPhotos.replace('{max}', String(max)));
       return;
     }
 
@@ -504,26 +613,38 @@ export class Tab5Page implements OnInit, OnDestroy {
       // JWT 化后不再传 CreatorId（后端从 token 取）
       fd.append('EventTitle', String(v.EventTitle ?? ''));
       fd.append('EventType', String(v.EventType ?? 0));
-      fd.append('EventCategory', String(v.EventCategory ?? ''));
-      fd.append('Location', String(v.Location ?? ''));
-      this.appendLocationMeta(fd, v);
+      fd.append(
+        'EventCategory',
+        this.aiTags.length > 0
+          ? this.aiTags.join('、')
+          : String(v.EventCategory ?? ''),
+      );
+      const location = v.isOnlineService ? '线上服务' : (v.Location ?? '');
+      fd.append('Location', String(location));
+      if (!v.isOnlineService) this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
       fd.append('EventDetails', String(v.EventDetails ?? ''));
+      // 将标签以 JSON 数组形式传给后端，写入 EventTags 表
+      if (this.aiTags.length > 0) {
+        fd.append('Tags', JSON.stringify(this.aiTags));
+      }
 
       for (const f of this.requestFiles) fd.append('images', f);
 
       const data = await this.postFormData('/events', fd);
       if (!data) return;
 
-      await this.toast('发布成功');
+      await this.toast(this.t.publishSuccess);
 
       for (const u of this.requestPhotos) URL.revokeObjectURL(u);
       this.requestPhotos = [];
       this.requestFiles = [];
+      this.aiTags = [];
       this.requestForm.reset({
         EventTitle: '',
         EventType: 0,
         EventCategory: '',
+        isOnlineService: false,
         Location: '',
         LocationPlaceId: '',
         LocationLng: null,
@@ -556,26 +677,38 @@ export class Tab5Page implements OnInit, OnDestroy {
       // JWT 化后不再传 CreatorId（后端从 token 取）
       fd.append('EventTitle', String(v.EventTitle ?? ''));
       fd.append('EventType', String(v.EventType ?? 1));
-      fd.append('EventCategory', String(v.EventCategory ?? ''));
-      fd.append('Location', String(v.Location ?? ''));
-      this.appendLocationMeta(fd, v);
+      fd.append(
+        'EventCategory',
+        this.aiTags.length > 0
+          ? this.aiTags.join('、')
+          : String(v.EventCategory ?? ''),
+      );
+      const location = v.isOnlineService ? '线上服务' : (v.Location ?? '');
+      fd.append('Location', String(location));
+      if (!v.isOnlineService) this.appendLocationMeta(fd, v);
       fd.append('Price', String(v.Price ?? 0));
       fd.append('EventDetails', String(v.EventDetails ?? ''));
+      // 将标签以 JSON 数组形式传给后端，写入 EventTags 表
+      if (this.aiTags.length > 0) {
+        fd.append('Tags', JSON.stringify(this.aiTags));
+      }
 
       for (const f of this.helpFiles) fd.append('images', f);
 
       const data = await this.postFormData('/events', fd);
       if (!data) return;
 
-      await this.toast('发布成功');
+      await this.toast(this.t.publishSuccess);
 
       for (const u of this.helpPhotos) URL.revokeObjectURL(u);
       this.helpPhotos = [];
       this.helpFiles = [];
+      this.aiTags = [];
       this.helpForm.reset({
         EventTitle: '',
         EventType: 1,
         EventCategory: '',
+        isOnlineService: false,
         Location: '',
         LocationPlaceId: '',
         LocationLng: null,
@@ -623,7 +756,7 @@ export class Tab5Page implements OnInit, OnDestroy {
       const data = await this.postFormData('/verifications', fd);
       if (!data) return;
 
-      await this.toast('认证提交成功，等待审核');
+      await this.toast(this.t.verifySubmitSuccess);
 
       for (const u of this.idCardPhotos) URL.revokeObjectURL(u);
       for (const u of this.certPhotos) URL.revokeObjectURL(u);

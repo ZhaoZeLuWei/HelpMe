@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { environment } from '../../../environments/environment';
+import { resolveMediaUrl } from '../../utils/media-url.util';
 import {
   IonAvatar,
   IonBadge,
@@ -8,21 +8,29 @@ import {
   IonCard,
   IonIcon,
 } from '@ionic/angular/standalone';
+import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 
 @Component({
   selector: 'app-tab4-profile-card',
   standalone: true,
-  imports: [CommonModule, IonCard, IonAvatar, IonBadge, IonButton, IonIcon],
+  imports: [
+    CommonModule,
+    IonCard,
+    IonAvatar,
+    IonBadge,
+    IonButton,
+    IonIcon,
+    TranslateTextPipe,
+  ],
   templateUrl: './tab4-profile-card.component.html',
   styleUrl: './tab4-profile-card.component.scss',
 })
 export class Tab4ProfileCardComponent {
-  private readonly apiBase = environment.apiBase;
-
   @Input() userInfo: any;
   @Input() t: any;
 
   @Output() editProfile = new EventEmitter<void>();
+  @Output() showFollowers = new EventEmitter<void>();
 
   onEditProfile() {
     this.editProfile.emit();
@@ -34,7 +42,6 @@ export class Tab4ProfileCardComponent {
   }
 
   getAvatarUrl(avatar?: string): string {
-    if (!avatar) return '/assets/icon/user.svg';
-    return avatar.startsWith('http') ? avatar : `${this.apiBase}${avatar}`;
+    return resolveMediaUrl(avatar);
   }
 }

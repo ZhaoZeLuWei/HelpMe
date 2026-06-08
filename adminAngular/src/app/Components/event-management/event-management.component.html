@@ -1,22 +1,177 @@
-<div class="page-shell">
-  <h2>事件管理</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th><th>标题</th><th>发布者</th><th>类型</th><th>订单数</th><th>操作</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (event of events; track event.EventId) {
-      <tr>
-        <td>{{ event.EventId }}</td>
-        <td>{{ event.EventTitle }}</td>
-        <td>{{ event.CreatorName }}</td>
-        <td>{{ event.EventType === 1 ? '帮助' : '求助' }}</td>
-        <td>{{ event.OrderCount }}</td>
-        <td><button (click)="deleteEvent(event.EventId)">删除</button></td>
-      </tr>
-      }
-    </tbody>
-  </table>
+<div class="page-container">
+  <div class="page-header">
+    <h1>事件管理</h1>
+    <span class="count">共 {{ filteredEvents.length }} 个事件</span>
+  </div>
+
+  <!-- 搜索和筛选 -->
+  <div class="filter-bar">
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        #searchInput
+        (input)="onSearchChange()"
+        placeholder="搜索标题、发布者、位置或ID..."
+      />
+    </div>
+    <select #typeSelect (change)="onFilterChange()">
+      <option value="all">全部类型</option>
+      <option value="0">求助</option>
+      <option value="1">帮助</option>
+    </select>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>标题</th>
+          <th>发布者</th>
+          <th>类型</th>
+          <th>价格</th>
+          <th>订单数</th>
+          <th>发布时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let event of filteredEvents">
+          <td class="id-cell">#{{ event.EventId }}</td>
+          <td class="title-cell">{{ event.EventTitle }}</td>
+          <td>{{ event.CreatorName }}</td>
+          <td>
+            <span class="type-tag" [class]="getTypeClass(event.EventType)">
+              {{ getTypeText(event.EventType) }}
+            </span>
+          </td>
+          <td class="price-cell">¥{{ event.Price }}</td>
+          <td>{{ event.OrderCount }}</td>
+          <td class="time-cell">
+            {{ event.CreateTime | date: "yyyy-MM-dd HH:mm" }}
+          </td>
+          <td class="actions-cell">
+            <button class="btn-view" (click)="viewDetail(event)">详情</button>
+            <button class="btn-delete" (click)="confirmDelete(event)">
+              删除
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredEvents.length === 0">
+          <td colspan="8" class="empty-cell">暂无事件数据</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<app-confirm-dialog
+  [visible]="showDeleteDialog"
+  [title]="deleteDialogTitle"
+  [message]="deleteDialogMessage"
+  confirmText="确定删除"
+  [type]="deleteDialogType"
+  (confirmed)="onDeleteConfirmed()"
+  (cancelled)="onDeleteCancelled()"
+></app-confirm-dialog>
+
+<!-- 详情弹窗 -->
+<app-detail-modal
+  [visible]="showDetailModal"
+  title="事件详情"
+  (closed)="closeDetail()"
+>
+  <div class="detail-grid" *ngIf="selectedEvent">
+    <div class="detail-item">
+      <label>事件ID</label>
+      <span>#{{ selectedEvent.EventId }}</span>
+    </div>
+    <div class="detail-item">
+      <label>类型</label>
+      <span class="type-tag" [class]="getTypeClass(selectedEvent.EventType)">
+        {{ getTypeText(selectedEvent.EventType) }}
+      </span>
+    </div>
+    <div class="detail-item full-width">
+      <label>标题</label>
+      <span>{{ selectedEvent.EventTitle }}</span>
+    </div>
+    <div class="detail-item">
+      <label>发布者</label>
+      <span>{{ selectedEvent.CreatorName }}</span>
+    </div>
+    <div class="detail-item">
+      <label>价格</label>
+      <span class="price-cell">¥{{ selectedEvent.Price }}</span>
+    </div>
+    <div class="detail-item">
+      <label>订单数</label>
+      <span>{{ selectedEvent.OrderCount }} 个订单</span>
+    </div>
+    <div class="detail-item">
+      <label>分类</label>
+      <span>{{ selectedEvent.EventCategory || "未分类" }}</span>
+    </div>
+    <div class="detail-item full-width">
+      <label>位置</label>
+      <span>{{ selectedEvent.Location }}</span>
+    </div>
+    <div class="detail-item full-width">
+      <label>详情</label>
+      <span class="detail-text">{{ selectedEvent.EventDetails }}</span>
+    </div>
+    <div class="detail-item">
+      <label>发布时间</label>
+      <span>{{ selectedEvent.CreateTime | date: "yyyy-MM-dd HH:mm:ss" }}</span>
+    </div>
+  </div>
+
+  <!-- 图片画廊 -->
+  <div class="photo-section" *ngIf="eventPhotos.length > 0">
+    <h4 class="section-title">事件图片</h4>
+    <div class="photo-grid">
+      <div
+        class="photo-item"
+        *ngFor="let photo of eventPhotos; let i = index"
+        (click)="openImageOverlay(i)"
+      >
+        <img [src]="getPhotoUrl(photo)" alt="事件图片" />
+      </div>
+    </div>
+  </div>
+</app-detail-modal>
+
+<!-- 图片预览遮罩层 -->
+<div
+  class="image-overlay"
+  *ngIf="showImageOverlay"
+  (click)="closeImageOverlay()"
+>
+  <div class="image-overlay-content" (click)="$event.stopPropagation()">
+    <button class="close-overlay-btn" (click)="closeImageOverlay()">
+      <mat-icon>close</mat-icon>
+    </button>
+    <img [src]="selectedImage" alt="预览图片" class="preview-image" />
+    <div class="image-nav" *ngIf="eventPhotos.length > 1">
+      <button
+        class="nav-btn prev"
+        (click)="prevImage()"
+        [disabled]="currentImageIndex === 0"
+      >
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <span class="image-counter"
+        >{{ currentImageIndex + 1 }} / {{ eventPhotos.length }}</span
+      >
+      <button
+        class="nav-btn next"
+        (click)="nextImage()"
+        [disabled]="currentImageIndex === eventPhotos.length - 1"
+      >
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+  </div>
 </div>

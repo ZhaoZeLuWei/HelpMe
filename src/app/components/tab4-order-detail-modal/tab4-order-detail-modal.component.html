@@ -1,0 +1,138 @@
+<ion-modal [isOpen]="isOpen" (didDismiss)="onDismiss()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ t.orderDetailTitle }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="onDismiss()">{{
+            t.close
+          }}</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      @if (order) {
+        <div class="order-detail-content">
+          <div class="detail-section">
+            <h3>{{ t.orderInfo }}</h3>
+            <p>
+              <strong>{{ t.orderId }}</strong
+              >{{ order.id }}
+            </p>
+            <p>
+              <strong>{{ t.orderTime }}</strong
+              >{{ order.createdAt }}
+            </p>
+            @if (order.confirmedAt) {
+              <p>
+                <strong>{{ t.confirmTime }}</strong
+                >{{ order.confirmedAt }}
+              </p>
+            }
+            @if (order.completedAt) {
+              <p>
+                <strong>{{ t.completeTime }}</strong
+                >{{ order.completedAt }}
+              </p>
+            }
+            @if (order.cancelledAt) {
+              <p>
+                <strong>{{ t.cancelTime }}</strong
+                >{{ order.cancelledAt }}
+              </p>
+            }
+            <p>
+              <strong>{{ t.orderRole }}</strong
+              >{{ order.role === "buyer" ? t.buyer : t.seller }}
+            </p>
+            <p>
+              <strong>{{ t.orderStatus }}</strong
+              >{{ order.status }}
+            </p>
+            <p>
+              <strong>{{ t.dealPrice }}</strong
+              >¥{{ order.price }}
+            </p>
+            @if (order.cancelledByName) {
+              <p class="cancelled-info">
+                <strong>{{ t.cancelledBy || "取消人" }}</strong
+                >{{ order.cancelledByName | tText }}
+              </p>
+            }
+          </div>
+
+          <div class="detail-section">
+            <h3>
+              <ion-icon name="location-outline"></ion-icon>
+              {{ t.deliveryAddress }}
+            </h3>
+            <p>
+              <strong>{{ t.address }}</strong
+              >{{ (order.deliveryAddress | tText) || t.notFilled }}
+            </p>
+            @if (order.deliverySpecific) {
+              <p>
+                <strong>{{ t.specificLocation }}</strong
+                >{{ order.deliverySpecific | tText }}
+              </p>
+            }
+            @if (order.deliveryAdditionalInfo) {
+              <p>
+                <strong>{{ t.additionalInfo }}</strong
+                >{{ order.deliveryAdditionalInfo | tText }}
+              </p>
+            }
+          </div>
+
+          <div class="detail-section snapshot-section">
+            <h3>
+              <ion-icon name="time-outline"></ion-icon>
+              {{ t.snapshotInfo }}
+            </h3>
+            <p>
+              <strong>{{ t.snapshotTitle }}</strong
+              >{{ order.snapshotTitle | tText }}
+            </p>
+            <p>
+              <strong>{{ t.snapshotCategory }}</strong
+              >{{ (order.snapshotCategory | tText) || t.uncategorized }}
+            </p>
+            <p>
+              <strong>{{ t.snapshotLocation }}</strong
+              >{{ (order.snapshotLocation | tText) || t.notFilled }}
+            </p>
+            <p>
+              <strong>{{ t.snapshotPrice }}</strong
+              >¥{{ order.snapshotPrice }}
+            </p>
+            @if (order.snapshotDetails) {
+              <p>
+                <strong>{{ t.snapshotDetails }}</strong
+                >{{ order.snapshotDetails | tText }}
+              </p>
+            }
+            @if (order.snapshotPhotos?.length > 0) {
+              <div class="snapshot-photos">
+                <p>
+                  <strong>{{ t.snapshotPhotos }}</strong>
+                </p>
+                <div class="photo-grid">
+                  @for (photo of order.snapshotPhotos; track $index) {
+                    <img
+                      [src]="getAssetUrl(photo)"
+                      alt="Event Photo"
+                      class="snapshot-photo"
+                      (error)="
+                        $event.target.src = 'assets/icon/default-image.svg'
+                      "
+                    />
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>

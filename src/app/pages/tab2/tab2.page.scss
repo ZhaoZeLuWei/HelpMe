@@ -1,26 +1,29 @@
 // 引入 Material Icons（若全局已引入可删）
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
 
 /* 通用图标样式 */
 .material-icons {
   display: inline-block;
   font-size: 1em;
-  width: 1em; height: 1em;
+  width: 1em;
+  height: 1em;
   line-height: 1;
   vertical-align: middle;
 }
 
 /* 顶部筛选条 – 与小卡片筛选条同风格 */
 .filter-row {
-  background: #FFFFFF;
-  border-bottom: 1px solid #E2E8F0;
+  background: var(--ion-card-background, var(--ion-background-color));
+  border-bottom: 1px solid var(--ion-background-color-step-150);
   padding: 10px 0;
-  ion-col { padding: 0 5px; }
+  ion-col {
+    padding: 0 5px;
+  }
 }
 .category-buttons {
   padding: 10px 16px;
-  background: #ffffff;
-  
+  background: var(--ion-card-background, var(--ion-background-color));
+
   ion-col {
     padding: 0 5px;
   }
@@ -29,7 +32,7 @@
 /* 列表容器 – 同队友空状态背景 */
 .event-list-container {
   padding: 10px;
-  background-color: #F8FAFC;      // 与队友空状态保持一致
+  background-color: var(--ion-background-color);
   min-height: 100%;
 }
 
@@ -41,37 +44,52 @@
   align-items: center;
   justify-content: center;
   padding: 40px 10px;
-  color: #94A3B8;
+  color: var(--ion-color-medium);
   text-align: center;
-  background-color: #F8FAFC;
-  border: 2px dashed #E2E8F0;
+  background-color: var(--ion-background-color);
+  border: 2px dashed var(--ion-background-color-step-150);
   border-radius: 12px;
   margin: 0 10px;
 
   .material-icons {
     font-size: 48px;
-    color: #CBD5E1;
+    color: var(--ion-background-color-step-200);
     margin-bottom: 10px;
   }
-  p { font-size: 15px; margin: 0; font-weight: 500; }
+  p {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 500;
+  }
 }
 
-.header-search-wrapper {
-  width: 100%;
-  height: 100%;               // 填满 toolbar 高度
+/* 药丸形搜索栏 — 直接复用 tab1 样式 */
+.x-search-pill {
   display: flex;
   align-items: center;
-}
+  gap: 8px;
+  margin: 8px 16px;
+  padding: 10px 16px;
+  background: var(--ion-background-color-step-100, #f1f5f9);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.25s ease;
 
-.header-search-bar {
-  --background: transparent;  // 去掉背景
-  --border-radius: 0;
-  --box-shadow: none;         // 去掉阴影
-  --inner-border-radius: 0;
-  --inner-box-shadow: none;
-  border: none;               // 去掉边框
-  padding: 0;                 // 去掉内边距
-  height: 100%;               // 撑满 toolbar
+  &:hover {
+    background: var(--ion-background-color-step-200, #e2e8f0);
+    transform: scale(1.01);
+  }
+
+  .search-icon {
+    font-size: 20px;
+    color: var(--ion-color-medium, #94a3b8);
+  }
+
+  .search-text {
+    font-size: 15px;
+    color: var(--ion-color-medium, #94a3b8);
+    user-select: none;
+  }
 }
 
 /* 搜索框容器样式（与Tab1一致） */
@@ -80,13 +98,16 @@
   cursor: pointer;
 
   ion-searchbar {
-    --background: #f5f5f5;
-    --placeholder-color: #999;
-    --color: #333;
+    --background: var(
+      --ion-background-color-step-50,
+      var(--ion-background-color)
+    );
+    --placeholder-color: var(--ion-color-medium);
+    --color: var(--ion-text-color);
     --border-radius: 8px;
 
     &:hover {
-      --background: #e9e9e9;
+      --background: var(--ion-background-color-step-100);
     }
   }
 }
@@ -97,13 +118,16 @@
   cursor: pointer;
 
   .search-bar-entry {
-    --background: #f5f5f5;
-    --placeholder-color: #999;
-    --color: #333;
+    --background: var(
+      --ion-background-color-step-50,
+      var(--ion-background-color)
+    );
+    --placeholder-color: var(--ion-color-medium);
+    --color: var(--ion-text-color);
     --border-radius: 8px;
 
     &:hover {
-      --background: #e9e9e9;
+      --background: var(--ion-background-color-step-100);
     }
   }
 }
@@ -113,38 +137,157 @@
   display: none;
 }
 
+/* AI 智能推荐区域 */
+.ai-recommendation {
+  background: linear-gradient(
+    135deg,
+    rgba(15, 118, 110, 0.06),
+    rgba(15, 118, 110, 0.02)
+  );
+  border-radius: 12px;
+  margin: 12px 16px;
+  border: 1px solid rgba(15, 118, 110, 0.15);
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 0;
+}
+
+.ai-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.ai-header-left ion-icon {
+  font-size: 16px;
+}
+
+.ai-header-count {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  background: rgba(15, 118, 110, 0.08);
+  padding: 2px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.ai-keyword {
+  padding: 6px 16px 0;
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+.ai-keyword-tag {
+  display: inline-block;
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.ai-content {
+  padding: 8px 16px 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ion-text-color);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
 .category-row {
   padding: 8px 16px;
-  background: #ffffff;
-  
+  background: var(--ion-card-background, var(--ion-background-color));
+
   ion-col {
     padding: 0 5px;
   }
 }
-:host ::ng-deep app-universal-search {
-  margin-top: -16px;
-}
 /* 复用 tab1 搜索条外观 */
-.header-search-wrapper {
-  cursor: pointer;
-  padding: 10px 15px;
-  background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
 
-  ion-searchbar.header-search-bar {
-    --background: #FFFFFF;
-    --border-radius: 20px;
-    --box-shadow: none;
-    --inner-border-radius: 20px;
-    --inner-box-shadow: none;
-    pointer-events: none;          // 禁用原生输入
-    height: 40px;                  // 与 tab1 相同高度
-    font-size: 15px;
-    color: #334155;
-
-    &::part(input) {
-      // 统一 placeholder 颜色
-      --placeholder-color: #94A3B8;
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .category-buttons ion-button,
+  .category-row ion-button {
+    font-size: 18px;
+    height: 48px;
+    font-weight: 700;
+  }
+  .x-search-pill {
+    padding: 14px 20px;
+    .search-icon {
+      font-size: 24px;
     }
+    .search-text {
+      font-size: 18px;
+    }
+  }
+  .empty-state {
+    p {
+      font-size: 20px;
+    }
+    .material-icons {
+      font-size: 64px;
+    }
+  }
+  .ai-header-left {
+    font-size: 20px;
+    font-weight: 800;
+  }
+  .ai-header-count {
+    font-size: 16px;
+    padding: 4px 14px;
+  }
+  .ai-keyword {
+    font-size: 18px;
+  }
+  .ai-content {
+    font-size: 18px;
+    line-height: 1.8;
+  }
+  .ai-keyword-tag {
+    font-size: 16px;
+    padding: 4px 12px;
+  }
+}
+
+/* =========================================================================
+   Dark Mode Overrides (深色模式适配)
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  /* AI 推荐区域背景在深色模式下使用更深的渐变 */
+  .ai-recommendation {
+    background: linear-gradient(
+      135deg,
+      rgba(20, 184, 166, 0.12),
+      rgba(20, 184, 166, 0.04)
+    );
+    border-color: rgba(20, 184, 166, 0.25);
+  }
+
+  /* AI 标题文字在深色模式下使用更亮的青色 */
+  .ai-header-left {
+    color: #2dd4bf;
+  }
+
+  /* AI 关键词标签在深色模式下增强对比度 */
+  .ai-keyword-tag {
+    background: rgba(20, 184, 166, 0.18);
+    color: #2dd4bf;
+  }
+
+  /* AI 计数标签在深色模式下增强对比度 */
+  .ai-header-count {
+    background: rgba(20, 184, 166, 0.15);
   }
 }

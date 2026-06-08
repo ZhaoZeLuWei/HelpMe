@@ -1,7 +1,10 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
-const { authRequired } = require("./auth.js");
-const { sendSystemMessage } = require("../chatHandler.js");
+const { authRequired, adminRequired } = require("./auth.js");
+const { sendOrderSystemMessage } = require("../chatHandler.js");
+const { getIO } = require("../socketInstance.js");
+const { moderateContent } = require("../Services/contentModeration.js");
+const { translateFields } = require("./translateHelper.js");
 
 const router = express.Router();
 
@@ -25,13 +28,39 @@ router.post("/reviews", authRequired, async (req, res) => {
       .json({ success: false, error: "评分必须在1到5之间" });
   }
 
+  // 内容安全审核
+  try {
+    if (Text && String(Text).trim()) {
+      const textCheck = await moderateContent(
+        String(Text).trim(),
+        "ReviewText",
+        authorId.toString(),
+      );
+      if (!textCheck.safe) {
+        return res.status(400).json({
+          success: false,
+          error: textCheck.message,
+          code: "CONTENT_MODERATION_FAILED",
+        });
+      }
+    }
+  } catch (moderationError) {
+    console.error("内容审核异常:", moderationError);
+    // 审核异常时也阻止评价，避免违规内容漏检
+    return res.status(500).json({
+      success: false,
+      error: "内容安全检测暂时不可用，请稍后重试",
+      code: "CONTENT_MODERATION_ERROR",
+    });
+  }
+
   let conn;
   try {
     conn = await pool.getConnection();
     await conn.beginTransaction();
 
     const [orderRows] = await conn.query(
-      "SELECT OrderId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1",
+      "SELECT OrderId, EventId, ConsumerId, ProviderId, OrderStatus FROM Orders WHERE OrderId = ? LIMIT 1",
       [orderId],
     );
     if (!orderRows.length) {
@@ -40,6 +69,23 @@ router.post("/reviews", authRequired, async (req, res) => {
     }
 
     const order = orderRows[0];
+
+    // 查询事件类型，确定实际角色
+    const [eventInfoRows] = await conn.query(
+      "SELECT EventType FROM Events WHERE EventId = ? LIMIT 1",
+      [order.EventId],
+    );
+    const eventType = eventInfoRows.length
+      ? Number(eventInfoRows[0].EventType)
+      : 1;
+
+    // 根据事件类型确定实际服务角色：
+    // - 帮助事件(EventType=1)：ProviderId=服务提供者，ConsumerId=服务接受者（默认逻辑）
+    // - 求助事件(EventType=0)：ConsumerId=帮助者(实际服务提供者)，ProviderId=求助者(实际服务接受者)
+    const actualProviderId =
+      eventType === 0 ? order.ConsumerId : order.ProviderId;
+    const actualConsumerId =
+      eventType === 0 ? order.ProviderId : order.ConsumerId;
     const canReview =
       (order.ConsumerId === authorId && order.ProviderId === targetUserId) ||
       (order.ProviderId === authorId && order.ConsumerId === targetUserId);
@@ -76,92 +122,127 @@ router.post("/reviews", authRequired, async (req, res) => {
       ],
     );
 
-    const scoreRows = await conn.query(
-      `SELECT
-        ROUND(AVG(Score), 1) AS avgScore,
-        COUNT(*) AS totalCount
-       FROM Comments
-       WHERE TargetUserId = ?`,
-      [targetUserId],
-    );
-    const avgScore = Number(scoreRows?.[0]?.[0]?.avgScore || 0);
-    const totalCount = Number(scoreRows?.[0]?.[0]?.totalCount || 0);
-
     // 根据谁在评价来更新对应的评分
-    // 如果是买家评价卖家，更新卖家的 ServiceRanking
-    // 如果是卖家评价买家，更新买家的 BuyerRanking
-    if (order.ConsumerId === authorId) {
-      // 买家在评价卖家
-      const [providerCheck] = await conn.query(
-        "SELECT ProviderId FROM Providers WHERE ProviderId = ? LIMIT 1",
-        [targetUserId],
-      );
-      if (providerCheck.length > 0) {
-        // 只查询来自买家的评价
-        const [providerScoreRows] = await conn.query(
-          `SELECT ROUND(AVG(c.Score), 1) AS avgScore
-           FROM Comments c
-           JOIN Orders o ON c.OrderId = o.OrderId
-           WHERE c.TargetUserId = ? AND o.ProviderId = ? AND o.ConsumerId = c.AuthorId`,
-          [targetUserId, targetUserId],
-        );
-        const providerAvgScore = Number(providerScoreRows?.[0]?.avgScore || 0);
-        await conn.query(
-          "UPDATE Providers SET ServiceRanking = ? WHERE ProviderId = ?",
-          [providerAvgScore, targetUserId],
-        );
-      }
-    } else {
-      // 卖家在评价买家
+    // actualProviderId = 实际服务提供者（应获得 ServiceRanking）
+    // actualConsumerId = 实际服务接受者（应获得 BuyerRanking）
+    if (actualProviderId === authorId) {
+      // 实际服务提供者在评价服务接受者 → 更新服务接受者的 BuyerRanking
       const [consumerCheck] = await conn.query(
         "SELECT ConsumerId FROM Consumers WHERE ConsumerId = ? LIMIT 1",
         [targetUserId],
       );
-      if (consumerCheck.length > 0) {
-        // 只查询来自卖家的评价
-        const [consumerScoreRows] = await conn.query(
-          `SELECT ROUND(AVG(c.Score), 1) AS avgScore
-           FROM Comments c
-           JOIN Orders o ON c.OrderId = o.OrderId
-           WHERE c.TargetUserId = ? AND o.ConsumerId = ? AND o.ProviderId = c.AuthorId`,
-          [targetUserId, targetUserId],
-        );
-        const consumerAvgScore = Number(consumerScoreRows?.[0]?.avgScore || 0);
+      if (consumerCheck.length === 0) {
         await conn.query(
-          "UPDATE Consumers SET BuyerRanking = ? WHERE ConsumerId = ?",
-          [consumerAvgScore, targetUserId],
+          "INSERT INTO Consumers (ConsumerId, BuyerRanking) VALUES (?, 0.0)",
+          [targetUserId],
         );
       }
+      // 查询 targetUserId 作为实际消费者收到的所有评分平均值
+      // 条件：评价者(author)是该订单的实际服务提供者，被评价者(target)是实际消费者
+      const [consumerScoreRows] = await conn.query(
+        `SELECT ROUND(AVG(c.Score), 1) AS avgScore
+         FROM Comments c
+         JOIN Orders o ON c.OrderId = o.OrderId
+         JOIN Events ev ON o.EventId = ev.EventId
+         WHERE c.TargetUserId = ?
+           AND (CASE WHEN ev.EventType = 0 THEN o.ConsumerId ELSE o.ProviderId END) = c.AuthorId
+           AND (CASE WHEN ev.EventType = 0 THEN o.ProviderId ELSE o.ConsumerId END) = c.TargetUserId`,
+        [targetUserId],
+      );
+      const consumerAvgScore = Number(consumerScoreRows?.[0]?.avgScore || 0);
+      await conn.query(
+        "UPDATE Consumers SET BuyerRanking = ? WHERE ConsumerId = ?",
+        [consumerAvgScore, targetUserId],
+      );
+    } else {
+      // 实际服务接受者在评价服务提供者 → 更新服务提供者的 ServiceRanking
+      const [providerCheck] = await conn.query(
+        "SELECT ProviderId FROM Providers WHERE ProviderId = ? LIMIT 1",
+        [targetUserId],
+      );
+      if (providerCheck.length === 0) {
+        await conn.query(
+          "INSERT INTO Providers (ProviderId, ProviderRole, OrderCount, ServiceRanking) VALUES (?, 0, 0, 0)",
+          [targetUserId],
+        );
+      }
+      // 查询 targetUserId 作为实际服务提供者收到的所有评分平均值
+      // 条件：评价者(author)是该订单的实际消费者，被评价者(target)是实际服务提供者
+      const [providerScoreRows] = await conn.query(
+        `SELECT ROUND(AVG(c.Score), 1) AS avgScore
+         FROM Comments c
+         JOIN Orders o ON c.OrderId = o.OrderId
+         JOIN Events ev ON o.EventId = ev.EventId
+         WHERE c.TargetUserId = ?
+           AND (CASE WHEN ev.EventType = 0 THEN o.ProviderId ELSE o.ConsumerId END) = c.AuthorId
+           AND (CASE WHEN ev.EventType = 0 THEN o.ConsumerId ELSE o.ProviderId END) = c.TargetUserId`,
+        [targetUserId],
+      );
+      const providerAvgScore = Number(providerScoreRows?.[0]?.avgScore || 0);
+      await conn.query(
+        "UPDATE Providers SET ServiceRanking = ? WHERE ProviderId = ?",
+        [providerAvgScore, targetUserId],
+      );
     }
 
-    // 检查双方是否都已评价
-    const [reviewCountRows] = await conn.query(
-      "SELECT COUNT(*) AS cnt FROM Comments WHERE OrderId = ?",
-      [orderId],
+    // 检查对方是否也已评价
+    const otherUserId =
+      order.ConsumerId === authorId ? order.ProviderId : order.ConsumerId;
+    const [otherReviewRows] = await conn.query(
+      "SELECT ReviewId FROM Comments WHERE OrderId = ? AND AuthorId = ? LIMIT 1",
+      [orderId, otherUserId],
     );
-    const reviewCount = Number(reviewCountRows?.[0]?.cnt || 0);
-    if (reviewCount >= 2) {
+    if (otherReviewRows.length > 0) {
       // 双方都已评价，将订单标记为已完成
       await conn.query(
         "UPDATE Orders SET OrderStatus = 3, CompletionTime = COALESCE(CompletionTime, NOW()) WHERE OrderId = ?",
         [orderId],
       );
+
+      // 通过Socket.IO实时推送订单状态变更给买卖双方
+      const io = getIO();
+      if (io) {
+        io.to(String(order.ConsumerId)).emit("orderStatusUpdate", {
+          orderId,
+          newStatus: 3,
+          eventId: order.EventId,
+        });
+        io.to(String(order.ProviderId)).emit("orderStatusUpdate", {
+          orderId,
+          newStatus: 3,
+          eventId: order.EventId,
+        });
+      }
     }
-    // 否则保持 OrderStatus = 2（待评价），等待另一方评价
 
     await conn.commit();
 
-    await sendSystemMessage({
-      roomId: `system_${targetUserId}`,
-      text: `您收到了一条新的评价，评分 ${score} 分。`,
-      senderId: authorId,
-    });
+    // 发送系统消息到订单聊天房间（各自只看到自己的那条）
+    if (order.EventId) {
+      const reviewRoomId = `${order.EventId}_${order.ConsumerId}_${order.ProviderId}`;
+      // 给评价者本人的确认
+      await sendOrderSystemMessage({
+        roomId: reviewRoomId,
+        text: `您已提交评价，评分 ${score} 分。`,
+        senderId: authorId,
+        targetUserId: authorId,
+      }).catch((err) => console.error("发送系统消息失败:", err));
+      // 给对方的提醒（根据对方是否已评价显示不同文案）
+      const otherText =
+        otherReviewRows.length > 0
+          ? `对方已提交评价，订单已完结。`
+          : `对方已提交评价，请尽快评价。`;
+      await sendOrderSystemMessage({
+        roomId: reviewRoomId,
+        text: otherText,
+        senderId: authorId,
+        targetUserId: otherUserId,
+      }).catch((err) => console.error("发送系统消息失败:", err));
+    }
 
     return res.json({
       success: true,
       reviewId: result.insertId,
-      avgScore,
-      totalCount,
     });
   } catch (err) {
     if (conn) await conn.rollback().catch(() => {});
@@ -198,6 +279,9 @@ router.get("/reviews", async (req, res) => {
       [orderId],
     );
 
+    if (res.locals.targetLang) {
+      await translateFields(rows, ['authorName', 'content'], res.locals.targetLang);
+    }
     return res.json({ success: true, reviews: rows });
   } catch (err) {
     console.error("查询评价失败:", err);
@@ -206,7 +290,7 @@ router.get("/reviews", async (req, res) => {
 });
 
 // 管理端评论列表
-router.get("/admin/reviews", async (_req, res) => {
+router.get("/admin/reviews", adminRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -233,6 +317,98 @@ router.get("/admin/reviews", async (_req, res) => {
   } catch (err) {
     console.error("获取管理端评价失败:", err);
     return res.status(500).json({ success: false, error: "获取评价列表失败" });
+  }
+});
+
+// 管理端删除评价
+router.delete("/admin/reviews/:id", adminRequired, async (req, res) => {
+  const reviewId = Number(req.params.id);
+  if (!Number.isInteger(reviewId) || reviewId <= 0) {
+    return res.status(400).json({ success: false, error: "评价ID无效" });
+  }
+
+  try {
+    // 检查评价是否存在
+    const [existing] = await pool.query(
+      "SELECT ReviewId, OrderId, AuthorId, TargetUserId FROM Comments WHERE ReviewId = ? LIMIT 1",
+      [reviewId],
+    );
+
+    if (!existing.length) {
+      return res.status(404).json({ success: false, error: "评价不存在" });
+    }
+
+    const review = existing[0];
+
+    // 删除评价
+    await pool.query("DELETE FROM Comments WHERE ReviewId = ?", [reviewId]);
+
+    // 更新用户评分（重新计算平均分）
+    const { OrderId, AuthorId, TargetUserId } = review;
+
+    // 查询订单获取买家、卖家ID和事件类型
+    const [orderRows] = await pool.query(
+      `SELECT o.ConsumerId, o.ProviderId, e.EventType
+       FROM Orders o JOIN Events e ON o.EventId = e.EventId
+       WHERE o.OrderId = ? LIMIT 1`,
+      [OrderId],
+    );
+
+    if (orderRows.length) {
+      const order = orderRows[0];
+      const eventType = Number(order.EventType || 1);
+
+      // 根据事件类型确定实际服务角色
+      // actualProviderId = 实际服务提供者（应获得 ServiceRanking）
+      // actualConsumerId = 实际服务接受者（应获得 BuyerRanking）
+      const actualProviderId =
+        eventType === 0 ? order.ConsumerId : order.ProviderId;
+      const actualConsumerId =
+        eventType === 0 ? order.ProviderId : order.ConsumerId;
+
+      if (actualProviderId === TargetUserId) {
+        // 被评价者是实际服务提供者，重新计算服务评分
+        // 条件：评价者是实际消费者，被评价者是实际服务提供者
+        const [avgRows] = await pool.query(
+          `SELECT ROUND(AVG(c.Score), 1) AS avgScore
+           FROM Comments c
+           JOIN Orders o ON c.OrderId = o.OrderId
+           JOIN Events ev ON o.EventId = ev.EventId
+           WHERE c.TargetUserId = ?
+             AND (CASE WHEN ev.EventType = 0 THEN o.ProviderId ELSE o.ConsumerId END) = c.AuthorId
+             AND (CASE WHEN ev.EventType = 0 THEN o.ConsumerId ELSE o.ProviderId END) = c.TargetUserId`,
+          [TargetUserId],
+        );
+        const avgScore = Number(avgRows?.[0]?.avgScore || 0);
+        await pool.query(
+          "UPDATE Providers SET ServiceRanking = ? WHERE ProviderId = ?",
+          [avgScore, TargetUserId],
+        );
+      } else if (actualConsumerId === TargetUserId) {
+        // 被评价者是实际服务接受者，重新计算买家评分
+        // 条件：评价者是实际服务提供者，被评价者是实际消费者
+        const [avgRows] = await pool.query(
+          `SELECT ROUND(AVG(c.Score), 1) AS avgScore
+           FROM Comments c
+           JOIN Orders o ON c.OrderId = o.OrderId
+           JOIN Events ev ON o.EventId = ev.EventId
+           WHERE c.TargetUserId = ?
+             AND (CASE WHEN ev.EventType = 0 THEN o.ConsumerId ELSE o.ProviderId END) = c.AuthorId
+             AND (CASE WHEN ev.EventType = 0 THEN o.ProviderId ELSE o.ConsumerId END) = c.TargetUserId`,
+          [TargetUserId],
+        );
+        const avgScore = Number(avgRows?.[0]?.avgScore || 0);
+        await pool.query(
+          "UPDATE Consumers SET BuyerRanking = ? WHERE ConsumerId = ?",
+          [avgScore, TargetUserId],
+        );
+      }
+    }
+
+    return res.json({ success: true, deleted: 1 });
+  } catch (err) {
+    console.error("删除评价失败:", err);
+    return res.status(500).json({ success: false, error: "删除评价失败" });
   }
 });
 

@@ -2,45 +2,20 @@
 const express = require("express");
 const pool = require("../help_me_db.js");
 const { upload, withMulter, cleanupUploadedFiles } = require("./upload.js");
-const { authRequired } = require("./auth.js");
+const { authRequired, adminRequired } = require("./auth.js");
+const { translateFields } = require("./translateHelper.js");
 const { sendSystemMessage } = require("../chatHandler.js");
+const {
+  moderateContent,
+  moderateContents,
+} = require("../Services/contentModeration.js");
+const { normalizeLocationPlaceId } = require("./utils.js");
 const router = express.Router();
 
-let eventsGeoColumnsState = {
-  checked: false,
-  supported: false,
-};
-
-async function supportsEventGeoColumns(conn) {
-  if (eventsGeoColumnsState.checked) {
-    return eventsGeoColumnsState.supported;
-  }
-
-  const [rows] = await conn.query(
-    `SELECT COUNT(*) AS cnt
-     FROM information_schema.COLUMNS
-     WHERE TABLE_SCHEMA = DATABASE()
-       AND TABLE_NAME = 'Events'
-       AND COLUMN_NAME = 'LocationPlaceId'`,
-  );
-
-  eventsGeoColumnsState = {
-    checked: true,
-    supported: Number(rows?.[0]?.cnt || 0) === 1,
-  };
-
-  return eventsGeoColumnsState.supported;
-}
-
-function normalizeLocationPlaceId(value) {
-  if (value === undefined || value === null) return null;
-  const text = String(value).trim();
-  return text ? text : null;
-}
-
-// 图片上传接口（仅上传，不入库）
+// 图片上传接口（仅上传，不入库，需登录）
 router.post(
   "/upload/images",
+  authRequired,
   withMulter(upload.array("images", 10)),
   (req, res) => {
     const files = req.files || [];
@@ -55,7 +30,6 @@ router.post(
 // 获取卡片列表（用于首页展示）
 router.get("/api/cards", async (req, res) => {
   try {
-    const hasGeoColumns = await supportsEventGeoColumns(pool);
     const { type } = req.query;
     let sqlWhere = "";
     let sqlParams = [];
@@ -75,10 +49,15 @@ router.get("/api/cards", async (req, res) => {
     const { search } = req.query;
     if (search) {
       sqlWhere += sqlWhere ? " AND" : " WHERE";
-      sqlWhere += " (e.EventDetails LIKE ? OR e.EventTitle LIKE ?)";
+      sqlWhere +=
+        " (e.EventDetails LIKE ? OR e.EventTitle LIKE ? OR e.EventId IN (SELECT EventId FROM EventTags WHERE Tag LIKE ?))";
       const searchPattern = `%${search}%`;
-      sqlParams.push(searchPattern, searchPattern);
+      sqlParams.push(searchPattern, searchPattern, searchPattern);
     }
+
+    // 过滤已解决/已下架的事件（Status=1）
+    sqlWhere += sqlWhere ? " AND" : " WHERE";
+    sqlWhere += " e.Status = 0";
 
     const [rows] = await pool.query(
       `
@@ -87,15 +66,23 @@ router.get("/api/cards", async (req, res) => {
         e.Photos AS photos,
         e.Location AS address,
         e.LocationPlaceId AS locationPlaceId,
+        e.LocationLng AS lng,
+        e.LocationLat AS lat,
         e.EventTitle AS title,
         e.EventDetails AS demand,
+        e.EventType AS eventType,
         e.Price AS price,
-        e.CreateTime   AS createTime,   -- 新增
+        e.CreateTime   AS createTime,
         u.UserName AS name,
         u.UserAvatar AS avatar,
-        e.CreatorId AS creatorId   -- 新增
+        e.CreatorId AS creatorId,
+        et.TagList AS tags
       FROM Events e
       JOIN Users u ON e.CreatorId = u.UserId
+      LEFT JOIN (
+        SELECT EventId, GROUP_CONCAT(Tag SEPARATOR ',') AS TagList
+        FROM EventTags GROUP BY EventId
+      ) et ON e.EventId = et.EventId
       ${sqlWhere}
       `,
       sqlParams,
@@ -118,18 +105,29 @@ router.get("/api/cards", async (req, res) => {
         cardImage: first,
         address: item.address,
         locationPlaceId: item.locationPlaceId || null,
+        lng: item.lng != null ? Number(item.lng) : null,
+        lat: item.lat != null ? Number(item.lat) : null,
         demand: item.demand,
         price: item.price,
         createTime: item.createTime,
         name: item.name,
         avatar: item.avatar,
         creatorId: item.creatorId,
-        title: item.title, // 新增
+        title: item.title,
+        tags: item.tags || "",
+        eventType: item.eventType != null ? Number(item.eventType) : null,
         icon: "navigate-outline",
-        distance: "距500m", // 实际项目中应计算真实距离
+        distance: "距500m",
       };
     });
 
+    if (res.locals.targetLang) {
+      await translateFields(
+        cardData,
+        ["title", "name", "address", "demand"],
+        res.locals.targetLang,
+      );
+    }
     return res.status(200).json(cardData);
   } catch (error) {
     console.error("数据库查询错误：", error);
@@ -161,6 +159,8 @@ router.post(
       EventCategory,
       Location,
       LocationPlaceId,
+      LocationLng,
+      LocationLat,
       Price,
       EventDetails,
     } = req.body || {};
@@ -174,6 +174,35 @@ router.post(
     if (!EventTitle || !EventCategory || !Location || !EventDetails) {
       cleanupUploadedFiles(req.files);
       return res.status(400).json({ success: false, error: "缺少必填字段" });
+    }
+
+    // 内容安全审核（批量检测，只调用一次API）
+    try {
+      const checkResult = await moderateContents(
+        {
+          EventTitle: EventTitle,
+          EventCategory: EventCategory,
+          EventDetails: EventDetails,
+        },
+        creatorId.toString(),
+      );
+
+      if (!checkResult.safe) {
+        cleanupUploadedFiles(req.files);
+        return res.status(400).json({
+          success: false,
+          error: checkResult.message,
+          code: "CONTENT_MODERATION_FAILED",
+        });
+      }
+    } catch (moderationError) {
+      console.error("内容审核异常:", moderationError);
+      cleanupUploadedFiles(req.files);
+      return res.status(500).json({
+        success: false,
+        error: "内容安全检测暂时不可用，请稍后重试",
+        code: "CONTENT_MODERATION_ERROR",
+      });
     }
 
     const eventTypeNum = Number(EventType);
@@ -204,14 +233,25 @@ router.post(
     const photosJson =
       photoPaths.length > 0 ? JSON.stringify(photoPaths) : null;
 
+    // 解析 Tags（来自 AI 辅助功能）
+    let tagsArray = [];
+    if (req.body.Tags) {
+      try {
+        tagsArray = JSON.parse(req.body.Tags);
+      } catch {
+        tagsArray = String(req.body.Tags)
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+      }
+    }
+
     // 数据库操作（带事务）
 
     let conn;
     try {
       conn = await pool.getConnection();
       await conn.beginTransaction();
-
-      const hasGeoColumns = await supportsEventGeoColumns(conn);
 
       const insertColumns = [
         "CreatorId",
@@ -220,9 +260,18 @@ router.post(
         "EventCategory",
         "Photos",
         "Location",
+        "LocationPlaceId",
+        "LocationLng",
+        "LocationLat",
         "Price",
         "EventDetails",
       ];
+
+      const lng =
+        LocationLng != null && LocationLng !== "" ? Number(LocationLng) : null;
+      const lat =
+        LocationLat != null && LocationLat !== "" ? Number(LocationLat) : null;
+
       const insertValues = [
         creatorId,
         String(EventTitle),
@@ -230,14 +279,12 @@ router.post(
         String(EventCategory),
         photosJson,
         String(Location),
+        normalizeLocationPlaceId(LocationPlaceId),
+        lng != null && !isNaN(lng) ? lng : null,
+        lat != null && !isNaN(lat) ? lat : null,
         price,
         String(EventDetails),
       ];
-
-      if (hasGeoColumns) {
-        insertColumns.push("LocationPlaceId");
-        insertValues.push(normalizeLocationPlaceId(LocationPlaceId));
-      }
 
       const [result] = await conn.query(
         `INSERT INTO Events (${insertColumns.join(", ")}) VALUES (${insertColumns
@@ -246,13 +293,20 @@ router.post(
         insertValues,
       );
 
+      // 存储 AI 标签（在事务内执行，确保数据一致性）
+      if (tagsArray.length > 0) {
+        const tagSql = "INSERT INTO EventTags (EventId, Tag) VALUES ?";
+        const tagValues = tagsArray.map((tag) => [result.insertId, tag]);
+        await conn.query(tagSql, [tagValues]);
+      }
+
       await conn.commit();
 
       await sendSystemMessage({
         roomId: `system_${creatorId}`,
         text: `您的事件：“${EventTitle}”发布成功！请耐心等待...`,
         senderId: creatorId,
-      });
+      }).catch((err) => console.error("发送系统消息失败:", err));
 
       return res.json({
         success: true,
@@ -281,9 +335,13 @@ router.get("/events/:id", async (req, res) => {
   }
 
   try {
-    const hasGeoColumns = await supportsEventGeoColumns(pool);
-    const selectSql =
-      "SELECT EventId, CreatorId, EventTitle, EventType, EventCategory, Photos, Location, LocationPlaceId, Price, EventDetails, CreateTime FROM Events WHERE EventId = ? LIMIT 1";
+    const selectSql = `SELECT e.EventId, e.CreatorId, e.EventTitle, e.EventType, e.EventCategory, e.Photos, e.Location, e.LocationPlaceId, e.Price, e.EventDetails, e.Status, e.FavoriteCount, e.CreateTime,
+       GROUP_CONCAT(et.Tag SEPARATOR ',') AS Tags
+       FROM Events e
+       LEFT JOIN EventTags et ON e.EventId = et.EventId
+       WHERE e.EventId = ?
+       GROUP BY e.EventId
+       LIMIT 1`;
 
     const [rows] = await pool.query(selectSql, [eventId]);
 
@@ -291,23 +349,43 @@ router.get("/events/:id", async (req, res) => {
       return res.status(404).json({ success: false, error: "事件不存在" });
     }
 
+    const event = rows[0];
+
+    // 已解决的事件不可再下单
+    if (Number(event.Status) === 1) {
+      const eventData = { ...event, canCreateOrder: false, activeOrder: null };
+      if (res.locals.targetLang) {
+        await translateFields(
+          eventData,
+          ["EventTitle", "Location", "EventDetails"],
+          res.locals.targetLang,
+        );
+      }
+      return res.json({ success: true, event: eventData });
+    }
+
     const [activeOrders] = await pool.query(
       `SELECT OrderId, OrderStatus
        FROM Orders
-       WHERE EventId = ? AND OrderStatus <> 3
+       WHERE EventId = ? AND OrderStatus IN (0, 1, 2)
        ORDER BY OrderCreateTime DESC
        LIMIT 1`,
       [eventId],
     );
 
-    return res.json({
-      success: true,
-      event: {
-        ...rows[0],
-        canCreateOrder: activeOrders.length === 0,
-        activeOrder: activeOrders[0] || null,
-      },
-    });
+    const eventData = {
+      ...rows[0],
+      canCreateOrder: activeOrders.length === 0,
+      activeOrder: activeOrders[0] || null,
+    };
+    if (res.locals.targetLang) {
+      await translateFields(
+        eventData,
+        ["EventTitle", "Location", "EventDetails"],
+        res.locals.targetLang,
+      );
+    }
+    return res.json({ success: true, event: eventData });
   } catch (err) {
     console.error("查询事件详情失败:", err);
     return res.status(500).json({ success: false, error: "服务器内部错误" });
@@ -336,6 +414,33 @@ router.put("/events/:id", authRequired, async (req, res) => {
 
   if (!EventTitle || !EventCategory || !Location || !EventDetails) {
     return res.status(400).json({ success: false, error: "缺少必填字段" });
+  }
+
+  // 内容安全审核（批量检测，只调用一次API）
+  try {
+    const checkResult = await moderateContents(
+      {
+        EventTitle: EventTitle,
+        EventCategory: EventCategory,
+        EventDetails: EventDetails,
+      },
+      creatorId.toString(),
+    );
+
+    if (!checkResult.safe) {
+      return res.status(400).json({
+        success: false,
+        error: checkResult.message,
+        code: "CONTENT_MODERATION_FAILED",
+      });
+    }
+  } catch (moderationError) {
+    console.error("内容审核异常:", moderationError);
+    return res.status(500).json({
+      success: false,
+      error: "内容安全检测暂时不可用，请稍后重试",
+      code: "CONTENT_MODERATION_ERROR",
+    });
   }
 
   const eventTypeNum = Number(EventType);
@@ -387,8 +492,6 @@ router.put("/events/:id", authRequired, async (req, res) => {
   try {
     conn = await pool.getConnection();
     await conn.beginTransaction();
-
-    const hasGeoColumns = await supportsEventGeoColumns(conn);
 
     const [checkRows] = await conn.query(
       "SELECT EventId FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",
@@ -454,7 +557,7 @@ router.put("/events/:id", authRequired, async (req, res) => {
       roomId: `system_${creatorId}`,
       text: `您的事件“${EventTitle}”信息修改成功。`,
       senderId: creatorId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
 
     return res.json({ success: true });
   } catch (err) {
@@ -465,6 +568,101 @@ router.put("/events/:id", authRequired, async (req, res) => {
     return res.status(500).json({ success: false, error: "服务器内部错误" });
   } finally {
     if (conn) conn.release();
+  }
+});
+
+// 事件上下架切换（仅事件创建者可操作，不限制事件类型）
+router.patch("/events/:id/status", authRequired, async (req, res) => {
+  const eventId = Number(req.params.id);
+  const creatorId = Number(req.user?.id);
+
+  if (!Number.isInteger(eventId) || eventId <= 0) {
+    return res.status(400).json({ success: false, error: "无效的事件ID" });
+  }
+
+  const { Status } = req.body || {};
+  const newStatus = Number(Status);
+  if (![0, 1].includes(newStatus)) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Status 必须为 0（上架）或 1（下架）" });
+  }
+
+  // 手动下架存为 2（与订单完成自动下架的 Status=1 区分）
+  const dbStatus = newStatus === 1 ? 2 : 0;
+
+  try {
+    // 校验事件存在且属于当前用户
+    const [checkRows] = await pool.query(
+      "SELECT EventId, EventTitle, Status FROM Events WHERE EventId = ? AND CreatorId = ? LIMIT 1",
+      [eventId, creatorId],
+    );
+
+    if (!checkRows || checkRows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, error: "事件不存在或无权操作" });
+    }
+
+    const currentStatus = Number(checkRows[0].Status);
+
+    // 状态未变化时直接返回
+    if (currentStatus === dbStatus) {
+      return res.json({
+        success: true,
+        status: dbStatus,
+        message: dbStatus === 0 ? "事件已处于上架状态" : "事件已处于下架状态",
+      });
+    }
+
+    // 如果要上架，检查是否有进行中的订单（状态 0/1/2 的订单不允许上架）
+    if (dbStatus === 0) {
+      const [activeOrders] = await pool.query(
+        "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
+        [eventId],
+      );
+      if (activeOrders && activeOrders.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: "事件存在进行中的订单，无法重新上架",
+        });
+      }
+    }
+
+    // 如果要下架，同样检查是否有进行中的订单（状态 0/1/2 的订单不允许下架）
+    if (dbStatus === 2) {
+      const [activeOrders] = await pool.query(
+        "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
+        [eventId],
+      );
+      if (activeOrders && activeOrders.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: "事件存在进行中的订单，无法下架",
+        });
+      }
+    }
+
+    await pool.query("UPDATE Events SET Status = ? WHERE EventId = ?", [
+      dbStatus,
+      eventId,
+    ]);
+
+    const statusText = dbStatus === 0 ? "上架" : "下架";
+    await sendSystemMessage({
+      roomId: `system_${creatorId}`,
+      text: `您的事件"${checkRows[0].EventTitle}"已${statusText}。`,
+      senderId: creatorId,
+    }).catch((err) => console.error("发送系统消息失败:", err));
+
+    return res.json({
+      success: true,
+      status: dbStatus,
+      message: `事件已${statusText}`,
+    });
+  } catch (err) {
+    console.error("切换事件状态失败:", err);
+    return res.status(500).json({ success: false, error: "服务器内部错误" });
   }
 });
 
@@ -494,9 +692,9 @@ router.delete("/events/:id", authRequired, async (req, res) => {
         .json({ success: false, error: "事件不存在或无权删除" });
     }
 
-    // 检查是否存在未完结的订单（待确认、进行中、待评价）
+    // 检查是否存在未取消的订单（待确认、进行中、待评价、已完成）
     const [activeOrders] = await conn.query(
-      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2) LIMIT 1",
+      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2, 3) LIMIT 1",
       [eventId],
     );
 
@@ -504,7 +702,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
       await conn.rollback();
       return res
         .status(400)
-        .json({ success: false, error: "存在未完结订单，无法删除事件" });
+        .json({ success: false, error: "存在未取消订单，无法删除事件" });
     }
 
     // 提取出标题
@@ -526,7 +724,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
       roomId: `system_${creatorId}`,
       text: `您的事件“${deletedTitle}”已成功删除。`,
       senderId: creatorId,
-    });
+    }).catch((err) => console.error("发送系统消息失败:", err));
 
     return res.json({
       success: true,
@@ -545,7 +743,7 @@ router.delete("/events/:id", authRequired, async (req, res) => {
 });
 
 // 管理端：获取事件列表
-router.get("/admin/events", async (_req, res) => {
+router.get("/admin/events", adminRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
@@ -558,6 +756,7 @@ router.get("/admin/events", async (_req, res) => {
         e.Location,
         e.Price,
         e.EventDetails,
+        e.Status,
         e.CreateTime,
         u.UserName AS CreatorName,
         (SELECT COUNT(*) FROM Orders o WHERE o.EventId = e.EventId) AS OrderCount
@@ -573,8 +772,8 @@ router.get("/admin/events", async (_req, res) => {
   }
 });
 
-// 管理端：删除事件
-router.delete("/admin/events/:id", async (req, res) => {
+// 管理端：删除事件（需登录，且检查未完结订单）
+router.delete("/admin/events/:id", adminRequired, async (req, res) => {
   const eventId = Number(req.params.id);
   if (!Number.isInteger(eventId) || eventId <= 0) {
     return res.status(400).json({ success: false, error: "无效的事件ID" });
@@ -584,6 +783,21 @@ router.delete("/admin/events/:id", async (req, res) => {
   try {
     conn = await pool.getConnection();
     await conn.beginTransaction();
+
+    // 检查是否存在未取消的订单（待确认、进行中、待评价、已完成）
+    const [activeOrders] = await conn.query(
+      "SELECT OrderId FROM Orders WHERE EventId = ? AND OrderStatus IN (0, 1, 2, 3) LIMIT 1",
+      [eventId],
+    );
+
+    if (activeOrders && activeOrders.length > 0) {
+      await conn.rollback();
+      return res.status(400).json({
+        success: false,
+        error: "存在未取消订单，无法删除事件",
+      });
+    }
+
     await conn.query("DELETE FROM Orders WHERE EventId = ?", [eventId]);
     const [result] = await conn.query("DELETE FROM Events WHERE EventId = ?", [
       eventId,
@@ -600,7 +814,7 @@ router.delete("/admin/events/:id", async (req, res) => {
 });
 
 // 管理端：状态统计
-router.get("/admin/events/summary", async (_req, res) => {
+router.get("/admin/events/summary", adminRequired, async (_req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT

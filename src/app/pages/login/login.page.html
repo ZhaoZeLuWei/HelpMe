@@ -1,56 +1,59 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>登录</ion-title>
+    <ion-title>{{ t.title }}</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="closeModal()">关闭</ion-button>
+      <ion-button (click)="closeModal()">{{ t.close }}</ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="login-content" [fullscreen]="true">
   <div class="step-container">
-    <h2>欢迎回来</h2>
-    <p class="step-desc">请输入手机号与验证码完成登录</p>
+    <h2>{{ t.welcome }}</h2>
+    <p class="step-desc">{{ t.desc }}</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()">
       <ion-list>
         <ion-item>
-          <ion-label position="floating">手机号</ion-label>
+          <ion-label position="floating">{{ t.phoneLabel }}</ion-label>
           <ion-input
             type="tel"
             inputmode="numeric"
             formControlName="phone"
             [maxlength]="11"
-            placeholder="请输入手机号"
+            [placeholder]="t.phonePlaceholder"
           ></ion-input>
         </ion-item>
 
         <ion-item>
-          <ion-label position="floating">验证码</ion-label>
+          <ion-label position="floating">{{ t.codeLabel }}</ion-label>
           <ion-input
             type="tel"
             inputmode="numeric"
             formControlName="code"
             [maxlength]="4"
-            placeholder="请输入验证码"
+            [placeholder]="t.codePlaceholder"
           ></ion-input>
           <ion-button
             slot="end"
             size="small"
             (click)="sendCode()"
-            [disabled]="sendCooldown() > 0"
+            [disabled]="sending() || sendCooldown() > 0"
           >
-            @if (sendCooldown() === 0) { 发送验证码 } @if (sendCooldown() > 0) {
-            {{ sendCooldown() }}s }
+            @if (sendCooldown() === 0) { {{ t.sendCode }} } @if (sendCooldown()
+            > 0) { {{ sendCooldown() }}s }
           </ion-button>
         </ion-item>
       </ion-list>
 
       <div class="actions">
-        <ion-button expand="block" type="submit">登录</ion-button>
+        <ion-button expand="block" type="submit">{{ t.submit }}</ion-button>
+        <ion-button expand="block" fill="outline" (click)="goToRegister()"
+          >{{ t.goToRegister }}</ion-button
+        >
       </div>
     </form>
 
-    <div class="hint">提示：测试手机号为 1380000000X，验证码 1234</div>
+    <div class="hint">{{ t.hint }}</div>
   </div>
 </ion-content>

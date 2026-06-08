@@ -1,32 +1,32 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ionic App</title>
 
-<head>
-  <meta charset="utf-8" />
-  <title>Ionic App</title>
+    <base href="/" />
 
-  <base href="/" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="viewport"
+      content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
 
-  <meta name="color-scheme" content="light dark" />
-  <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="format-detection" content="telephone=no" />
-  <meta name="msapplication-tap-highlight" content="no" />
+    <link rel="icon" type="image/png" href="assets/icon/favicon.png" />
 
-  <link rel="icon" type="image/png" href="assets/icon/favicon.png" />
+    <!-- add to homescreen for ios -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
-  <!-- add to homescreen for ios -->
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-<script type="text/javascript">
-  window._AMapSecurityConfig = {
-    securityJsCode: 'df426310a907336d0feb2392f01044da',  // 从高德平台获取
-  }
-</script>
-<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=bb5f2e03898d271f0a8580a243ab875b"></script>
-</head>
+    <!--
+    高德地图配置
+    配置来源: 后端 /api/config 接口（运行时获取，不打包进构建产物）
+    由 Angular ConfigService 在应用初始化时加载
+  --></head>
 
-<body>
-  <app-root></app-root>
-</body>
-
+  <body>
+    <app-root></app-root>
+  </body>
 </html>

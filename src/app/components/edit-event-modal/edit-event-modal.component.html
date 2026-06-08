@@ -1,0 +1,126 @@
+<ion-modal [isOpen]="isOpen" (didDismiss)="close()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ t.title }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="close()">{{ t.close }}</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="edit-modal-content">
+      <form [formGroup]="editForm">
+        <div class="form-section">
+          <div class="section-title">{{ t.basicInfo }}</div>
+          <ion-list lines="full">
+            <ion-item>
+              <ion-label position="stacked">{{ t.titleLabel }}</ion-label>
+              <ion-input
+                formControlName="EventTitle"
+                [placeholder]="t.titlePlaceholder"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ t.typeLabel }}</ion-label>
+              <ion-select formControlName="EventType" interface="popover">
+                <ion-select-option [value]="0">{{
+                  t.typeRequest
+                }}</ion-select-option>
+                <ion-select-option [value]="1">{{
+                  t.typeHelp
+                }}</ion-select-option>
+              </ion-select>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ t.categoryLabel }}</ion-label>
+              <ion-input
+                formControlName="EventCategory"
+                [placeholder]="t.categoryPlaceholder"
+              ></ion-input>
+            </ion-item>
+            <ion-item button detail="true" (click)="onLocationPickerClick()">
+              <ion-label>{{ t.locationLabel }}</ion-label>
+              <ion-note
+                slot="end"
+                [color]="editForm.value.Location ? 'primary' : 'medium'"
+              >
+                {{ editForm.value.Location || t.locationPlaceholder }}
+              </ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ t.priceLabel }}</ion-label>
+              <ion-input
+                type="number"
+                formControlName="Price"
+                [placeholder]="t.pricePlaceholder"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ t.detailsLabel }}</ion-label>
+              <ion-textarea
+                formControlName="EventDetails"
+                [placeholder]="t.detailsPlaceholder"
+                [autoGrow]="true"
+                rows="3"
+              ></ion-textarea>
+            </ion-item>
+          </ion-list>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">{{ t.photosTitle }}</div>
+          <div class="photo-upload-area" (click)="triggerFileInput()">
+            <input
+              #fileInput
+              type="file"
+              accept="image/*"
+              multiple
+              (change)="onFileSelected($event)"
+              style="display: none"
+            />
+            <div class="photo-preview-container">
+              @for (photo of getPhotoItems(); track $index; let i = $index) {
+                <div class="photo-preview">
+                  <img [src]="photo.preview" alt="Preview" />
+                  <ion-icon
+                    name="close-circle"
+                    class="remove-photo"
+                    (click)="
+                      removePhoto(
+                        photo.isExisting ? 'existing' : 'new',
+                        photo.index
+                      );
+                      $event.stopPropagation()
+                    "
+                  ></ion-icon>
+                </div>
+              }
+              @if (getPhotoCount() === 0) {
+                <div class="upload-placeholder">
+                  <ion-icon name="image-outline"></ion-icon>
+                  <p>{{ t.clickToUpload }}</p>
+                </div>
+              } @else if (getPhotoCount() < 5) {
+                <div class="upload-placeholder">
+                  <ion-icon name="add-circle-outline"></ion-icon>
+                </div>
+              }
+            </div>
+            <ion-text color="medium" class="upload-hint">
+              <p>{{ t.maxPhotos }}</p>
+            </ion-text>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <ion-button fill="outline" color="medium" (click)="close()">
+            {{ t.cancel }}
+          </ion-button>
+          <ion-button (click)="submit()" [disabled]="isSaving">
+            {{ isSaving ? t.saving : t.save }}
+          </ion-button>
+        </div>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>

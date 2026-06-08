@@ -1,18 +1,126 @@
-.section-toolbar {
+// ===== 订单状态筛选条 =====
+.order-filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 12px 0 8px;
+  background: var(--ion-background-color);
+  border-bottom: 1px solid
+    var(--ion-background-color-step-150, rgba(0, 0, 0, 0.06));
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  // 左右渐隐，提示可横向滑动
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    bottom: 8px;
+    width: 20px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  &::before {
+    left: 0;
+    background: linear-gradient(
+      to right,
+      var(--ion-background-color),
+      transparent
+    );
+  }
+
+  &::after {
+    right: 0;
+    background: linear-gradient(
+      to left,
+      var(--ion-background-color),
+      transparent
+    );
+  }
+}
+
+.order-filter-scroll {
   display: flex;
   gap: 8px;
-  overflow-x: auto;
-  padding: 12px;
-  white-space: nowrap;
+  padding: 0 16px;
+  width: max-content;
+  margin-inline: auto;
+  scroll-snap-type: x proximity;
 }
 
-.section-toolbar ion-button {
-  text-transform: none;
-}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  padding: 8px 14px;
+  border: 1px solid var(--ion-background-color-step-150, #e2e8f0);
+  border-radius: 999px;
+  background: var(--ion-card-background, #ffffff);
+  color: var(--ion-text-color);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.15s ease,
+    color 0.22s ease;
+  -webkit-tap-highlight-color: transparent;
 
-.section-toolbar .active-filter {
-  --background: var(--ion-color-primary);
-  --color: #fff;
+  .chip-label {
+    white-space: nowrap;
+  }
+
+  .chip-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(var(--ion-color-primary-rgb, 16, 185, 129), 0.12);
+    color: var(--ion-color-primary);
+    transition:
+      background 0.22s ease,
+      color 0.22s ease;
+  }
+
+  &:hover:not(.is-active) {
+    border-color: rgba(var(--ion-color-primary-rgb, 16, 185, 129), 0.35);
+    background: rgba(var(--ion-color-primary-rgb, 16, 185, 129), 0.04);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &.is-active {
+    border-color: transparent;
+    background: linear-gradient(
+      135deg,
+      var(--ion-color-primary) 0%,
+      var(--ion-color-primary-tint, #34d399) 100%
+    );
+    color: #fff;
+
+    .chip-count {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
+  }
 }
 
 .tasks-list {
@@ -48,4 +156,159 @@
   margin: 0;
   color: var(--ion-color-medium);
   font-size: 13px;
+}
+
+/* =========================================================================
+   空状态
+   ========================================================================= */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  animation: fadeIn 0.4s ease-out;
+
+  .empty-icon-wrapper {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(156, 163, 175, 0.1);
+    border-radius: 50%;
+    margin-bottom: 16px;
+
+    .empty-icon {
+      font-size: 36px;
+      --color: #9ca3af;
+    }
+  }
+
+  .empty-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ion-text-color);
+    margin: 0 0 6px;
+  }
+
+  .empty-sub {
+    font-size: 13px;
+    color: var(--ion-color-medium);
+    margin: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================================
+   Dark Mode
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  .order-filter-bar {
+    border-bottom-color: var(--ion-color-step-150, #30363d);
+
+    &::before {
+      background: linear-gradient(
+        to right,
+        var(--ion-background-color),
+        transparent
+      );
+    }
+
+    &::after {
+      background: linear-gradient(
+        to left,
+        var(--ion-background-color),
+        transparent
+      );
+    }
+  }
+
+  .filter-chip {
+    background: var(--ion-card-background, #1e1e1e);
+    border-color: var(--ion-color-step-150, #30363d);
+
+    &:hover:not(.is-active) {
+      background: rgba(var(--ion-color-primary-rgb, 52, 211, 153), 0.08);
+    }
+  }
+}
+
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .order-filter-bar {
+    padding: 16px 0 12px;
+  }
+
+  .order-filter-scroll {
+    gap: 12px;
+    padding: 0 16px;
+  }
+
+  .filter-chip {
+    padding: 12px 18px;
+    font-size: 18px;
+    font-weight: 700;
+    border-width: 1.5px;
+
+    .chip-count {
+      min-width: 28px;
+      height: 28px;
+      padding: 0 8px;
+      font-size: 16px;
+      border-radius: 14px;
+    }
+  }
+
+  .task-title {
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  .task-meta {
+    font-size: 16px;
+  }
+
+  .task-actions {
+    --min-height: 56px;
+  }
+
+  .task-actions ion-button {
+    font-size: 17px;
+    height: 44px;
+  }
+
+  .empty-state {
+    padding: 64px 24px;
+
+    .empty-icon-wrapper {
+      width: 88px;
+      height: 88px;
+
+      .empty-icon {
+        font-size: 44px;
+      }
+    }
+
+    .empty-title {
+      font-size: 20px;
+    }
+
+    .empty-sub {
+      font-size: 16px;
+    }
+  }
 }

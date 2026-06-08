@@ -1,0 +1,138 @@
+<ion-modal [isOpen]="isOpen" (didDismiss)="onDismiss()">
+  <ng-template>
+    <ion-header [translucent]="true">
+      <ion-toolbar>
+        <ion-title>{{ t.editProfileTitle }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="onDismiss()">{{
+            t.close
+          }}</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content [fullscreen]="true" class="edit-profile-modal-content">
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <ion-list lines="full">
+          <div class="avatar-upload-section">
+            <div class="avatar-preview">
+              @if (avatarPreview) {
+                <img [src]="avatarPreview" alt="Avatar Preview" />
+              } @else if (!avatarDeleted && userInfo?.avatar) {
+                <img
+                  [src]="getAssetUrl(userInfo.avatar)"
+                  alt="Current Avatar"
+                />
+              } @else {
+                <ion-icon name="person-circle"></ion-icon>
+              }
+            </div>
+            <div class="avatar-actions">
+              <ion-button
+                size="small"
+                type="button"
+                (click)="triggerAvatarInput()"
+              >
+                {{
+                  avatarPreview || (!avatarDeleted && userInfo?.avatar)
+                    ? t.changeAvatar
+                    : t.uploadAvatar
+                }}
+              </ion-button>
+              @if (avatarPreview || (!avatarDeleted && userInfo?.avatar)) {
+                <ion-button
+                  size="small"
+                  type="button"
+                  fill="outline"
+                  color="danger"
+                  (click)="removeAvatar()"
+                >
+                  {{ t.delete }}
+                </ion-button>
+              }
+            </div>
+            <input
+              #profileAvatarInput
+              type="file"
+              accept="image/*"
+              style="display: none"
+              (change)="onAvatarSelected($event)"
+            />
+            <p class="avatar-hint">{{ t.avatarHint }}</p>
+          </div>
+
+          <ion-item>
+            <ion-label position="floating">{{ t.userNameLabel }} *</ion-label>
+            <ion-input
+              type="text"
+              formControlName="UserName"
+              [placeholder]="t.userNamePlaceholder"
+              [maxlength]="20"
+            ></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">{{ t.realNameLabel }} *</ion-label>
+            <ion-input
+              type="text"
+              formControlName="RealName"
+              [placeholder]="t.realNamePlaceholder"
+              [maxlength]="20"
+            ></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">{{ t.idCardLabel }} *</ion-label>
+            <ion-input
+              type="text"
+              formControlName="IdCardNumber"
+              [placeholder]="t.idCardPlaceholder"
+              [maxlength]="18"
+            ></ion-input>
+          </ion-item>
+
+          <ion-item button detail="true" (click)="openLocationPicker()">
+            <ion-label>{{ t.locationLabelProfile }} *</ion-label>
+            <ion-note
+              slot="end"
+              [color]="form.value.Location ? 'primary' : 'medium'"
+            >
+              {{ form.value.Location || t.locationPlaceholderProfile }}
+            </ion-note>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">{{ t.birthDateLabel }} *</ion-label>
+            <ion-input type="date" formControlName="BirthDate"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="floating">{{ t.introLabel }}</ion-label>
+            <ion-textarea
+              formControlName="Introduction"
+              [placeholder]="t.introPlaceholder"
+              [maxlength]="200"
+              [autoGrow]="true"
+              rows="3"
+            ></ion-textarea>
+          </ion-item>
+        </ion-list>
+
+        <div class="hint-text">{{ t.requiredHint }}</div>
+
+        <div class="modal-actions">
+          <ion-button
+            type="button"
+            fill="outline"
+            color="medium"
+            (click)="onDismiss()"
+          >
+            {{ t.cancel }}
+          </ion-button>
+          <ion-button type="submit" [disabled]="isSaving">
+            {{ isSaving ? t.saving : t.save }}
+          </ion-button>
+        </div>
+      </form>
+    </ion-content>
+  </ng-template>
+</ion-modal>

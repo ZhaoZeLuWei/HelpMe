@@ -1,0 +1,64 @@
+@use "../tab4-shared/tab4-modal-empty";
+
+.follows-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.follow-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--ion-card-background, #ffffff);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  .follow-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid
+      var(--ion-color-light, var(--ion-background-color-step-200));
+  }
+
+  .follow-info {
+    flex: 1;
+    min-width: 0;
+
+    h4 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ion-text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--ion-color-medium);
+    }
+
+    .follow-meta {
+      font-size: 12px;
+    }
+  }
+
+  ion-button {
+    flex-shrink: 0;
+    --border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+}

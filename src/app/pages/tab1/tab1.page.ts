@@ -1,26 +1,27 @@
 /* src/app/tab1/tab1.page.ts（修复版） */
-import {
-  Component,
-  CUSTOM_ELEMENTS_SCHEMA,
-  OnInit,
-  inject,
-} from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { map } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { map, firstValueFrom, Subscription } from 'rxjs';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
+import {
+  getUserPosition,
+  calculateDistance,
+  formatDistance,
+  resolveAddress,
+  isOnlineService,
+} from '../../components/show-event/show-event.component';
 import { LanguageService } from '../../services/language.service';
-import { TranslateService } from '../../services/translate.service';
+import { DynamicTranslationService } from '../../services/dynamic-translation.service';
+import { mapApiCardToEventCardData } from '../../utils/event-card.mapper';
 
 // 卡片数据接口
 interface CardItem {
   id: string;
   creatorId: number;
   cardImage: string;
-  icon: string;
   distance: string;
   name: string;
   address: string;
@@ -29,6 +30,8 @@ interface CardItem {
   avatar: string;
   createTime: string;
   title: string;
+  lng?: number | null;
+  lat?: number | null;
 }
 
 @Component({
@@ -36,87 +39,87 @@ interface CardItem {
   templateUrl: './tab1.page.html',
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
-  imports: [
-    IonicModule,
-    CommonModule,
-    ShowEventComponent,
-    HttpClientModule,
-  ],
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  imports: [CommonModule, ShowEventComponent],
 })
-export class Tab1Page implements OnInit {
+export class Tab1Page implements OnInit, OnDestroy {
   private readonly API_BASE = environment.apiBase;
   private http = inject(HttpClient);
   private router = inject(Router);
   private langService = inject(LanguageService);
-  private translateService = inject(TranslateService);
+  private dynTrans = inject(DynamicTranslationService);
+  private langSub?: Subscription;
 
   // --- 原有功能变量 ---
   requestList: CardItem[] = [];
   helpList: CardItem[] = [];
   eventData: CardItem[] = [];
-  private searchKeyword = '';
-  currentLang = '中文';
   showLangConfirmModal = false;
   t = this.langService.getTranslations('zh').tab1;
 
-  // --- 翻译功能变量 ---
-  public dynamicSourceText: string = '你好，这是测试翻译的文本'; // 直接写死测试文本，避免空值
-  public translatedText: string = '';
-  public sourceLang: string = 'zh';
-  public targetLang: string = 'en';
+  // --- 适老化功能变量 ---
+  public isElderlyMode: boolean = false; // 长辈模式开关
 
   get currentLangBtnText() {
     return this.t.btnText;
   }
 
   ngOnInit() {
-    // 原有卡片加载逻辑
-    this.getCardData('request').subscribe((data) => {
-      this.requestList = data;
-      this.updateEventData();
-    });
-    this.getCardData('help').subscribe((data) => {
-      this.helpList = data;
-      this.updateEventData();
-    });
+    const savedElderly = localStorage.getItem('elderly_mode');
+    if (savedElderly === 'true') {
+      this.isElderlyMode = true;
+      document.body.classList.add('elderly-mode');
+    } else {
+      this.isElderlyMode = document.body.classList.contains('elderly-mode');
+    }
+    let isFirstEmit = true;
+    // 语言监听：切换语言时重新拉取数据（服务端根据 ?lang= 返回译文）
+    this.langSub = this.langService.currentLang$.subscribe(
+      (lang: 'zh' | 'en') => {
+        this.t = this.langService.getTranslations(lang).tab1;
+        if (isFirstEmit) {
+          isFirstEmit = false;
+          return;
+        }
+        this.loadCardLists();
+      },
+    );
 
-    // 语言监听
-    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
-      this.t = this.langService.getTranslations(lang).tab1;
-    });
+    this.loadCardLists();
+  }
 
-    // 【关键】注释掉报错的动态文本加载
-    // this.loadDynamicText();
+  ngOnDestroy() {
+    this.langSub?.unsubscribe();
   }
 
   ionViewWillEnter() {
     this.loadCardLists();
   }
 
-  private loadCardLists() {
-    this.getCardData('request').subscribe((data) => {
-      this.requestList = data;
-      this.updateEventData();
-    });
-    this.getCardData('help').subscribe((data) => {
-      this.helpList = data;
-      this.updateEventData();
-    });
-  }
-
-  private updateEventData() {
+  private async loadCardLists() {
+    // 并发加载两种类型
+    const [reqList, helpList] = await Promise.all([
+      firstValueFrom(this.getCardData('request')),
+      firstValueFrom(this.getCardData('help')),
+    ]);
+    this.requestList = reqList || [];
+    this.helpList = helpList || [];
     this.eventData = [...this.requestList, ...this.helpList];
+
+    // 计算真实距离
+    await this.updateCardDistances();
+
+    // 触发动态文本翻译（管道已注册文本，此处批量调用API）
+    setTimeout(() => this.dynTrans.translateAll().subscribe(), 200);
   }
 
   private getCardData(type: 'request' | 'help') {
     return this.http.get<any[]>(`${this.API_BASE}/api/cards?type=${type}`).pipe(
       map((rawData) => {
-        const processedData = rawData.map((item) => ({
-          ...item,
+        const processedData = rawData.map((item: any) => ({
+          ...mapApiCardToEventCardData(item),
           icon: 'navigate-outline',
-          distance: '距500m',
-          price: item.price ? item.price.toString() : '0.00元',
+          distance: this.t.unknownDistance,
+          tags: item.tags || '',
         }));
         let finalData = processedData;
         if (processedData.length > 4) {
@@ -125,6 +128,49 @@ export class Tab1Page implements OnInit {
         return finalData;
       }),
     );
+  }
+
+  // 所有卡片加载完后统一计算真实距离
+  private async updateCardDistances() {
+    const userPos = await getUserPosition();
+    if (!userPos) return;
+
+    for (const card of this.eventData) {
+      // 线上服务不显示距离
+      if (isOnlineService(card.address)) {
+        card.distance = '';
+        continue;
+      }
+
+      if (card.lng != null && card.lat != null) {
+        const meters = calculateDistance(
+          userPos.lng,
+          userPos.lat,
+          card.lng,
+          card.lat,
+        );
+        card.distance = formatDistance(
+          meters,
+          this.langService.getCurrentLang(),
+        );
+      } else if (card.address) {
+        const coords = await resolveAddress(card.address);
+        if (coords) {
+          card.lng = coords.lng;
+          card.lat = coords.lat;
+          const meters = calculateDistance(
+            userPos.lng,
+            userPos.lat,
+            coords.lng,
+            coords.lat,
+          );
+          card.distance = formatDistance(
+            meters,
+            this.langService.getCurrentLang(),
+          );
+        }
+      }
+    }
   }
 
   shuffleArray(array: any[]): any[] {
@@ -154,12 +200,9 @@ export class Tab1Page implements OnInit {
     });
   }
 
-  toggleLanguage() {
-    this.showLangConfirmModal = true;
-  }
-
   confirmSwitchLanguage() {
-    this.langService.toggleLanguage();
+    this.handleStaticTranslate();
+    this.handleDynamicTranslate();
     this.showLangConfirmModal = false;
   }
 
@@ -167,8 +210,18 @@ export class Tab1Page implements OnInit {
     this.showLangConfirmModal = false;
   }
 
+  toggleElderlyMode() {
+    this.isElderlyMode = !this.isElderlyMode;
+    if (this.isElderlyMode) {
+      document.body.classList.add('elderly-mode');
+    } else {
+      document.body.classList.remove('elderly-mode');
+    }
+    localStorage.setItem('elderly_mode', String(this.isElderlyMode));
+  }
+
   cardClickFeedback(item: CardItem) {
-    console.log('点击了小卡片：', item.name, 'ID：', item.id);
+    (document.activeElement as HTMLElement)?.blur();
     this.router.navigate(['/particular'], {
       queryParams: {
         eventId: item.id,
@@ -183,51 +236,21 @@ export class Tab1Page implements OnInit {
     );
   }
 
-  trackById(index: number, item: CardItem): string {
+  trackById(_index: number, item: CardItem): string {
     return item.id;
   }
 
-
-  // 绑定你原有的翻译按钮
-  public onTranslateBtnClick(): void {
-    this.handleStaticTranslate();
-    this.handleDynamicTranslate();
+  toggleLanguage() {
+    this.showLangConfirmModal = true;
   }
 
-  // 你的静态翻译逻辑
+  // 静态翻译：切换整个应用的 UI 语言
   private handleStaticTranslate(): void {
-    console.log('静态文本翻译已执行');
-    // 在此处粘贴你已完成的静态翻译代码
+    this.langService.toggleLanguage();
   }
 
-  // 动态文本翻译 - 调用后端接口
+  // 动态翻译由 DynamicTranslationService 自动触发，此处仅做日志
   private handleDynamicTranslate(): void {
-    if (!this.dynamicSourceText.trim()) {
-      console.warn('无待翻译的动态文本');
-      return;
-    }
-
-    this.translateService.translateText({
-      sourceText: this.dynamicSourceText,
-      sourceLang: this.sourceLang,
-      targetLang: this.targetLang
-    }).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.translatedText = res.targetText;
-          console.log('✅ 翻译成功，结果：', this.translatedText);
-          alert('翻译成功：' + this.translatedText); // 弹窗提示，方便测试
-        }
-      },
-      error: (err) => {
-        console.error('❌ 翻译失败', err);
-        alert('翻译失败，请检查后端服务是否启动');
-      }
-    });
-  }
-
-
-  public toggleTranslateLanguage(): void {
-    [this.sourceLang, this.targetLang] = [this.targetLang, this.sourceLang];
+    console.log('语言已切换，动态翻译服务自动运行中...');
   }
 }

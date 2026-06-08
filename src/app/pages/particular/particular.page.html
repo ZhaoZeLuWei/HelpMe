@@ -4,13 +4,13 @@
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
         <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
-        返回
+        {{ t.back }}
       </ion-button>
     </ion-buttons>
     <ion-buttons slot="end">
       <ion-button (click)="goHome()">
         <ion-icon slot="start" name="home-outline"></ion-icon>
-        主页
+        {{ t.home }}
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
@@ -25,13 +25,13 @@
         <div class="avatar-container">
           <img
             [src]="getAvatarUrl(userInfo?.avatar)"
-            alt="用户头像"
+            [alt]="t.userAvatar"
             class="user-avatar"
           />
         </div>
         <div class="publisher-text">
           <h3>
-            {{ userInfo.name || event?.name }}
+            {{ (userInfo.name || event?.name) | tText }}
             <ion-badge
               [color]="getServiceRoleColor(userInfo.providerRole)"
               class="service-badge"
@@ -40,43 +40,96 @@
             </ion-badge>
           </h3>
           <p class="publisher-meta">
-            买家评分: {{ (userInfo.buyerRanking || 0) }} 分
+            {{ t.buyerRating }}{{ (userInfo.buyerRanking || 0) }}{{ t.scoreUnit
+            }}
             <br />
-            服务评分：{{ (userInfo.serviceRanking || 0) }} 分
+            {{ t.serviceRating }}{{ (userInfo.serviceRanking || 0) }}{{
+            t.scoreUnit }}
             <br />
-            服务次数：{{ (userInfo.orderCount || 0) }} 次
+            {{ t.serviceCount }}{{ (userInfo.orderCount || 0) }}{{ t.countUnit
+            }}
             <br />
-            注册时间：{{ userInfo.CreateTime }}
+            {{ t.followerCount }}{{ (userInfo.followerCount || 0) }}
+            <br />
+            {{ t.registerTime }}{{ userInfo.CreateTime }}
           </p>
         </div>
+        @if (!isCurrentUserCreator && currentUserId) {
+        <div class="follow-button-container" (click)="$event.stopPropagation()">
+          <ion-button
+            [fill]="isFollowingCreator ? 'solid' : 'outline'"
+            [color]="isFollowingCreator ? 'danger' : 'medium'"
+            size="small"
+            (click)="onFollow()"
+          >
+            <ion-icon
+              slot="start"
+              [name]="isFollowingCreator ? 'heart' : 'heart-outline'"
+            ></ion-icon>
+            {{ isFollowingCreator ? t.followed : t.follow }}
+          </ion-button>
+        </div>
+        }
       </div>
 
       <!-- 任务核心信息 -->
       <div class="event-info">
-        <h2 class="event-title">{{event?.title}}</h2>
+        <h2 class="event-title">{{ event?.title | tText }}</h2>
         <div class="event-details">
           <p>
-            <ion-icon name="location-outline"></ion-icon> 地点：{{
-            event?.address }}
+            <ion-icon name="location-outline"></ion-icon> {{ t.location }}{{
+            event?.address | tText }}
           </p>
           <p>
-            <ion-icon name="time-outline"></ion-icon> 时间：{{ event?.createTime
-            }}
+            <ion-icon name="time-outline"></ion-icon> {{ t.time }}{{
+            event?.createTime }}
           </p>
           <p>
-            <ion-icon name="cash-outline"></ion-icon> 价格：¥{{ event?.price }}
+            <ion-icon name="cash-outline"></ion-icon> {{ t.price }}¥{{
+            event?.price }}
           </p>
         </div>
-        <p class="event-description">{{ event?.demand }}</p>
+        <p class="event-description">{{ event?.demand | tText }}</p>
+        <!-- 标签区域 -->
+        @if (eventTags.length > 0) {
+        <div class="event-tags">
+          @for (tag of eventTags; track $index) {
+          <span
+            class="tag-chip"
+            role="button"
+            tabindex="0"
+            (click)="searchByTag(tag)"
+            (keyup.enter)="searchByTag(tag)"
+            [attr.aria-label]="('#' + (tag | tText))"
+          >
+            <ion-icon name="pricetag-outline"></ion-icon>
+            #{{ tag | tText }}
+          </span>
+          }
+        </div>
+        }
       </div>
 
-      <!-- 任务图标区 -->
-      <div class="event-icon-area">
-        <img
-          [src]="event && event.cardImage ? apiBase + event.cardImage : ''"
-          alt="暂无任务图片"
-          class="event-icon"
-        />
+      <!-- 任务图片区 -->
+      <div class="event-photos-section">
+        @if (eventPhotos.length > 0) {
+        <div class="event-photos-grid">
+          @for (photo of eventPhotos; track $index) {
+          <div class="event-photo-item" (click)="previewPhoto(photo)">
+            <img
+              [src]="photo.startsWith('http') ? photo : apiBase + photo"
+              [alt]="t.eventImage"
+              class="event-photo"
+            />
+          </div>
+          }
+        </div>
+        } @else {
+        <div class="event-no-photos">
+          <ion-icon name="image-outline" class="no-photos-icon"></ion-icon>
+          <p class="no-photos-text">{{ t.noPhotos }}</p>
+        </div>
+        }
       </div>
     </div>
   </div>
@@ -86,9 +139,18 @@
   <ion-toolbar>
     <ion-row class="bottom-actions">
       <ion-col>
-        <ion-button expand="block" fill="outline" (click)="onCollect()">
-          <ion-icon slot="start" name="star-outline"></ion-icon>
-          收藏
+        <ion-button
+          expand="block"
+          [fill]="isFavorited ? 'solid' : 'outline'"
+          [color]="isFavorited ? 'warning' : 'medium'"
+          (click)="onCollect()"
+        >
+          <ion-icon
+            slot="start"
+            [name]="isFavorited ? 'star' : 'star-outline'"
+          ></ion-icon>
+          {{ isFavorited ? t.favorited : t.favorite }} @if (favoriteCount > 0) {
+          ({{ favoriteCount }}) }
         </ion-button>
       </ion-col>
       @if (!isCurrentUserCreator) {
@@ -100,7 +162,7 @@
           [disabled]="!canCreateOrder"
         >
           <ion-icon slot="start" name="document-text"></ion-icon>
-          {{ canCreateOrder ? '下单' : '暂不可下单' }}
+          {{ canCreateOrder ? t.placeOrder : t.cannotOrder }}
         </ion-button>
       </ion-col>
       }
@@ -110,7 +172,7 @@
             slot="start"
             [name]="isCurrentUserCreator ? 'create-outline' : 'chatbubble-outline'"
           ></ion-icon>
-          {{ isCurrentUserCreator ? '编辑' : '聊一聊' }}
+          {{ isCurrentUserCreator ? t.edit : t.chat }}
         </ion-button>
       </ion-col>
     </ion-row>
@@ -118,103 +180,56 @@
 </ion-footer>
 
 <!-- 编辑事件弹窗 -->
-<ion-modal [isOpen]="isEditModalOpen" (didDismiss)="closeEditModal()">
-  <ng-template>
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>编辑事件</ion-title>
-        <ion-buttons slot="end">
-          <ion-button fill="clear" (click)="closeEditModal()">关闭</ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content>
-      <form [formGroup]="editForm">
-        <ion-list lines="full">
-          <ion-item>
-            <ion-label position="stacked">标题 *</ion-label>
-            <ion-input
-              formControlName="EventTitle"
-              placeholder="简明描述"
-            ></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">类型 *</ion-label>
-            <ion-select formControlName="EventType" interface="popover">
-              <ion-select-option [value]="0">求助</ion-select-option>
-              <ion-select-option [value]="1">帮助</ion-select-option>
-            </ion-select>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">类别 *</ion-label>
-            <ion-input
-              formControlName="EventCategory"
-              placeholder="如：电脑维修"
-            ></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">位置 *</ion-label>
-            <ion-input
-              formControlName="Location"
-              placeholder="详细地址"
-            ></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">价格 (¥)</ion-label>
-            <ion-input
-              type="number"
-              formControlName="Price"
-              placeholder="0 表示无偿帮助"
-            ></ion-input>
-          </ion-item>
-          <ion-item>
-            <ion-label position="stacked">详细描述 *</ion-label>
-            <ion-textarea
-              formControlName="EventDetails"
-              placeholder="补充说明"
-            ></ion-textarea>
-          </ion-item>
-        </ion-list>
-        <div style="padding: 16px">
-          <ion-button
-            expand="block"
-            (click)="submitEdit()"
-            [disabled]="isSavingEdit"
-          >
-            {{ isSavingEdit ? '保存中...' : '保存修改' }}
-          </ion-button>
-        </div>
-      </form>
-    </ion-content>
-  </ng-template>
-</ion-modal>
+<app-edit-event-modal
+  #editEventModal
+  [isOpen]="isEditModalOpen"
+  [eventData]="editingEventData"
+  [isSaving]="isSavingEdit"
+  (didDismiss)="closeEditModal()"
+  (save)="submitEdit($event)"
+  (openLocationPicker)="onLocationPicker()"
+></app-edit-event-modal>
 
 <ion-modal [isOpen]="isOrderModalOpen" (didDismiss)="closeOrderModal()">
   <ng-template>
     <ion-header>
       <ion-toolbar>
-        <ion-title>填写订单信息</ion-title>
+        <ion-title>{{ t.orderFormTitle }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button fill="clear" (click)="closeOrderModal()">关闭</ion-button>
+          <ion-button fill="clear" (click)="closeOrderModal()"
+            >{{ t.close }}</ion-button
+          >
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content>
       <form [formGroup]="orderForm">
         <ion-list lines="full">
+          <!-- 地图选择地址（预选为事件地址） -->
+          <ion-item button detail="true" (click)="openOrderLocationPicker()">
+            <ion-label>{{ t.detailAddress }}</ion-label>
+            <ion-note
+              slot="end"
+              [color]="orderForm.value.DetailLocation ? 'primary' : 'medium'"
+            >
+              {{ pickedLocationDisplay || t.selectLocation }}
+            </ion-note>
+          </ion-item>
+          <!-- 具体位置（门牌号、楼栋号等） -->
           <ion-item>
-            <ion-label position="stacked">详细地址 *</ion-label>
+            <ion-label position="stacked">{{ t.specificLocation }}</ion-label>
             <ion-input
-              formControlName="DetailLocation"
-              placeholder="请输入上门/交付地址"
+              formControlName="SpecificLocation"
+              [placeholder]="t.specificLocationPlaceholder"
             ></ion-input>
           </ion-item>
+          <!-- 补充信息 -->
           <ion-item>
-            <ion-label position="stacked">补充信息</ion-label>
+            <ion-label position="stacked">{{ t.additionalInfo }}</ion-label>
             <ion-textarea
               formControlName="AdditionalInfo"
               [autoGrow]="true"
-              placeholder="例如时间、联系方式、特殊要求"
+              [placeholder]="t.additionalInfoPlaceholder"
             ></ion-textarea>
           </ion-item>
         </ion-list>
@@ -222,12 +237,47 @@
           <ion-button
             expand="block"
             (click)="submitOrder()"
-            [disabled]="isSubmittingOrder"
+            [disabled]="isSubmittingOrder || orderForm.invalid"
           >
-            {{ isSubmittingOrder ? '提交中...' : '确认下单' }}
+            {{ isSubmittingOrder ? t.submitting : t.confirmOrder }}
           </ion-button>
         </div>
       </form>
     </ion-content>
   </ng-template>
 </ion-modal>
+
+<!-- 图片大图预览 -->
+@if (previewImageUrl) {
+<div class="photo-preview-overlay" (click)="closePreview()">
+  <div class="photo-preview-container" (click)="$event.stopPropagation()">
+    <button class="photo-preview-close" (click)="closePreview()">
+      <ion-icon name="close"></ion-icon>
+    </button>
+    <img
+      [src]="previewImageUrl"
+      [alt]="t.imagePreview"
+      class="photo-preview-img"
+    />
+    <div class="photo-preview-counter">
+      {{ previewPhotoIndex + 1 }} / {{ eventPhotos.length }}
+    </div>
+    @if (eventPhotos.length > 1) {
+    <button
+      class="photo-preview-nav prev"
+      (click)="prevPhoto()"
+      [disabled]="previewPhotoIndex === 0"
+    >
+      <ion-icon name="chevron-back"></ion-icon>
+    </button>
+    <button
+      class="photo-preview-nav next"
+      (click)="nextPhoto()"
+      [disabled]="previewPhotoIndex === eventPhotos.length - 1"
+    >
+      <ion-icon name="chevron-forward"></ion-icon>
+    </button>
+    }
+  </div>
+</div>
+}

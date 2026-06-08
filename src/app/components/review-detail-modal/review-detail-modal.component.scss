@@ -1,0 +1,144 @@
+.review-detail-content {
+  --background: var(--ion-color-step-50, #f4f5f8);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  .empty-icon {
+    font-size: 48px;
+    color: var(--ion-color-medium, #92949c);
+    margin-bottom: 12px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--ion-color-medium, #92949c);
+    margin: 0;
+  }
+}
+
+.review-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-card {
+  background: var(--ion-card-background, var(--ion-background-color, #fff));
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  ion-avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+}
+
+.review-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .author-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ion-text-color, #1a1a1a);
+  }
+
+  .review-time {
+    font-size: 11px;
+    color: var(--ion-color-medium, #92949c);
+  }
+}
+
+.score-badge {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+
+  .star-icon {
+    font-size: 14px;
+    color: var(--ion-color-warning, #ffc409);
+  }
+
+  .score-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ion-color-warning, #ffc409);
+    margin-left: 4px;
+  }
+}
+
+.review-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ion-color-medium-shade, #555);
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--ion-color-step-100, rgba(0, 0, 0, 0.06));
+}
+
+@media (max-width: 420px) {
+  .review-list {
+    padding: 8px;
+  }
+
+  .review-card {
+    padding: 12px;
+  }
+}
+
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode),
+body.elderly-mode {
+  .review-header ion-avatar {
+    width: 56px;
+    height: 56px;
+  }
+  .review-meta .author-name {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .review-meta .review-time {
+    font-size: 16px;
+  }
+  .score-badge .star-icon {
+    font-size: 20px;
+  }
+  .score-badge .score-text {
+    font-size: 18px;
+  }
+  .review-content {
+    font-size: 18px;
+    line-height: 1.7;
+  }
+  .empty-state {
+    .empty-icon {
+      font-size: 64px;
+    }
+    p {
+      font-size: 20px;
+    }
+  }
+}

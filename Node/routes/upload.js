@@ -5,9 +5,13 @@ const path = require("node:path");
 const { join } = require("node:path");
 const multer = require("multer");
 
-// 上传目录 + 文件格式（名称 + 格式限制）
+// 普通图片上传目录（公开访问）
 const uploadDir = join(__dirname, "..", "..", "upload", "img");
 fs.mkdirSync(uploadDir, { recursive: true });
+
+// 敏感文件上传目录（身份证、证书等，不公开访问）
+const sensitiveDir = join(__dirname, "..", "..", "upload", "sensitive");
+fs.mkdirSync(sensitiveDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
@@ -19,8 +23,93 @@ const storage = multer.diskStorage({
   },
 });
 
+// 文件头魔数校验（验证真实文件类型）
+const IMAGE_SIGNATURES = {
+  // PNG: 89 50 4E 47 (也支持 APNG)
+  png: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+  // JPEG: FF D8 FF (支持 jpg/jpe/jfif/pjp/pjpeg)
+  jpeg: Buffer.from([0xff, 0xd8, 0xff]),
+  // GIF: 47 49 46 38
+  gif: Buffer.from([0x47, 0x49, 0x46, 0x38]),
+  // WebP: 52 49 46 46
+  webp: Buffer.from([0x52, 0x49, 0x46, 0x46]),
+  // BMP: 42 4D
+  bmp: Buffer.from([0x42, 0x4d]),
+  // TIFF (little-endian): 49 49 2A 00
+  tiff_le: Buffer.from([0x49, 0x49, 0x2a, 0x00]),
+  // TIFF (big-endian): 4D 4D 00 2A
+  tiff_be: Buffer.from([0x4d, 0x4d, 0x00, 0x2a]),
+  // ICO: 00 00 01 00
+  ico: Buffer.from([0x00, 0x00, 0x01, 0x00]),
+  // HEIF/HEIC: 66 74 79 70 68 65 69 63 (ftyp heic)
+  heic: Buffer.from([0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63]),
+  // HEIF: 66 74 79 70 68 65 69 66 (ftyp heif)
+  heif: Buffer.from([0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x66]),
+  // AVIF: 66 74 79 70 61 76 69 66 (ftyp avif)
+  avif: Buffer.from([0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66]),
+  // JPEG XL (JXL): FF 0A (裸流) 或 00 00 00 0C 4A 58 4C 20 (容器)
+  jxl_stream: Buffer.from([0xff, 0x0a]),
+  jxl_container: Buffer.from([0x00, 0x00, 0x00, 0x0c, 0x4a, 0x58, 0x4c, 0x20]),
+  // SVG: 以 <svg 或 <?xml 开头（文本格式）
+  // SVGZ: 1F 8B 08 (gzip压缩的SVG)
+  svgz: Buffer.from([0x1f, 0x8b, 0x08]),
+};
+
+// SVG/XBM 等文本格式需要特殊处理
+function validateTextBasedImage(buffer) {
+  if (!buffer || buffer.length < 10) return false;
+  const head = buffer.toString('ascii', 0, Math.min(buffer.length, 512));
+  // SVG: 以 <svg 或 <?xml 开头
+  if (head.startsWith('<svg') || head.startsWith('<?xml')) return true;
+  // XBM: 以 #define 开头
+  if (head.startsWith('#define')) return true;
+  return false;
+}
+
+function validateImageMagicNumber(buffer) {
+  if (!buffer || buffer.length < 4) return false;
+
+  // 先检查二进制格式的魔数
+  for (const [type, signature] of Object.entries(IMAGE_SIGNATURES)) {
+    if (buffer.subarray(0, signature.length).equals(signature)) {
+      return true;
+    }
+  }
+
+  // 再检查文本格式（SVG、XBM）
+  if (validateTextBasedImage(buffer)) {
+    return true;
+  }
+
+  return false;
+}
+
 const upload = multer({
   storage,
+  limits: { fileSize: 10 * 1024 * 1024, files: 10 },
+  fileFilter: (req, file, cb) => {
+    // 这里只做不会消费上传流的轻量校验，避免影响后续 storage 正常写盘
+    if (!file.mimetype || !file.mimetype.startsWith("image/")) {
+      return cb(new Error("只允许上传图片文件，请检查后重试"));
+    }
+
+    cb(null, true);
+  },
+});
+
+// 敏感文件上传配置（身份证、证书等）
+const sensitiveStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, sensitiveDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const safeExt = ext && ext.length <= 10 ? ext : "";
+    const name = `${Date.now()}-${Math.random().toString(16).slice(2)}${safeExt}`;
+    cb(null, name);
+  },
+});
+
+const sensitiveUpload = multer({
+  storage: sensitiveStorage,
   limits: { fileSize: 10 * 1024 * 1024, files: 10 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype && file.mimetype.startsWith("image/")) cb(null, true);
@@ -54,23 +143,66 @@ function cleanupUploadedFiles(files) {
   }
 }
 
+function collectUploadedFiles(req) {
+  const all = flattenMulterFiles(req.files);
+  if (req.file) all.push(req.file);
+  return all;
+}
+
+/** multer 写盘成功后校验文件头魔数，伪造 mimetype 的文件会被删除并拒绝 */
+function validateUploadedImages(req, res, next) {
+  const files = collectUploadedFiles(req);
+  if (files.length === 0) return next();
+
+  for (const f of files) {
+    if (!f?.path) continue;
+    try {
+      const fd = fs.openSync(f.path, "r");
+      const header = Buffer.alloc(12);
+      fs.readSync(fd, header, 0, 12, 0);
+      fs.closeSync(fd);
+      if (!validateImageMagicNumber(header)) {
+        cleanupUploadedFiles(req.files);
+        if (req.file?.path) safeUnlink(req.file.path);
+        return res.status(400).json({
+          success: false,
+          error: "文件内容与图片格式不符，请上传有效的图片文件",
+        });
+      }
+    } catch {
+      cleanupUploadedFiles(req.files);
+      if (req.file?.path) safeUnlink(req.file.path);
+      return res.status(400).json({
+        success: false,
+        error: "无法读取上传文件，请重试",
+      });
+    }
+  }
+  return next();
+}
+
 function withMulter(mw) {
   return (req, res, next) => {
     mw(req, res, (err) => {
       if (err) {
         cleanupUploadedFiles(req.files);
+        if (req.file?.path) safeUnlink(req.file.path);
         return res
           .status(400)
           .json({ success: false, error: err.message || "upload failed" });
       }
-      return next();
+      return validateUploadedImages(req, res, next);
     });
   };
 }
 
 module.exports = {
   uploadDir,
+  sensitiveDir,
   upload,
+  sensitiveUpload,
   withMulter,
   cleanupUploadedFiles,
+  validateUploadedImages,
+  validateImageMagicNumber,
 };

@@ -1,6 +1,5 @@
-<ion-content [fullscreen]="true">
+<div class="universal-search-wrapper">
   <div [formGroup]="filterForm">
-
     <!-- ===== 1. 搜索区域 (点击按钮搜索) ===== -->
     <div class="search-actions-container">
       <!-- 搜索框 -->
@@ -11,7 +10,9 @@
         [placeholder]="t.placeholder"
         show-clear-button="true"
         [formControl]="searchControl"
-        (ionClear)="resetFilters()"> <!-- 点击小X时自动重置 -->
+        (ionClear)="resetFilters()"
+      >
+        <!-- 点击小X时自动重置 -->
       </ion-searchbar>
 
       <!-- 搜索确认按钮 -->
@@ -21,42 +22,66 @@
     </div>
     <!-- ===== 2. 分类标签按钮 ===== -->
     <ion-row class="category-row">
-  <ion-col>
-    <ion-button 
-      expand="block" 
-      [fill]="currentType === 'request' ? 'solid' : 'outline'"
-      color="primary"
-      (click)="filterByType('request')">
-      求助
-    </ion-button>
-  </ion-col>
-  <ion-col>
-    <ion-button 
-      expand="block" 
-      [fill]="currentType === 'help' ? 'solid' : 'outline'"
-      color="primary"
-      (click)="filterByType('help')">
-      帮助
-    </ion-button>
-  </ion-col>
+      <ion-col>
+        <ion-button
+          expand="block"
+          [fill]="currentType === 'request' ? 'solid' : 'outline'"
+          color="primary"
+          (click)="filterByType('request')"
+        >
+          {{ t.filterRequest }}
+        </ion-button>
+      </ion-col>
+      <ion-col>
+        <ion-button
+          expand="block"
+          [fill]="currentType === 'help' ? 'solid' : 'outline'"
+          color="primary"
+          (click)="filterByType('help')"
+        >
+          {{ t.filterHelp }}
+        </ion-button>
+      </ion-col>
     </ion-row>
 
     <!-- ===== 3. 筛选按钮行 ===== -->
     <ion-row class="filter-row">
       <ion-col>
-        <ion-button expand="block" fill="clear" size="small" color="dark" (click)="setModal('price', true)">
+        <ion-button
+          expand="block"
+          fill="clear"
+          size="small"
+          color="dark"
+          (click)="setModal('price', true)"
+        >
           <ion-icon slot="start" name="pricetag"></ion-icon>
-          {{ t.priceRange }}
+          {{
+            selectedPriceTier() >= 0
+              ? priceTiers[selectedPriceTier()].label
+              : t.priceRange
+          }}
         </ion-button>
       </ion-col>
       <ion-col>
-        <ion-button expand="block" fill="clear" size="small" color="dark" (click)="setModal('location', true)">
+        <ion-button
+          expand="block"
+          fill="clear"
+          size="small"
+          color="dark"
+          (click)="setModal('location', true)"
+        >
           <ion-icon slot="start" name="location"></ion-icon>
           {{ t.locationFilter }}
         </ion-button>
       </ion-col>
       <ion-col>
-        <ion-button expand="block" fill="clear" size="small" color="dark" (click)="resetFilters()">
+        <ion-button
+          expand="block"
+          fill="clear"
+          size="small"
+          color="dark"
+          (click)="resetFilters()"
+        >
           <ion-icon slot="start" name="funnel"></ion-icon>
           {{ t.reset }}
         </ion-button>
@@ -75,10 +100,15 @@
                    1. [ngTemplateOutlet]: 渲染父组件传进来的模板
                    2. [ngTemplateOutletContext]: 把当前的数据 event 和 点击方法 handleCardClick 传给模板
               -->
-              <ng-container *ngTemplateOutlet="cardTemplate; context: {
-  event: event,
-  onItemClick: handleCardClick.bind(this)
-}"></ng-container>
+              <ng-container
+                *ngTemplateOutlet="
+                  cardTemplate;
+                  context: {
+                    event: event,
+                    onItemClick: handleCardClick.bind(this),
+                  }
+                "
+              ></ng-container>
             </div>
           }
         } @else {
@@ -94,52 +124,108 @@
     <!-- ==================== 模态框区域 ==================== -->
 
     <!-- 价格筛选 -->
-    <ion-modal [isOpen]="modals().price" (willDismiss)="setModal('price', false)">
+    <ion-modal
+      [isOpen]="modals().price"
+      (willDismiss)="setModal('price', false)"
+    >
       <ng-template>
         <ion-header>
           <ion-toolbar>
             <ion-title>{{ t.priceFilterTitle }}</ion-title>
             <ion-buttons slot="end">
-              <ion-button (click)="setModal('price', false)">{{ t.close }}</ion-button>
+              <ion-button (click)="setModal('price', false)">{{
+                t.close
+              }}</ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
-        <ion-content class="ion-padding">
-          <div formGroupName="priceRange">
-            <ion-item>
-              <ion-label>{{ t.minPrice }}: {{ filterForm.get('priceRange')?.get('min')?.value }}</ion-label>
-              <ion-range formControlName="min" [min]="0" [max]="500" [snaps]="true" color="secondary"></ion-range>
-            </ion-item>
-            <ion-item>
-              <ion-label>{{ t.maxPrice }}: {{ filterForm.get('priceRange')?.get('max')?.value }}</ion-label>
-              <ion-range formControlName="max" [min]="0" [max]="1000" [snaps]="true" color="secondary"></ion-range>
-            </ion-item>
+        <ion-content>
+          @if (selectedPriceTier() >= 0) {
+            <div class="filter-current-tag">
+              <ion-icon name="pricetag"></ion-icon>
+              <span
+                >{{ t.currentFilter
+                }}{{ priceTiers[selectedPriceTier()].label }}</span
+              >
+            </div>
+          }
+          <div class="filter-card-list">
+            @for (tier of priceTiers; track $index) {
+              <div
+                class="filter-option"
+                [class.active]="selectedPriceTier() === $index"
+                (click)="selectPriceTier($index)"
+              >
+                <div class="filter-option-left">
+                  @if (selectedPriceTier() === $index) {
+                    <ion-icon
+                      name="checkmark-circle"
+                      color="primary"
+                    ></ion-icon>
+                  } @else {
+                    <ion-icon name="pricetag-outline" color="medium"></ion-icon>
+                  }
+                  <span>{{ tier.label }}</span>
+                </div>
+                @if (selectedPriceTier() === $index) {
+                  <div class="filter-option-checked"></div>
+                }
+              </div>
+            }
           </div>
         </ion-content>
       </ng-template>
     </ion-modal>
 
     <!-- 地点筛选 -->
-    <ion-modal [isOpen]="modals().location" (willDismiss)="setModal('location', false)">
+    <ion-modal
+      [isOpen]="modals().location"
+      (willDismiss)="setModal('location', false)"
+    >
       <ng-template>
         <ion-header>
           <ion-toolbar>
             <ion-title>{{ t.locationFilterTitle }}</ion-title>
             <ion-buttons slot="end">
-              <ion-button (click)="setModal('location', false)">{{ t.close }}</ion-button>
+              <ion-button (click)="setModal('location', false)">{{
+                t.close
+              }}</ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
         <ion-content>
-          <ion-list>
-            <ion-item>
-              <ion-label position="stacked">{{ t.locationLabel }}</ion-label>
-              <ion-input type="text" [formControlName]="'location'" [placeholder]="t.locationPlaceholder"></ion-input>
-            </ion-item>
-          </ion-list>
+          <div class="filter-current-tag">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ t.locationLabel }}</span>
+          </div>
+          <div class="filter-search-area">
+            <ion-icon
+              name="search-outline"
+              class="filter-search-icon"
+            ></ion-icon>
+            <input
+              class="filter-search-input"
+              type="text"
+              [formControlName]="'location'"
+              [placeholder]="t.locationPlaceholder"
+            />
+            @if (filterForm.get("location")?.value) {
+              <ion-button
+                fill="clear"
+                size="small"
+                class="filter-clear-btn"
+                (click)="filterForm.get('location')?.setValue('')"
+              >
+                <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+              </ion-button>
+            }
+          </div>
+          <div class="filter-hint">
+            <ion-icon name="information-circle-outline"></ion-icon>
+            <span>{{ t.locationHint }}</span>
+          </div>
         </ion-content>
       </ng-template>
     </ion-modal>
-
   </div>
-</ion-content>
+</div>

@@ -9,7 +9,7 @@
     </ion-avatar>
     <div class="user-basic-info">
       <div class="user-name-row">
-        <h2 class="user-name">{{ userInfo?.name }}</h2>
+        <h2 class="user-name">{{ userInfo?.name | tText }}</h2>
         <ion-badge
           [color]="userInfo?.isVerified === t?.verified ? 'success' : 'medium'"
           class="verified-badge"
@@ -19,7 +19,7 @@
       </div>
       <div class="user-location">
         <ion-icon name="location-outline"></ion-icon>
-        <span>{{ userInfo?.location || t?.locationNotSet }}</span>
+        <span>{{ (userInfo?.location | tText) || t?.locationNotSet }}</span>
       </div>
     </div>
     <div class="edit-profile-action">
@@ -37,19 +37,19 @@
   <div class="user-info-section">
     @if (userInfo?.realName) {
       <div class="info-row">
-        <span class="info-label">真实姓名：</span>
-        <span class="info-value">{{ userInfo.realName }}</span>
+        <span class="info-label">{{ t?.profileCard.realName }}</span>
+        <span class="info-value">{{ userInfo.realName | tText }}</span>
       </div>
     }
     @if (userInfo?.introduction) {
       <div class="info-row">
-        <span class="info-label">个人介绍：</span>
-        <span class="info-value">{{ userInfo.introduction }}</span>
+        <span class="info-label">{{ t?.profileCard.introduction }}</span>
+        <span class="info-value">{{ userInfo.introduction | tText }}</span>
       </div>
     }
     @if (userInfo?.birthDate) {
       <div class="info-row">
-        <span class="info-label">出生日期：</span>
+        <span class="info-label">{{ t?.profileCard.birthDate }}</span>
         <span class="info-value">{{ userInfo.birthDate }}</span>
       </div>
     }
@@ -79,6 +79,13 @@
       <div class="rating-content">
         <span class="rating-label">{{ t?.orderCount }}</span>
         <span class="rating-value">{{ userInfo?.orderCount || 0 }}</span>
+      </div>
+    </div>
+    <div class="rating-item" (click)="showFollowers.emit()" style="cursor: pointer">
+      <ion-icon name="heart" color="danger"></ion-icon>
+      <div class="rating-content">
+        <span class="rating-label">{{ t?.followerCount }}</span>
+        <span class="rating-value">{{ userInfo?.followerCount || 0 }}</span>
       </div>
     </div>
   </div>

@@ -5,8 +5,11 @@
         <ion-icon slot="icon-only" name="close"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-title>选择地点</ion-title>
+    <ion-title>{{ t.title }}</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="toggleAddressBook()" class="addr-book-btn">
+        {{ t.addressBook }}
+      </ion-button>
       <ion-button (click)="confirmMapLocation()" [disabled]="!currentAddress()">
         <ion-icon slot="icon-only" name="save"></ion-icon>
       </ion-button>
@@ -20,7 +23,11 @@
 
   <!-- 地图操作按钮 -->
   <div class="map-controls">
-    <ion-button size="small" [disabled]="isLocating()" (click)="getCurrentLocation()">
+    <ion-button
+      size="small"
+      [disabled]="isLocating()"
+      (click)="getCurrentLocation()"
+    >
       @if (isLocating()) {
         <ion-spinner name="crescent" slot="icon-only"></ion-spinner>
       } @else {
@@ -40,7 +47,7 @@
       </ion-label>
       <div class="address-actions">
         <ion-button size="small" fill="outline" (click)="confirmMapLocation()">
-          确定位置
+          {{ t.confirmLocation }}
         </ion-button>
       </div>
     </div>
@@ -52,13 +59,18 @@
       <ion-searchbar
         class="search-input"
         [value]="keyword"
-        placeholder="搜索地点"
+        [placeholder]="t.searchPlaceholder"
         (ionInput)="onKeywordChange($any($event.detail).value)"
         (ionClear)="onKeywordChange('')"
         showClearButton="always"
       ></ion-searchbar>
-      <ion-button size="default" (click)="doSearchAction()" [disabled]="!keyword" class="search-btn">
-        搜索
+      <ion-button
+        size="default"
+        (click)="doSearchAction()"
+        [disabled]="!keyword"
+        class="search-btn"
+      >
+        {{ t.searchBtn }}
       </ion-button>
     </div>
   </div>
@@ -67,21 +79,29 @@
   <!-- 👇 注意这里加上了 !keyword ，只要搜索框有字，附近推荐就消失 -->
   @if (!keyword && nearbyLocations().length > 0) {
     <div class="section">
-      <ion-label class="section-title">附近推荐</ion-label>
+      <ion-label class="section-title">{{ t.nearby }}</ion-label>
       <ion-list lines="full">
         @for (item of nearbyLocations(); track item.id) {
           <ion-item button detail="false" (click)="selectLocation(item)">
             <ion-label>
               <h3>{{ item.name }}</h3>
               <p>
-                @if (item.distanceMeters != null && item.distanceMeters >= 1000) {
-                  {{ (item.distanceMeters / 1000).toFixed(item.distanceMeters > 100000 ? 0 : 1) }}km内
-                } @else if (item.distanceMeters != null && item.distanceMeters < 1000) {
-                  {{ item.distanceMeters }}m内
+                @if (
+                  item.distanceMeters != null && item.distanceMeters >= 1000
+                ) {
+                  {{
+                    (item.distanceMeters / 1000).toFixed(
+                      item.distanceMeters > 100000 ? 0 : 1
+                    )
+                  }}km
+                } @else if (
+                  item.distanceMeters != null && item.distanceMeters < 1000
+                ) {
+                  {{ item.distanceMeters }}m
                 } @else if (item.district) {
                   {{ item.district }}
                 } @else {
-                  附近
+                  {{ t.nearbyUnit }}
                 }
               </p>
               <p class="address">{{ item.address || item.district }}</p>
@@ -99,33 +119,41 @@
   @if (loading()) {
     <div class="state-box">
       <ion-spinner name="dots"></ion-spinner>
-      <p>正在加载...</p>
+      <p>{{ t.loading }}</p>
     </div>
   }
 
   @if (!loading() && keyword && locations().length === 0) {
     <div class="state-box empty">
-      <p>没有找到可选地点，请换个关键词</p>
+      <p>{{ t.noResults }}</p>
     </div>
   }
 
   @if (!loading() && keyword && locations().length > 0) {
     <div class="section">
-      <ion-label class="section-title">搜索结果</ion-label>
+      <ion-label class="section-title">{{ t.searchResults }}</ion-label>
       <ion-list lines="full">
         @for (item of locations(); track item.id) {
           <ion-item button detail="false" (click)="selectLocation(item)">
             <ion-label>
               <h3>{{ item.name }}</h3>
               <p>
-                @if (item.distanceMeters != null && item.distanceMeters >= 1000) {
-                  {{ (item.distanceMeters / 1000).toFixed(item.distanceMeters > 100000 ? 0 : 1) }}km内
-                } @else if (item.distanceMeters != null && item.distanceMeters < 1000) {
-                  {{ item.distanceMeters }}m内
+                @if (
+                  item.distanceMeters != null && item.distanceMeters >= 1000
+                ) {
+                  {{
+                    (item.distanceMeters / 1000).toFixed(
+                      item.distanceMeters > 100000 ? 0 : 1
+                    )
+                  }}km
+                } @else if (
+                  item.distanceMeters != null && item.distanceMeters < 1000
+                ) {
+                  {{ item.distanceMeters }}m
                 } @else if (item.district) {
                   {{ item.district }}
                 } @else {
-                  附近
+                  {{ t.nearbyUnit }}
                 }
               </p>
               <p class="address">{{ item.address || item.district }}</p>
@@ -136,6 +164,57 @@
           </ion-item>
         }
       </ion-list>
+    </div>
+  }
+
+  <!-- ===== 地址簿覆盖层 ===== -->
+  @if (showAddressBook()) {
+    <div class="overlay">
+      <div class="overlay-header">
+        <ion-label class="overlay-title">{{ t.commonAddresses }}</ion-label>
+        <ion-button fill="clear" size="small" (click)="toggleAddressBook()">{{
+          t.close
+        }}</ion-button>
+      </div>
+      @if (addressBook().length > 0) {
+        <ion-list lines="full">
+          @for (item of addressBook(); track item.placeId) {
+            <ion-item
+              button
+              detail="false"
+              (click)="selectCachedLocation(item)"
+            >
+              <ion-label>
+                <h3>{{ item.text }}</h3>
+                <p class="address">{{ item.address }}</p>
+                <p class="address-meta">
+                  <span
+                    >{{ t.usedCount }} {{ item.useCount }}
+                    {{ t.usedCountSuffix }}</span
+                  >
+                  <span class="dot">·</span>
+                  <span>{{ formatRelativeTime(item.timestamp) }}</span>
+                </p>
+              </ion-label>
+              <ion-button
+                slot="end"
+                fill="clear"
+                size="small"
+                (click)="
+                  $event.stopPropagation(); removeFromAddressBook(item.placeId)
+                "
+                class="delete-addr-btn"
+              >
+                <ion-icon slot="icon-only" name="close"></ion-icon>
+              </ion-button>
+            </ion-item>
+          }
+        </ion-list>
+      } @else {
+        <div class="state-box empty">
+          <p>{{ t.noHistory }}</p>
+        </div>
+      }
     </div>
   }
 </ion-content>

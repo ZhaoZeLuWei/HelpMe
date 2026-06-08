@@ -1,10 +1,16 @@
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+
+/* 替换内部的 ion-content（已移除嵌套的 ion-content，用普通容器替代） */
+.universal-search-wrapper {
+  display: block;
+}
 
 /* ===== 通用图标 ===== */
 .material-icons {
   display: inline-block;
   font-size: 1em;
-  width: 1em; height: 1em;
+  width: 1em;
+  height: 1em;
   line-height: 1;
   vertical-align: middle;
 }
@@ -14,15 +20,15 @@
   display: flex;
   align-items: center;
   padding: 10px 15px;
-  background: #F8FAFC;
-  border-bottom: 1px solid #E2E8F0;
+  background: var(--ion-background-color);
+  border-bottom: 1px solid var(--ion-background-color-step-150);
   gap: 10px;
 }
 
 .search-bar-custom {
   flex: 1;
-  max-width: 400px;          // 与队友一致
-  --background: #FFFFFF;
+  max-width: 400px;
+  --background: var(--ion-card-background, var(--ion-background-color));
   --box-shadow: none;
   --border-radius: 20px;
   --padding-start: 15px;
@@ -37,18 +43,136 @@
   --border-radius: 20px;
 }
 
-/* ===== 筛选按钮行 – 与小卡片筛选条同风格 ===== */
+/* ===== 分类标签行 – 现代化切换风格 ===== */
+.category-row {
+  padding: 12px 16px;
+  gap: 12px;
+  background: var(--ion-card-background, var(--ion-background-color));
+  border-bottom: 1px solid var(--ion-background-color-step-150);
+
+  ion-col {
+    padding: 0;
+  }
+
+  ion-button {
+    --border-radius: 12px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+    text-transform: none;
+    margin: 0;
+
+    &[fill="solid"] {
+      --background: var(--ion-color-primary);
+      --color: white;
+      box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.3);
+    }
+
+    &[fill="outline"] {
+      --background: transparent;
+      --color: var(--ion-color-primary);
+      --border-color: var(--ion-color-primary);
+      border-width: 1.5px;
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+}
+
+/* 长辈模式分类标签适配 */
+:host-context(body.elderly-mode) .category-row,
+body.elderly-mode .category-row {
+  padding: 16px;
+  gap: 16px;
+
+  ion-button {
+    height: 52px;
+    font-size: 18px;
+    --border-radius: 16px;
+
+    &[fill="solid"] {
+      box-shadow: 0 6px 16px rgba(var(--ion-color-primary-rgb), 0.35);
+    }
+  }
+}
+
+/* ===== 筛选按钮行 – 现代化标签风格 ===== */
 .filter-row {
-  background: #FFFFFF;
-  padding: 10px 0;
-  border-bottom: 1px solid #E2E8F0;
-  ion-col { padding: 0 5px; }
+  background: var(--ion-card-background, var(--ion-background-color));
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ion-background-color-step-150);
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  ion-col {
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  ion-button {
+    --border-radius: 20px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    height: 36px;
+    font-size: 13px;
+    font-weight: 600;
+    --background: var(--ion-color-step-100, #f1f5f9);
+    --color: var(--ion-text-color);
+    margin: 0;
+    text-transform: none;
+
+    ion-icon {
+      font-size: 16px;
+      margin-right: 4px;
+    }
+
+    &[fill="clear"] {
+      --background: transparent;
+    }
+
+    &:hover {
+      --background: var(--ion-color-step-150);
+    }
+
+    &:active {
+      transform: scale(0.96);
+    }
+  }
+}
+
+/* 长辈模式筛选栏适配 */
+:host-context(body.elderly-mode) .filter-row,
+body.elderly-mode .filter-row {
+  padding: 16px;
+  gap: 12px;
+
+  ion-button {
+    height: 44px;
+    font-size: 16px;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --border-radius: 24px;
+
+    ion-icon {
+      font-size: 20px;
+    }
+  }
 }
 
 /* ===== 列表容器 – 同队友网格 ===== */
 .event-list-container {
   padding: 10px;
-  background-color: #F8FAFC;
+  background-color: var(--ion-background-color);
 }
 
 /* ===== 空状态 – 直接复用队友空状态 ===== */
@@ -59,40 +183,393 @@
   align-items: center;
   justify-content: center;
   padding: 40px 10px;
-  color: #94A3B8;
+  color: var(--ion-color-medium);
   text-align: center;
-  background-color: #F8FAFC;
-  border: 2px dashed #E2E8F0;
+  background-color: var(--ion-background-color);
+  border: 2px dashed var(--ion-background-color-step-150);
   border-radius: 12px;
   margin: 0 10px;
 
   .material-icons {
     font-size: 48px;
-    color: #CBD5E1;
+    color: var(--ion-background-color-step-200);
     margin-bottom: 10px;
   }
-  p { font-size: 15px; margin: 0; font-weight: 500; }
+  p {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 500;
+  }
 }
 
-/* ===== 小卡片网格布局 – 与首页保持一致 ===== */
+/* ===== 小卡片网格布局 – 多列显示 ===== */
 .small-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
-  padding: 0 10px;
+  padding: 10px;
+  align-items: stretch;
 
   @media (min-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+}
+
+/* 长辈模式下适配：和tab1保持一致 */
+:host-context(body.elderly-mode) .small-card-grid,
+body.elderly-mode .small-card-grid {
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 12px;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+:host-context(body.elderly-mode),
+body.elderly-mode {
+  .search-actions-container {
+    padding: 14px 16px;
+  }
+
+  .search-bar-custom {
+    font-size: 18px;
+    min-height: 52px;
+    --padding-start: 18px;
+    --padding-end: 18px;
+  }
+
+  .search-actions-container ion-button {
+    height: 48px;
+    font-size: 17px;
+    min-width: 48px;
+  }
+
+  .empty-state {
+    p {
+      font-size: 18px;
+    }
+
+    ion-icon {
+      font-size: 56px;
+    }
+  }
+
+  .filter-option-left {
+    font-size: 18px;
+
+    ion-icon {
+      font-size: 24px;
+    }
+  }
+
+  .filter-current-tag {
+    font-size: 17px;
+    padding: 14px 20px 6px;
+  }
+
+  .filter-search-input {
+    font-size: 18px;
+    padding: 16px 12px;
+  }
+
+  .filter-hint {
+    font-size: 16px;
   }
 }
 
 .card-item {
   width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 /* ===== 模态框 – 与队友自定义弹窗同风格 ===== */
 ion-modal {
   --border-radius: 20px;
-  --box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  --box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* ===== 筛选弹窗公共样式 ===== */
+.filter-current-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px 4px;
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+.filter-current-tag ion-icon {
+  font-size: 16px;
+}
+
+/* ===== 价格档次卡片列表 ===== */
+.filter-card-list {
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--ion-card-background, #fff);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.filter-option:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.filter-option:active {
+  transform: translateY(0);
+}
+
+.filter-option.active {
+  border-color: var(--ion-color-primary);
+  background: rgba(var(--ion-color-primary-rgb), 0.04);
+  box-shadow: 0 2px 8px rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.filter-option-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--ion-text-color);
+}
+
+.filter-option-left ion-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.filter-option.active .filter-option-left {
+  font-weight: 600;
+  color: var(--ion-color-primary);
+}
+
+.filter-option-checked {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ion-color-primary);
+}
+
+/* ===== 地点筛选 ===== */
+.filter-search-area {
+  display: flex;
+  align-items: center;
+  margin: 12px 16px;
+  padding: 0 14px;
+  background: var(--ion-card-background, #fff);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--ion-background-color-step-150);
+  transition: border-color 0.2s;
+}
+
+.filter-search-area:focus-within {
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 2px 8px rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+.filter-search-icon {
+  font-size: 18px;
+  color: var(--ion-color-medium);
+  flex-shrink: 0;
+}
+
+.filter-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 14px 10px;
+  font-size: 15px;
+  background: transparent;
+  color: var(--ion-text-color);
+  min-width: 0;
+}
+
+.filter-search-input::placeholder {
+  color: var(--ion-color-medium-shade);
+}
+
+.filter-clear-btn {
+  margin: 0;
+  height: 32px;
+  width: 32px;
+  --padding-start: 0;
+  --padding-end: 0;
+  color: var(--ion-color-medium);
+}
+
+.filter-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 20px;
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+
+.filter-hint ion-icon {
+  font-size: 14px;
+}
+
+/* =========================================================================
+   Dark Mode Overrides (深色模式适配)
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  /* 搜索区域 */
+  .search-actions-container {
+    background: var(--ion-background-color);
+    border-bottom-color: var(--ion-color-step-100);
+  }
+
+  .search-bar-custom {
+    --background: var(--ion-card-background, var(--ion-color-step-50));
+  }
+
+  /* 分类标签行 */
+  .category-row {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    border-bottom-color: var(--ion-color-step-100);
+
+    ion-button {
+      &[fill="solid"] {
+        box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.4);
+      }
+
+      &[fill="outline"] {
+        --color: var(--ion-color-primary);
+        --border-color: var(--ion-color-primary);
+      }
+    }
+  }
+
+  /* 筛选按钮行 */
+  .filter-row {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    border-bottom-color: var(--ion-color-step-100);
+
+    ion-button {
+      --background: var(--ion-color-step-100);
+      --color: var(--ion-text-color);
+
+      &::part(native) {
+        color: var(--ion-text-color);
+      }
+
+      ion-icon {
+        color: var(--ion-text-color);
+      }
+
+      &:hover {
+        --background: var(--ion-color-step-150);
+      }
+    }
+  }
+
+  /* 列表容器 */
+  .event-list-container {
+    background: var(--ion-background-color);
+  }
+
+  /* 空状态 */
+  .empty-state {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    border-color: var(--ion-color-step-100);
+
+    .material-icons {
+      color: var(--ion-color-step-300);
+    }
+  }
+
+  /* 筛选选项卡片 */
+  .filter-option {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  /* 地点筛选搜索框 */
+  .filter-search-area {
+    background: var(--ion-card-background, var(--ion-color-step-50));
+    border-color: var(--ion-color-step-100);
+  }
+
+  /* 模态框 */
+  ion-modal {
+    --background: var(--ion-card-background, var(--ion-color-step-50));
+
+    ion-toolbar {
+      --background: var(--ion-card-background, var(--ion-color-step-50));
+      --color: var(--ion-text-color);
+    }
+
+    ion-title {
+      color: var(--ion-text-color);
+    }
+  }
+
+  /* 筛选弹窗文字 */
+  .filter-current-tag {
+    color: var(--ion-color-medium);
+
+    ion-icon {
+      color: var(--ion-color-medium);
+    }
+  }
+
+  .filter-option-left {
+    color: var(--ion-text-color);
+
+    ion-icon {
+      color: var(--ion-color-medium);
+    }
+  }
+
+  .filter-option.active .filter-option-left {
+    color: var(--ion-color-primary);
+  }
+
+  .filter-hint {
+    color: var(--ion-color-medium);
+  }
+
+  /* 地点筛选搜索框 */
+  .filter-search-input {
+    color: var(--ion-text-color);
+
+    &::placeholder {
+      color: var(--ion-color-medium);
+    }
+  }
 }

@@ -1,5 +1,5 @@
 .picker-content {
-  --background: #f5f5f5;
+  --background: var(--ion-background-color);
 }
 
 .map-container {
@@ -21,7 +21,7 @@
 }
 
 .address-card {
-  background: #fff;
+  background: var(--ion-card-background, var(--ion-background-color));
   margin: 12px 16px;
   padding: 16px;
   border-radius: 12px;
@@ -35,7 +35,7 @@
   flex: 1;
   font-size: 14px;
   line-height: 1.4;
-  color: #333;
+  color: var(--ion-text-color);
 }
 
 .address-actions {
@@ -55,19 +55,19 @@
 
 .search-input {
   flex: 1;
-  --background: #fff;
+  --background: var(--ion-card-background, var(--ion-background-color));
 }
 
 .search-btn {
-  height: 44px;       // 和搜索框一样高
-  margin: 0;          // 去掉默认边距
-  flex-shrink: 0;     // 防止按钮被挤压变形
+  height: 44px; // 和搜索框一样高
+  margin: 0; // 去掉默认边距
+  flex-shrink: 0; // 防止按钮被挤压变形
   --padding-start: 16px;
   --padding-end: 16px;
 }
 
 .section {
-  background: #fff;
+  background: var(--ion-card-background, var(--ion-background-color));
   margin: 0 16px 16px;
   border-radius: 12px;
   overflow: hidden;
@@ -78,8 +78,8 @@
   padding: 12px 16px;
   font-weight: 600;
   font-size: 14px;
-  color: #666;
-  border-bottom: 1px solid #f0f0f0;
+  color: var(--ion-color-medium);
+  border-bottom: 1px solid var(--ion-color-step-100, rgba(0, 0, 0, 0.06));
 }
 
 .state-box {
@@ -92,13 +92,13 @@
 }
 
 .state-box.empty {
-  color: #999;
+  color: var(--ion-color-medium);
   font-size: 14px;
 }
 
 .address {
   font-size: 12px;
-  color: #999;
+  color: var(--ion-color-medium);
   margin-top: 4px;
 }
 
@@ -120,6 +120,204 @@ ion-item h3 {
 
 ion-item p {
   font-size: 12px;
-  color: #666;
+  color: var(--ion-color-medium);
   margin: 4px 0 0;
+}
+
+/* ===== 地址簿样式 ===== */
+.address-meta {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot {
+  color: #ddd;
+}
+
+.delete-addr-btn {
+  margin: 0;
+  height: 32px;
+  width: 32px;
+  --padding-start: 0;
+  --padding-end: 0;
+  color: #ccc;
+
+  &:hover {
+    color: var(--ion-color-danger, #ef4444);
+  }
+}
+
+/* ===== 响应式：平板 & 桌面 ===== */
+@media (min-width: 768px) {
+  .map-container {
+    height: 55vh;
+  }
+
+  .address-card {
+    margin: 16px 24px;
+    padding: 20px 24px;
+  }
+
+  .address-label {
+    font-size: 16px;
+  }
+
+  .search-wrap {
+    padding: 0 24px;
+    margin-bottom: 16px;
+  }
+
+  .search-input {
+    --border-radius: 8px;
+  }
+
+  .section {
+    margin: 0 24px 20px;
+  }
+
+  .section-title {
+    padding: 16px 20px;
+    font-size: 15px;
+  }
+
+  ion-item {
+    --padding-start: 20px;
+    --padding-end: 20px;
+  }
+
+  ion-item h3 {
+    font-size: 15px;
+  }
+
+  .map-controls {
+    right: 24px;
+  }
+}
+
+/* ===== 响应式：大桌面 ===== */
+@media (min-width: 1200px) {
+  .map-container {
+    height: 60vh;
+  }
+
+  .address-card {
+    margin: 20px 32px;
+    padding: 24px 28px;
+  }
+
+  .search-wrap {
+    padding: 0 32px;
+  }
+
+  .section {
+    margin: 0 32px 24px;
+  }
+}
+
+/* ===== 地址簿按钮（header） ===== */
+.addr-book-btn {
+  font-size: 14px;
+  --padding-start: 8px;
+  --padding-end: 8px;
+}
+
+/* ===== 覆盖层（地址簿 & 城市选择器） ===== */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--ion-background-color);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--ion-card-background, var(--ion-background-color));
+  border-bottom: 1px solid var(--ion-color-step-100, rgba(0, 0, 0, 0.06));
+  flex-shrink: 0;
+}
+
+.overlay-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ion-text-color);
+}
+
+/* ===== 响应式覆盖层适配 ===== */
+@media (min-width: 768px) {
+  .overlay {
+    padding: 0 24px;
+  }
+
+  .overlay-header {
+    padding: 16px 20px;
+  }
+}
+
+/* =========================================================================
+   Elderly Mode (长辈模式)
+   ========================================================================= */
+:host-context(body.elderly-mode) {
+  .address-label {
+    font-size: 20px;
+    line-height: 1.5;
+  }
+  .address-card {
+    padding: 24px;
+  }
+  .address-card ion-button {
+    font-size: 18px;
+    height: 48px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .search-input {
+    font-size: 20px;
+  }
+  .search-btn {
+    height: 56px;
+    font-size: 18px;
+  }
+  ion-item h3 {
+    font-size: 20px;
+    font-weight: 600;
+  }
+  ion-item p {
+    font-size: 16px;
+  }
+  .address-meta {
+    font-size: 16px;
+  }
+  .overlay-title {
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .state-box {
+    font-size: 18px;
+    padding: 48px 20px;
+  }
+}
+
+/* =========================================================================
+   Dark Mode Overrides (深色模式适配)
+   ========================================================================= */
+@media (prefers-color-scheme: dark) {
+  /* 地图容器背景在深色模式下使用深灰色 */
+  .map-container {
+    background: #2a2a2a;
+  }
 }

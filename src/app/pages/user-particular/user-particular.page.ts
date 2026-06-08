@@ -1,10 +1,34 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonIcon, IonButtons, IonTitle, IonBadge, ModalController } from '@ionic/angular/standalone';
+import {
+  IonButton,
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonIcon,
+  IonButtons,
+  IonTitle,
+  IonBadge,
+  AlertController,
+} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
-import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/services/auth.service';
+import { Tab4EventService } from 'src/app/services/tab4/tab4-event.service';
+import { Tab4UserService } from 'src/app/services/tab4/tab4-user.service';
+import { LanguageService } from 'src/app/services/language.service';
+import { resolveMediaUrl } from 'src/app/utils/media-url.util';
+import {
+  goBack as navGoBack,
+  goHome as navGoHome,
+} from 'src/app/utils/nav.util';
+import {
+  getServiceRoleColor as getRoleColor,
+  getServiceRoleText as getRoleText,
+} from 'src/app/utils/role.util';
+import { DynamicTranslationService } from 'src/app/services/dynamic-translation.service';
+import { TranslateTextPipe } from 'src/app/pipes/translate-text.pipe';
+import { ToastController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   chevronBackOutline,
@@ -15,7 +39,10 @@ import {
   homeOutline,
   createOutline,
   handLeftOutline,
-  heart
+  heart,
+  swapHorizontalOutline,
+  pauseCircleOutline,
+  playCircleOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -33,6 +60,7 @@ import {
     IonButtons,
     IonTitle,
     IonBadge,
+    TranslateTextPipe,
   ],
 })
 export class UserParticularPage implements OnInit {
@@ -40,10 +68,18 @@ export class UserParticularPage implements OnInit {
   private router = inject(Router);
   private location = inject(Location);
   private authService = inject(AuthService);
-  private modalCtrl = inject(ModalController);
-  readonly apiBase = environment.apiBase;
+  private toastController = inject(ToastController);
+  private alertCtrl = inject(AlertController);
+  private languageService = inject(LanguageService);
+  private dynTrans = inject(DynamicTranslationService);
+  private readonly eventService = inject(Tab4EventService);
+  private readonly userService = inject(Tab4UserService);
+
+  // 翻译对象 - 声明时就初始化
+  t = this.languageService.getTranslations('zh').userParticular;
 
   isCurrentUser: boolean = false;
+  isFollowing: boolean = false;
 
   userInfo: any = {
     name: '',
@@ -54,9 +90,9 @@ export class UserParticularPage implements OnInit {
     providerRole: 0,
     orderCount: 0,
     serviceRanking: 0,
-    isVerified: '未认证',
+    isVerified: this.languageService.getTranslations('zh').tab4.notVerified,
     stats: { favorites: 0, views: 0, follows: 0 },
-    CreateTime: ''
+    CreateTime: '',
   };
 
   userId: number | null = null;
@@ -77,60 +113,103 @@ export class UserParticularPage implements OnInit {
       homeOutline,
       createOutline,
       handLeftOutline,
-      heart
+      heart,
+      swapHorizontalOutline,
+      pauseCircleOutline,
+      playCircleOutline,
     });
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    let isFirstEmit = true;
+    // 监听语言变化：切换语言时重新拉取数据（服务端返回译文）
+    this.languageService.currentLang$.subscribe((lang) => {
+      this.t = this.languageService.getTranslations(lang).userParticular;
+      if (isFirstEmit) {
+        isFirstEmit = false;
+        return;
+      }
+      if (this.userId) {
+        this.loadDataForUser(this.userId);
+      }
+    });
+    this.route.queryParams.subscribe(async (params) => {
       this.userInfo.name = params['name'] || '';
       this.userId = params['userId'] ? Number(params['userId']) : null;
 
       if (this.userId) {
-        this.loadUserFromStorage(this.userId);
-        this.loadActiveEvents(this.userId);
-        this.loadUserComments(this.userId);
-        this.loadActivityFeed(this.userId);
-        this.checkIsCurrentUser();
+        await this.loadDataForUser(this.userId);
       }
     });
   }
 
   checkIsCurrentUser() {
     const currentUserId = this.authService.currentUserId;
-    this.isCurrentUser = currentUserId !== null && this.userId !== null && currentUserId === this.userId;
+    this.isCurrentUser =
+      currentUserId !== null &&
+      this.userId !== null &&
+      currentUserId === this.userId;
+  }
+
+  async checkFollowStatus() {
+    if (this.isCurrentUser || !this.userId) return;
+    this.isFollowing = await this.authService.checkFollow(this.userId);
+  }
+
+  private get verificationLabels() {
+    const tab4 = this.languageService.getTranslations(
+      this.languageService.getCurrentLang(),
+    ).tab4;
+    return {
+      verified: tab4.verified,
+      rejected: tab4.rejected,
+      pending: tab4.pending,
+      notVerified: tab4.notVerified,
+    };
+  }
+
+  private async loadDataForUser(userId: number) {
+    await Promise.all([
+      this.loadUserProfile(userId),
+      this.loadUserEventsData(userId),
+      this.loadUserComments(userId),
+    ]);
+    this.checkIsCurrentUser();
+    this.checkFollowStatus();
   }
 
   switchTab(tab: string) {
     this.activeTab = tab;
   }
 
-  async loadActiveEvents(userId: number): Promise<void> {
+  private async loadUserEventsData(userId: number): Promise<void> {
     try {
-      const resp = await fetch(`${this.apiBase}/users/${userId}/events`);
-      if (resp.ok) {
-        const data = await resp.json().catch(() => null);
-        if (Array.isArray(data)) {
-          this.activeEvents = data;
-        }
-      }
+      const rows = await this.eventService.fetchUserEventsRaw(userId);
+      this.activeEvents = rows.filter((item: any) => Number(item.Status) === 0);
+      this.activityFeed = [...rows]
+        .filter((item: any) => Number(item.Status) !== 2)
+        .sort((a, b) => {
+          const dateA = new Date(a.CreateTime || 0).getTime();
+          const dateB = new Date(b.CreateTime || 0).getTime();
+          return dateB - dateA;
+        })
+        .map((event) => ({
+          id: event.EventId,
+          title: event.EventTitle,
+          description: event.EventDetails || this.t.noDescription,
+          activityType: this.getActivityType(event.Status),
+          date: event.CreateTime,
+          EventType: event.EventType,
+          Status: event.Status,
+        }));
     } catch (e) {
-      console.error('loadActiveEvents error', e);
+      console.error('loadUserEventsData error', e);
     }
   }
 
   async loadUserComments(userId: number): Promise<void> {
     try {
-      const resp = await fetch(`${this.apiBase}/users/${userId}/comments`);
-      if (resp.ok) {
-        const data = await resp.json().catch(() => null);
-        if (data?.success) {
-          this.userComments = data.comments || [];
-        }
-      } else if (resp.status === 404) {
-        this.userComments = [];
-        console.log('Comments API not implemented, setting empty array');
-      }
+      this.userComments = await this.userService.fetchUserComments(userId);
     } catch (e) {
       console.error('loadUserComments error', e);
       this.userComments = [];
@@ -138,50 +217,13 @@ export class UserParticularPage implements OnInit {
   }
 
   getCommentAvatarUrl(avatarPath?: string): string {
-    if (!avatarPath || avatarPath.trim() === '') {
-      return '/assets/icon/user.svg';
-    }
-    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
-      return avatarPath;
-    }
-    return environment.apiBase + avatarPath;
+    return resolveMediaUrl(avatarPath);
   }
 
-  async loadActivityFeed(userId: number): Promise<void> {
-    try {
-      const resp = await fetch(`${this.apiBase}/users/${userId}/events`);
-      if (resp.ok) {
-        const data = await resp.json().catch(() => null);
-        if (Array.isArray(data)) {
-          this.activityFeed = [...data]
-            .sort((a, b) => {
-              const dateA = new Date(a.CreateTime || 0).getTime();
-              const dateB = new Date(b.CreateTime || 0).getTime();
-              return dateB - dateA;
-            })
-            .map(event => ({
-              id: event.EventId,
-              title: event.EventTitle,
-              description: event.EventDetails || '暂无描述',
-              activityType: this.getActivityType(event.status),
-              date: event.CreateTime,
-              EventType: event.EventType
-            }));
-        }
-      }
-    } catch (e) {
-      console.error('loadActivityFeed error', e);
-    }
-  }
-
-  getActivityType(status: string): string {
-    const map: Record<string, string> = {
-      published: '发布活动',
-      inProgress: '活动进行中',
-      completed: '活动完成',
-      review: '待评价'
-    };
-    return map[status] || '活动';
+  getActivityType(status: number): string {
+    if (status === 0) return this.t.activityPublished;
+    if (status === 1) return this.t.activityCompleted;
+    return this.t.activityDefault;
   }
 
   formatDate(dateString: string): string {
@@ -191,52 +233,41 @@ export class UserParticularPage implements OnInit {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   }
 
-  async loadUserFromStorage(userId: number): Promise<void> {
+  private async loadUserProfile(userId: number): Promise<void> {
     try {
-      const resp = await fetch(`${this.apiBase}/users/${userId}/profile`);
-      if (resp.ok) {
-        const data = await resp.json().catch(() => null);
-        if (data?.success && data.user) {
-          this.userInfo.name = data.user.UserName || '';
-          this.userInfo.location = data.user.Location || '';
-          this.userInfo.introduction = data.user.Introduction || '';
-          this.userInfo.avatar = data.user.UserAvatar || '';
-          this.userInfo.buyerRanking = data.user.BuyerRanking ?? 0;
-          this.userInfo.providerRole = data.user.ProviderRole ?? 0;
-          this.userInfo.orderCount = data.user.OrderCount ?? 0;
-          this.userInfo.serviceRanking = data.user.ServiceRanking ?? 0;
-          this.userInfo.CreateTime = data.user.CreateTime || '';
-        }
+      const profile = await this.userService.fetchProfile(userId);
+      if (profile.unauthorized) {
+        await this.authService.handleAuthExpired();
+        return;
+      }
+      if (profile.user) {
+        this.userService.applyUserData(
+          this.userInfo,
+          profile.user,
+          this.verificationLabels,
+        );
+        this.userInfo.CreateTime = profile.user.CreateTime || '';
       }
     } catch (e) {
-      console.error('loadUserFromStorage error', e);
+      console.error('loadUserProfile error', e);
     }
   }
 
   getServiceRoleText(providerRole: number): string {
-    switch (providerRole) {
-      case 1:
-        return '热心用户';
-      case 2:
-        return '服务达人';
-      default:
-        return '普通用户';
-    }
+    return getRoleText(providerRole, {
+      roleEnthusiast: this.t.roleEnthusiast,
+      roleProfessional: this.t.roleProfessional,
+      roleMerchant: this.t.roleMerchant,
+      roleRegular: this.t.roleRegular,
+    });
   }
 
   getServiceRoleColor(providerRole: number): string {
-    switch (providerRole) {
-      case 1:
-        return 'warning';
-      case 2:
-        return 'success';
-      default:
-        return 'medium';
-    }
+    return getRoleColor(providerRole);
   }
 
   getTypeIcon(eventType: number): string {
@@ -244,7 +275,7 @@ export class UserParticularPage implements OnInit {
   }
 
   getTypeText(eventType: number): string {
-    return eventType === 1 ? '帮助' : '求助';
+    return eventType === 1 ? this.t.typeHelp : this.t.typeRequest;
   }
 
   getTypeColor(eventType: number): string {
@@ -252,13 +283,7 @@ export class UserParticularPage implements OnInit {
   }
 
   getAvatarUrl(avatarPath?: string): string {
-    if (!avatarPath || avatarPath.trim() === '') {
-      return '/assets/icon/user.svg';
-    }
-    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
-      return avatarPath;
-    }
-    return environment.apiBase + avatarPath;
+    return resolveMediaUrl(avatarPath);
   }
 
   ionViewWillLeave() {
@@ -280,47 +305,89 @@ export class UserParticularPage implements OnInit {
     this.router.navigate(['/particular'], {
       queryParams: {
         eventId: eventId,
-        title: event.EventTitle || event.title
-      }
+        title: event.EventTitle || event.title,
+      },
     });
   }
   goToEditEvent(eventId: number) {
-    this.router.navigate(['/tabs/tab4'], { 
-      queryParams: { editEvent: eventId } 
+    this.router.navigate(['/tabs/tab4'], {
+      queryParams: { editEvent: eventId },
     });
   }
 
-  goBack() {
-    if (window.history.length > 1) {
-      this.location.back();
-    } else {
-      this.router.navigate(['/tabs/tab1']);
+  /** 切换事件上架/下架状态 */
+  async toggleEventStatus(event: any, e: Event) {
+    e.stopPropagation();
+
+    const currentStatus = Number(event.Status ?? 0);
+    const willDeactivate = currentStatus === 0;
+
+    const alert = await this.alertCtrl.create({
+      header: willDeactivate ? this.t.deactivateTitle : this.t.activateTitle,
+      message: willDeactivate
+        ? this.t.deactivateMessage
+        : this.t.activateMessage,
+      buttons: [
+        { text: this.t.cancel, role: 'cancel' },
+        {
+          text: this.t.confirm,
+          handler: () => this.doToggleStatus(event, willDeactivate ? 1 : 0),
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async doToggleStatus(event: any, newStatus: number) {
+    const eventId = Number(event.EventId ?? event.id);
+    const result = await this.eventService.setEventStatus(eventId, newStatus);
+
+    if (result.success) {
+      event.Status = result.status ?? newStatus;
+      const toast = await this.toastController.create({
+        message:
+          result.message ||
+          (newStatus === 0 ? this.t.eventActivated : this.t.eventDeactivated),
+        duration: 2000,
+        color: 'success',
+        position: 'top',
+      });
+      await toast.present();
+      return;
     }
+
+    if (result.unauthorized) {
+      await this.authService.handleAuthExpired();
+      return;
+    }
+
+    const toast = await this.toastController.create({
+      message: result.error || this.t.toggleFailed,
+      duration: 2000,
+      color: 'danger',
+      position: 'top',
+    });
+    await toast.present();
+  }
+
+  goBack() {
+    navGoBack(this.location, this.router);
   }
 
   goHome() {
-    this.router.navigate(['/tabs/tab1']);
+    navGoHome(this.router);
   }
 
   async onChat() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      console.log('请先登录');
-      const { LoginPage } = await import('../login/login.page');
-      const modal = await this.modalCtrl.create({
-        component: LoginPage
+      const toast = await this.toastController.create({
+        message: this.t.loginRequired,
+        duration: 2000,
+        position: 'bottom',
       });
-      modal.onDidDismiss().then(() => {
-        const newUserId = this.authService.currentUserId;
-        if (newUserId) {
-          // 可以直接刷新数据而不是 reload
-          this.loadUserFromStorage(newUserId);
-          this.loadActiveEvents(newUserId);
-          this.loadUserComments(newUserId);
-          this.loadActivityFeed(newUserId);
-        }
-      });
-      await modal.present();
+      await toast.present();
+      this.router.navigate(['/tabs/tab4']);
       return;
     }
 
@@ -330,12 +397,12 @@ export class UserParticularPage implements OnInit {
     }
     this.router.navigate(['/chat-detail'], {
       state: { targetUser: this.userInfo },
-      replaceUrl: true
+      replaceUrl: true,
     });
 
     const chatData = {
       TargetUserId: this.userId,
-      PartnerId: currentUserId
+      PartnerId: currentUserId,
     };
     console.log('聊天数据:', chatData);
   }
@@ -343,20 +410,29 @@ export class UserParticularPage implements OnInit {
   async onFollow() {
     const currentUserId = this.authService.currentUserId;
     if (!currentUserId) {
-      console.log('请先登录');
-      const { LoginPage } = await import('../login/login.page');
-      const modal = await this.modalCtrl.create({
-        component: LoginPage
+      const toast = await this.toastController.create({
+        message: this.t.loginRequired,
+        duration: 2000,
+        position: 'bottom',
       });
-      modal.onDidDismiss().then(() => {
-        const newUserId = this.authService.currentUserId;
-        if (newUserId) {
-          window.location.reload();
-        }
-      });
-      await modal.present();
+      await toast.present();
+      this.router.navigate(['/tabs/tab4']);
       return;
     }
-    console.log('关注按钮点击');
+    if (!this.userId) return;
+    const result = await this.authService.toggleFollow(this.userId);
+    if (result !== null) {
+      this.isFollowing = result;
+      this.userInfo.followerCount = Math.max(
+        0,
+        (this.userInfo.followerCount || 0) + (result ? 1 : -1),
+      );
+      const toast = await this.toastController.create({
+        message: result ? this.t.followed : this.t.unfollowed,
+        duration: 2000,
+        position: 'bottom',
+      });
+      await toast.present();
+    }
   }
 }

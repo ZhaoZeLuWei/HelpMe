@@ -1,17 +1,10 @@
-import {
-  Component,
-  OnInit,
-  inject,
-  signal,
-  ViewChild,
-  AfterViewInit,
-} from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonHeader,
   IonToolbar,
   IonContent,
-  IonSearchbar,
+  IonIcon,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -24,8 +17,21 @@ import {
 
 // 引入展示组件
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
-import { SearchStateService } from '../../services/search-state.service';
+import {
+  SearchStateService,
+  AiSearchResults,
+} from '../../services/search-state.service';
 import { LanguageService } from '../../services/language.service';
+import { mapApiCardToEventCardData } from '../../utils/event-card.mapper';
+import { addIcons } from 'ionicons';
+import { sparklesOutline } from 'ionicons/icons';
+import {
+  getUserPosition,
+  calculateDistance,
+  formatDistance,
+  resolveAddress,
+  isOnlineService,
+} from '../../components/show-event/show-event.component';
 
 @Component({
   selector: 'app-tab2',
@@ -37,12 +43,12 @@ import { LanguageService } from '../../services/language.service';
     IonHeader,
     IonToolbar,
     IonContent,
-    IonSearchbar,
+    IonIcon,
     UniversalSearchComponent,
     ShowEventComponent,
   ],
 })
-export class Tab2Page implements OnInit, AfterViewInit {
+export class Tab2Page implements OnInit {
   private readonly API_BASE = environment.apiBase;
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -58,8 +64,16 @@ export class Tab2Page implements OnInit, AfterViewInit {
   // 分类参数
   currentType: string | null = null;
 
-  // 拿到搜索框实例
-  @ViewChild('searchBar') searchBar!: IonSearchbar;
+  // AI 搜索模式标记
+  isAiMode = false;
+
+  // AI 推荐数据（快照，不依赖信号响应）
+  aiRecommendation: string | null = null;
+  aiKeyword: string | null = null;
+
+  constructor() {
+    addIcons({ sparklesOutline });
+  }
 
   ngOnInit() {
     // 监听语言变化
@@ -67,64 +81,99 @@ export class Tab2Page implements OnInit, AfterViewInit {
       this.t = this.langService.getTranslations(lang).tab2;
     });
 
-    // 统一订阅：关键词变化 or 聚焦标志变化都走这里
-    // 接收路由参数
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.currentType = params['type'] || null;
-      const keyword = params['search'] || '';
 
-      // 只在第一次或者关键词变化时加载数据
-      const currentKeyword = this.route.snapshot.queryParams['search'] || '';
-      if (keyword !== currentKeyword || !this.eventsData().length) {
-        this.loadEvents(keyword);
-      }
-
-      // 聚焦逻辑（可选）
-      if (params['focusSearch']) {
-        setTimeout(() => this.searchBar?.setFocus(), 300);
+      if (params['ai'] === '1') {
+        // AI 模式：从服务快照数据
+        this.isAiMode = true;
+        const aiData = this.searchState.aiResults();
+        if (aiData) {
+          this.aiRecommendation = aiData.recommendation;
+          this.aiKeyword = aiData.keyword;
+        }
+        this.loadEvents();
+      } else {
+        // 非 AI 模式：普通搜索
+        this.isAiMode = false;
+        this.aiRecommendation = null;
+        this.aiKeyword = null;
+        const keyword = params['search'] || '';
+        const currentKeyword = this.route.snapshot.queryParams['search'] || '';
+        if (keyword !== currentKeyword || !this.eventsData().length) {
+          this.loadEvents(keyword);
+        }
       }
     });
+
+    if (this.route.snapshot.queryParams['search']) {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { search: null, focusSearch: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
   }
 
-  // 每次重新进入页面时刷新数据，确保发布/删除后的内容立刻可见
+  // 每次重新进入页面时刷新数据
   ionViewWillEnter() {
-    this.loadEvents();
+    if (!this.isAiMode) {
+      this.loadEvents();
+    }
   }
   filterByType(type: 'request' | 'help' | null) {
-  if (this.currentType === type) {
-    // 再次点击相同按钮，取消筛选
-    this.currentType = null;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { type: null },
-      queryParamsHandling: 'merge'
-    });
-  } else {
-    this.currentType = type;
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { type: type },
-      queryParamsHandling: 'merge'
-    });
-  }
-  this.loadEvents();
-}
-
-  ngAfterViewInit() {
-    // 如果 URL 带 focusSearch=true，则自动聚焦搜索框
-    this.route.queryParams.subscribe((params) => {
-      if (params['focusSearch']) {
-        setTimeout(() => this.searchBar?.setFocus(), 300);
-      }
-    });
+    if (this.currentType === type) {
+      // 再次点击相同按钮，取消筛选
+      this.currentType = null;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { type: null },
+        queryParamsHandling: 'merge',
+      });
+    } else {
+      this.currentType = type;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { type: type },
+        queryParamsHandling: 'merge',
+      });
+    }
+    this.loadEvents();
   }
 
   /* 统一加载：根据关键词和分类决定接口 */
-  private loadEvents(keyword?: string, skipUpdate?: boolean) {
+  private async loadEvents(keyword?: string) {
     const currentParams = this.route.snapshot.queryParams;
     const realType = this.currentType || currentParams['type'] || null;
 
-    // 构建查询参数
+    // AI 搜索模式：使用 AI 匹配到的事件
+    if (this.isAiMode) {
+      const aiData = this.searchState.aiResults();
+      if (aiData?.matchedEvents?.length) {
+        let matched = aiData.matchedEvents;
+        // 按类型过滤（如果 URL 指定了 type）
+        if (realType) {
+          matched = matched.filter((item: any) => {
+            const t =
+              item.eventType != null ? Number(item.eventType) : item.EventType;
+            return t === (realType === 'help' ? 1 : 0);
+          });
+        }
+        const transformed = matched.map((item: any) => ({
+          ...mapApiCardToEventCardData(item),
+          icon: 'navigate-outline',
+          distance: this.t.unknownDistance,
+          tags: item.tags || '',
+        }));
+        this.eventsData.set(transformed);
+        // 计算距离
+        this.calcDistances();
+        return;
+      }
+    }
+
+    // 普通搜索：调用后端 API
     const params = new URLSearchParams();
     if (keyword) {
       params.append('search', encodeURIComponent(keyword));
@@ -133,44 +182,80 @@ export class Tab2Page implements OnInit, AfterViewInit {
       params.append('type', realType);
     }
 
-    // 构建URL
     const url = `${this.API_BASE}/api/cards${params.toString() ? '?' + params.toString() : ''}`;
 
-    fetch(url)
-      .then(res => res.json())
-      .then(list => {
-        const transformed = list.map((item: any) => ({
-          id: String(item.id),
-          creatorId: Number(item.creatorId),
-          cardImage: item.cardImage,
-          title: item.title,
-          icon: item.icon || 'navigate-outline',
-          distance: item.distance || this.t.unknownDistance,
-          name: item.name,
-          address: item.address,
-          demand: item.demand,
-          price: item.price ? String(item.price) : '0.00',
-          createTime: item.createTime,
-          avatar: item.avatar,
-        }));
+    try {
+      const res = await fetch(url);
+      const list = await res.json();
+      const safeList = Array.isArray(list) ? list : [];
 
-        this.eventsData.set(transformed);
-      })
-      .catch(err => console.error(this.t.loadFailed, err));
+      const transformed = safeList.map((item: any) => ({
+        ...mapApiCardToEventCardData(item),
+        icon: item.icon || 'navigate-outline',
+        distance: item.distance || this.t.unknownDistance,
+        tags: item.tags || '',
+      }));
+
+      this.eventsData.set(transformed);
+      this.calcDistances();
+    } catch (err) {
+      console.error(this.t.loadFailed, err);
+    }
+  }
+
+  /** 计算所有卡片的真实距离 */
+  private async calcDistances() {
+    const userPos = await getUserPosition();
+    if (!userPos) return;
+    const cards = this.eventsData();
+    for (const card of cards) {
+      if (isOnlineService(card.address)) {
+        card.distance = '';
+        continue;
+      }
+      if (card.lng != null && card.lat != null) {
+        const meters = calculateDistance(
+          userPos.lng,
+          userPos.lat,
+          card.lng,
+          card.lat,
+        );
+        card.distance = formatDistance(
+          meters,
+          this.langService.getCurrentLang(),
+        );
+      } else if (card.address) {
+        const coords = await resolveAddress(card.address);
+        if (coords) {
+          card.lng = coords.lng;
+          card.lat = coords.lat;
+          const meters = calculateDistance(
+            userPos.lng,
+            userPos.lat,
+            coords.lng,
+            coords.lat,
+          );
+          card.distance = formatDistance(
+            meters,
+            this.langService.getCurrentLang(),
+          );
+        }
+      }
+    }
   }
   onTypeChange(type: 'request' | 'help' | null) {
     this.currentType = type;
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { type: type },
-      queryParamsHandling: 'merge'
+      queryParamsHandling: 'merge',
     });
     this.loadEvents();
   }
   /* 跳转到搜索页面 */
   navigateToSearch() {
     this.router.navigate(['/search'], {
-      queryParams: { returnTo: 'tabs/tab2' }
+      queryParams: { returnTo: 'tabs/tab2' },
     });
   }
 }

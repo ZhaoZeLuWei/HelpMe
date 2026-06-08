@@ -6,9 +6,11 @@
 
 <ion-content [fullscreen]="true">
   @if (!showChat) {
-  <h1>{{ t.loginRequired }}</h1>
-  <h1>{{ t.loginRequiredSub }}</h1>
-  <h3>{{ t.loginHint }}</h3>
+  <div class="login-prompt-container">
+    <h1>{{ t.loginRequired }}</h1>
+    <h1>{{ t.loginRequiredSub }}</h1>
+    <h3>{{ t.loginHint }}</h3>
+  </div>
   } @if (showChat) {
   <ion-list>
     <!--      这里是每一个用户登陆后对应的通知消息-->
@@ -38,12 +40,17 @@
       </ion-avatar>
       <ion-label>
         <div class="chat-header">
-          <h2>{{user.name}}</h2>
+          <h2>{{user.name | tText}}</h2>
+          @if (user.orderId) {
+          <ion-badge color="primary" class="order-tag"
+            >{{ t.tab3Extra.orderTag }}</ion-badge
+          >
+          }
           <ion-note color="medium">
             {{ formatChatTime(user.updatedAt)}}
           </ion-note>
         </div>
-        <p>{{user.lastMsg}}</p>
+        <p>{{user.lastMsg | tText}}</p>
       </ion-label>
       @if (user.count > 0) {
       <ion-badge slot="end" color="danger"> {{user.count}} </ion-badge>

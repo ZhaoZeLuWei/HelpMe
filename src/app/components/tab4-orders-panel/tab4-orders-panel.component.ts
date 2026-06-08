@@ -10,6 +10,7 @@ import {
   IonLabel,
   IonText,
 } from '@ionic/angular/standalone';
+import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 
 @Component({
   selector: 'app-tab4-orders-panel',
@@ -24,6 +25,7 @@ import {
     IonItem,
     IonLabel,
     IonText,
+    TranslateTextPipe,
   ],
   templateUrl: './tab4-orders-panel.component.html',
   styleUrl: './tab4-orders-panel.component.scss',
@@ -32,11 +34,17 @@ export class Tab4OrdersPanelComponent {
   @Input() orders: any[] = [];
   @Input() orderStats: any;
   @Input() isLoading = false;
-  @Input() filter: 'all' | 'pending' | 'active' | 'review' | 'done' = 'all';
+  @Input() filter:
+    | 'all'
+    | 'pending'
+    | 'active'
+    | 'review'
+    | 'done'
+    | 'cancelled' = 'all';
   @Input() t: any;
 
   @Output() filterChange = new EventEmitter<
-    'all' | 'pending' | 'active' | 'review' | 'done'
+    'all' | 'pending' | 'active' | 'review' | 'done' | 'cancelled'
   >();
   @Output() viewEvent = new EventEmitter<number>();
   @Output() viewOrder = new EventEmitter<any>();
@@ -46,7 +54,9 @@ export class Tab4OrdersPanelComponent {
   @Output() cancel = new EventEmitter<number>();
   @Output() viewReview = new EventEmitter<number>();
 
-  setFilter(filter: 'all' | 'pending' | 'active' | 'review' | 'done') {
+  setFilter(
+    filter: 'all' | 'pending' | 'active' | 'review' | 'done' | 'cancelled',
+  ) {
     this.filterChange.emit(filter);
   }
 }

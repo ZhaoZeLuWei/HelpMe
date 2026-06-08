@@ -1,0 +1,66 @@
+<ion-modal [isOpen]="isOpen" (didDismiss)="close()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ t.reviewDetail.title }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="close()">{{
+            t.reviewDetail.close
+          }}</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="review-detail-content">
+      @if (isLoading) {
+        <div class="empty-state">
+          <ion-text color="medium"
+            ><p>{{ t.reviewDetail.loading }}</p></ion-text
+          >
+        </div>
+      } @else if (reviews.length === 0) {
+        <div class="empty-state">
+          <ion-icon
+            name="chatbubble-ellipses-outline"
+            class="empty-icon"
+          ></ion-icon>
+          <ion-text color="medium"
+            ><p>{{ t.reviewDetail.noReviews }}</p></ion-text
+          >
+        </div>
+      } @else {
+        <div class="review-list">
+          @for (r of reviews; track r.id) {
+            <div class="review-card">
+              <div class="review-header">
+                <ion-avatar>
+                  <img
+                    [src]="getAvatarUrl(r.authorAvatar)"
+                    [alt]="t.reviewDetail.avatarAlt"
+                  />
+                </ion-avatar>
+                <div class="review-meta">
+                  <span class="author-name">{{ r.authorName | tText }}</span>
+                  <span class="review-time">{{ r.createTime }}</span>
+                </div>
+                <div class="score-badge">
+                  @for (s of [1, 2, 3, 4, 5]; track s) {
+                    <ion-icon
+                      [name]="s <= r.rating ? 'star' : 'star-outline'"
+                      class="star-icon"
+                    ></ion-icon>
+                  }
+                  <span class="score-text"
+                    >{{ r.rating }}{{ t.reviewDetail.scoreUnit }}</span
+                  >
+                </div>
+              </div>
+              @if (r.content) {
+                <p class="review-content">{{ r.content | tText }}</p>
+              }
+            </div>
+          }
+        </div>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>

@@ -1,17 +1,18 @@
 /* eslint-env node, es2021 */
 const jwt = require("jsonwebtoken");
 
-// 建议用环境变量：JWT_SECRET=xxxx
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
+// JWT 配置（必须从环境变量读取，index.js 启动时已校验）
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
 // 只放必要信息进 token（不要放手机号/身份证等敏感信息）
-function signToken(user) {
-  // 你的 Users 表字段是 UserId / UserName / PhoneNumber（login里就是这么查的）
+// role: 'user' | 'admin'，默认 'user'
+function signToken(user, role = "user") {
   return jwt.sign(
     {
       id: user.UserId,
       name: user.UserName,
+      role,
     },
     JWT_SECRET,
     {
@@ -21,10 +22,20 @@ function signToken(user) {
 }
 
 function authRequired(req, res, next) {
+  // 支持从 Authorization header 或 query parameter 获取 token
+  // query parameter 用于 <img> 标签等无法设置自定义 header 的场景
+  let token = null;
   const header = req.headers.authorization || "";
-  const [type, token] = header.split(" ");
+  const [type, headerToken] = header.split(" ");
 
-  if (type !== "Bearer" || !token) {
+  if (type === "Bearer" && headerToken) {
+    token = headerToken;
+  } else if (req.query && req.query.token) {
+    // 从 query parameter 获取 token
+    token = req.query.token;
+  }
+
+  if (!token) {
     return res.status(401).json({ success: false, error: "当前用户未登录" });
   }
 
@@ -52,8 +63,32 @@ function authOptional(req, _res, next) {
   return next();
 }
 
+// 管理员鉴权中间件：要求用户已登录且具有 admin 角色
+function adminRequired(req, res, next) {
+  const header = req.headers.authorization || "";
+  const [type, token] = header.split(" ");
+
+  if (type !== "Bearer" || !token) {
+    return res.status(401).json({ success: false, error: "未授权访问" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ success: false, error: "需要管理员权限" });
+    }
+    req.user = decoded;
+    return next();
+  } catch (err) {
+    return res
+      .status(401)
+      .json({ success: false, error: "登录已过期或 token 无效" });
+  }
+}
+
 module.exports = {
   signToken,
   authRequired,
   authOptional,
+  adminRequired,
 };

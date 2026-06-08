@@ -7,5 +7,11 @@ import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
   imports: [IonApp, IonRouterOutlet],
 })
 export class AppComponent {
-  constructor() {}
+  constructor() {
+    // 启动时恢复长辈模式状态
+    const savedElderly = localStorage.getItem('elderly_mode');
+    if (savedElderly === 'true') {
+      document.body.classList.add('elderly-mode');
+    }
+  }
 }

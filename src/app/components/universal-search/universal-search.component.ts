@@ -1,31 +1,60 @@
-import { Component, OnInit, Output, EventEmitter, computed, inject, input, signal, ContentChild, TemplateRef, ViewChild } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Output,
+  EventEmitter,
+  computed,
+  inject,
+  input,
+  signal,
+  ContentChild,
+  TemplateRef,
+  ViewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 // 修改后 (确保 IonList 和 IonItem 都在)
 import {
-  IonHeader, IonToolbar, IonContent, IonTitle,
-  IonLabel, IonButton,
-  IonRow, IonCol,
-  IonIcon, IonModal, IonList, IonItem,
-  IonSearchbar, IonRange, IonButtons,
-  IonInput
+  IonHeader,
+  IonToolbar,
+  IonContent,
+  IonTitle,
+  IonButton,
+  IonRow,
+  IonCol,
+  IonIcon,
+  IonModal,
+  IonSearchbar,
+  IonButtons,
 } from '@ionic/angular/standalone';
 
 import {
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
-  FormControl
+  FormControl,
 } from '@angular/forms';
-import {
-  debounceTime,
-  distinctUntilChanged,
-  startWith
-} from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 import { addIcons } from 'ionicons';
-import { pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search } from 'ionicons/icons';
+import {
+  pricetag,
+  location,
+  funnel,
+  cash,
+  navigate,
+  chevronForward,
+  fileTray,
+  call,
+  search,
+  pricetagOutline,
+  checkmarkCircle,
+  searchOutline,
+  closeCircle,
+  informationCircleOutline,
+  locationOutline,
+} from 'ionicons/icons';
 
 // 只保留这一个 import，删除了重复的引入
 import { EventCardData } from '../show-event/show-event.component';
@@ -39,16 +68,20 @@ import { LanguageService } from '../../services/language.service';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    IonHeader, IonToolbar, IonContent, IonTitle,
-    IonLabel, IonButton,
-    IonRow, IonCol,
-    IonIcon, IonModal, IonList, IonItem, // <--- 添加 IonItem
-    IonSearchbar, IonRange, IonButtons,
-    IonInput,
-  ]
+    IonHeader,
+    IonToolbar,
+    IonContent,
+    IonTitle,
+    IonButton,
+    IonRow,
+    IonCol,
+    IonIcon,
+    IonModal,
+    IonSearchbar,
+    IonButtons,
+  ],
 })
 export class UniversalSearchComponent implements OnInit {
-
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -64,58 +97,100 @@ export class UniversalSearchComponent implements OnInit {
   // 在类中添加
   currentType: 'request' | 'help' | null = null;
 
-// 添加 Output 事件，通知父组件类型变化
+  // 添加 Output 事件，通知父组件类型变化
   @Output() typeChange = new EventEmitter<'request' | 'help' | null>();
   // --- 状态管理 ---
   modals = signal({
     price: false,
-    location: false
+    location: false,
   });
 
   // 【优化】将确认搜索词的 Signal 移到这里，更清晰
   confirmedSearchText = signal('');
 
+  // --- 价格档次 ---
+  selectedPriceTier = signal(-1); // -1 = 未选（全部）
+  priceTiers = [
+    {
+      label: this.t.priceAll,
+      min: null as number | null,
+      max: null as number | null,
+    },
+    { label: this.t.price0to100, min: 0, max: 100 },
+    { label: this.t.price100to500, min: 100, max: 500 },
+    { label: this.t.price500to1000, min: 500, max: 1000 },
+    { label: this.t.priceOver1000, min: 1000, max: null },
+  ];
+
+  private updatePriceTiers() {
+    this.priceTiers = [
+      {
+        label: this.t.priceAll,
+        min: null as number | null,
+        max: null as number | null,
+      },
+      { label: this.t.price0to100, min: 0, max: 100 },
+      { label: this.t.price100to500, min: 100, max: 500 },
+      { label: this.t.price500to1000, min: 500, max: 1000 },
+      { label: this.t.priceOver1000, min: 1000, max: null },
+    ];
+  }
+
+  selectPriceTier(index: number) {
+    this.selectedPriceTier.set(this.selectedPriceTier() === index ? -1 : index);
+    this.setModal('price', false);
+  }
+
   // --- 表单定义 ---
   filterForm: FormGroup = this.fb.group({
     searchText: [''],
-    priceRange: this.fb.group({
-      min: [0],
-      max: [1000]
-    }),
-    location: ['']
+    location: [''],
   });
 
   formValueSignal = toSignal(
     this.filterForm.valueChanges.pipe(
       startWith(this.filterForm.value),
       debounceTime(300),
-      distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr))
+      distinctUntilChanged(
+        (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
+      ),
     ),
-    { initialValue: this.filterForm.value }
+    { initialValue: this.filterForm.value },
   );
-  @ContentChild('cardTemplate', { static: true }) cardTemplate!: TemplateRef<any>;
-  @ViewChild('searchBar') searchBar!: IonSearchbar;          // ← 拿到搜索框
+  @ContentChild('cardTemplate', { static: true })
+  cardTemplate!: TemplateRef<any>;
+  @ViewChild('searchBar') searchBar!: IonSearchbar; // ← 拿到搜索框
 
   // --- 核心筛选逻辑 ---
   filteredEvents = computed(() => {
     const allEvents = this.dataSource();
-    const form        = this.formValueSignal();          // 只用于价格/地点
-    const term        = this.confirmedSearchText();      // 只用于搜索词
+    const form = this.formValueSignal(); // 只用于地点
+    const term = this.confirmedSearchText(); // 只用于搜索词
 
     if (!Array.isArray(allEvents)) return [];
 
-    return allEvents.filter(item => {
-      // 1. 搜索词过滤（核心修复）
-
-        if (term && !item.demand?.toLowerCase().includes(term.toLowerCase()) && !item.title?.toLowerCase().includes(term.toLowerCase())) {
-        return false;
+    return allEvents.filter((item) => {
+      // 1. 搜索词过滤（含标签匹配）
+      if (term) {
+        const termLow = term.toLowerCase();
+        const matchDemand = item.demand?.toLowerCase().includes(termLow);
+        const matchTitle = item.title?.toLowerCase().includes(termLow);
+        const matchTags = item.tags?.toLowerCase().includes(termLow);
+        if (!matchDemand && !matchTitle && !matchTags) {
+          return false;
+        }
       }
 
-      // 2. 价格区间
-      const min = form.priceRange?.min ?? 0;
-      const max = form.priceRange?.max ?? 1000;
-      const price = parseFloat(item.price ?? '0');
-      if (!isNaN(price) && (price < min || price > max)) return false;
+      // 2. 价格档次筛选
+      const tierIdx = this.selectedPriceTier();
+      if (tierIdx >= 0) {
+        const tier = this.priceTiers[tierIdx];
+        const price = parseFloat(item.price ?? '0');
+        if (!isNaN(price)) {
+          if (tier.min !== null && price < tier.min) return false;
+          if (tier.max !== null && price > tier.max) return false;
+        }
+      }
 
       // 3. 地点关键词
       const locKeyword = form.location ?? '';
@@ -136,17 +211,34 @@ export class UniversalSearchComponent implements OnInit {
 
   // --- 构造函数 ---
   constructor() {
-    addIcons({ pricetag, location, funnel, cash, navigate, chevronForward, fileTray, call, search });
+    addIcons({
+      pricetag,
+      location,
+      funnel,
+      cash,
+      navigate,
+      chevronForward,
+      fileTray,
+      call,
+      search,
+      pricetagOutline,
+      checkmarkCircle,
+      searchOutline,
+      closeCircle,
+      informationCircleOutline,
+      locationOutline,
+    });
   }
   // 新增方法：初始化时同步路由参数
   ngOnInit() {
     // 监听语言变化
     this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
       this.t = this.langService.getTranslations(lang).shared.search;
+      this.updatePriceTiers();
     });
 
     // 订阅路由参数的变化
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       const keyword = params['search'];
 
       if (keyword) {
@@ -163,43 +255,41 @@ export class UniversalSearchComponent implements OnInit {
       }
     });
     // 添加 type 参数订阅
-  this.route.queryParams.subscribe(params => {
-    const type = params['type'];
-    if (type === 'request' || type === 'help') {
-      this.currentType = type;
-    } else {
-      this.currentType = null;
-    }
-  });
+    this.route.queryParams.subscribe((params) => {
+      const type = params['type'];
+      if (type === 'request' || type === 'help') {
+        this.currentType = type;
+      } else {
+        this.currentType = null;
+      }
+    });
   }
-
-
 
   // --- 方法 ---
 
   setModal(key: string, isOpen: boolean) {
-    this.modals.update(m => ({ ...m, [key]: isOpen }));
+    this.modals.update((m) => ({ ...m, [key]: isOpen }));
   }
 
   resetFilters() {
     this.filterForm.reset({
       searchText: '',
-      priceRange: { min: 0, max: 1000 },
-      location: ''
+      location: '',
     });
+    this.selectedPriceTier.set(-1);
     this.confirmedSearchText.set(''); // 清空确认的搜索词
     // 清除 URL 中的搜索参数
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {},
-      queryParamsHandling: 'merge'
+      queryParamsHandling: 'merge',
     });
   }
 
   onSearch() {
     const currentVal = this.searchControl.value || '';
     this.confirmedSearchText.set(currentVal);
-    this.searchEvent.emit(currentVal);          // 父组件可监听
+    this.searchEvent.emit(currentVal); // 父组件可监听
   }
   // 修改一下 goToDetail，让它接收完整的 event 对象，方便模板调用
   handleCardClick(event: EventCardData) {
@@ -208,7 +298,7 @@ export class UniversalSearchComponent implements OnInit {
 
   goToDetail(event: EventCardData) {
     this.router.navigate(['/particular'], {
-      queryParams: { eventId: event.id }
+      queryParams: { eventId: event.id },
     });
   }
 
