@@ -22,6 +22,7 @@ import {
   AiSearchResults,
 } from '../../services/search-state.service';
 import { LanguageService } from '../../services/language.service';
+import { mapApiCardToEventCardData } from '../../utils/event-card.mapper';
 import { addIcons } from 'ionicons';
 import { sparklesOutline } from 'ionicons/icons';
 import {
@@ -160,22 +161,10 @@ export class Tab2Page implements OnInit {
           });
         }
         const transformed = matched.map((item: any) => ({
-          id: String(item.id),
-          creatorId: Number(item.creatorId) || 0,
-          cardImage: item.cardImage || null,
-          title: item.title || '',
+          ...mapApiCardToEventCardData(item),
           icon: 'navigate-outline',
           distance: this.t.unknownDistance,
-          name: item.name || '',
-          address: item.address || '',
-          demand: item.demand || '',
-          price: item.price ? String(item.price) : '0.00',
-          createTime: item.createTime,
-          avatar: item.avatar || '/assets/icon/user.svg',
           tags: item.tags || '',
-          eventType: item.eventType != null ? Number(item.eventType) : null,
-          lng: item.lng != null ? Number(item.lng) : null,
-          lat: item.lat != null ? Number(item.lat) : null,
         }));
         this.eventsData.set(transformed);
         // 计算距离
@@ -198,24 +187,13 @@ export class Tab2Page implements OnInit {
     try {
       const res = await fetch(url);
       const list = await res.json();
+      const safeList = Array.isArray(list) ? list : [];
 
-      const transformed = list.map((item: any) => ({
-        id: String(item.id),
-        creatorId: Number(item.creatorId),
-        cardImage: item.cardImage,
-        title: item.title,
+      const transformed = safeList.map((item: any) => ({
+        ...mapApiCardToEventCardData(item),
         icon: item.icon || 'navigate-outline',
         distance: item.distance || this.t.unknownDistance,
-        name: item.name,
-        address: item.address,
-        demand: item.demand,
-        price: item.price ? String(item.price) : '0.00',
-        createTime: item.createTime,
-        avatar: item.avatar,
         tags: item.tags || '',
-        eventType: item.eventType != null ? Number(item.eventType) : null,
-        lng: item.lng != null ? Number(item.lng) : null,
-        lat: item.lat != null ? Number(item.lat) : null,
       }));
 
       this.eventsData.set(transformed);

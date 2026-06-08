@@ -8,7 +8,6 @@ import {
   ElementRef,
   NgZone,
 } from '@angular/core';
-import { io } from 'socket.io-client';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { addIcons } from 'ionicons';
 import {
@@ -59,11 +58,9 @@ import {
 } from '../../components/review-modal/review-modal.component';
 import { ReviewDetailModalComponent } from '../../components/review-detail-modal/review-detail-modal.component';
 
-// 位置选择器
-import {
-  LocationPickerComponent,
-  type PickedLocation,
-} from '../../components/location-picker/location-picker.component';
+import { LocationPickerService } from '../../services/location-picker.service';
+import { UploadService } from '../../services/upload.service';
+import { RealtimeService } from '../../services/realtime.service';
 
 @Component({
   selector: 'app-chat-detail',
@@ -114,6 +111,9 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   private langService = inject(LanguageService);
   private dynTrans = inject(DynamicTranslationService);
   private zone = inject(NgZone);
+  private locationPicker = inject(LocationPickerService);
+  private uploadService = inject(UploadService);
+  private realtime = inject(RealtimeService);
 
   // 翻译对象
   t = this.langService.getTranslations('zh').chatDetail;
@@ -246,11 +246,9 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     this.loadHistory(this.roomId);
 
     // Init Connection
-    this.socket = io(environment.apiBase, {
-      auth: {
-        token: this.auth.token,
-        serverOffset: this.serverOffset,
-      },
+    this.socket = this.realtime.connect({
+      token: this.auth.token,
+      serverOffset: this.serverOffset,
     });
 
     //get myself from socket io chat handler
@@ -420,26 +418,11 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     this.uploadingImage.set(true);
 
     try {
-      // 上传图片到服务器
-      const formData = new FormData();
-      formData.append('images', file);
-
-      const res = await fetch(`${environment.apiBase}/upload/images`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(errData?.error || this.t.uploadFailed);
-      }
-
-      const data = await res.json();
-      if (!data.success || !data.paths?.length) {
+      const paths = await this.uploadService.uploadImages(file);
+      const imageUrl = paths[0];
+      if (!imageUrl) {
         throw new Error(this.t.uploadFailed);
       }
-
-      const imageUrl = data.paths[0];
 
       // 发送图片消息（不传 text，让服务端用默认值）
       this.socket.emit('chat message', {
@@ -457,16 +440,8 @@ export class ChatDetailPage implements OnInit, OnDestroy {
   // ================= 定位发送 =================
 
   async sendLocation() {
-    const modal = await this.modalCtrl.create({
-      component: LocationPickerComponent,
-    });
-
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss();
-
-    if (role !== 'confirm' || !data?.selected) return;
-
-    const picked: PickedLocation = data.selected;
+    const picked = await this.locationPicker.pickLocation();
+    if (!picked) return;
 
     // 发送定位消息
     this.socket.emit('chat message', {

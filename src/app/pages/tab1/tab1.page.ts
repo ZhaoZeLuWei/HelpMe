@@ -1,9 +1,8 @@
 /* src/app/tab1/tab1.page.ts（修复版） */
-import { Component, OnInit, inject } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { map, firstValueFrom } from 'rxjs';
+import { map, firstValueFrom, Subscription } from 'rxjs';
 import { ShowEventComponent } from '../../components/show-event/show-event.component';
 import { environment } from '../../../environments/environment';
 import { Router } from '@angular/router';
@@ -16,6 +15,7 @@ import {
 } from '../../components/show-event/show-event.component';
 import { LanguageService } from '../../services/language.service';
 import { DynamicTranslationService } from '../../services/dynamic-translation.service';
+import { mapApiCardToEventCardData } from '../../utils/event-card.mapper';
 
 // 卡片数据接口
 interface CardItem {
@@ -39,14 +39,15 @@ interface CardItem {
   templateUrl: './tab1.page.html',
   styleUrls: ['./tab1.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, ShowEventComponent],
+  imports: [CommonModule, ShowEventComponent],
 })
-export class Tab1Page implements OnInit {
+export class Tab1Page implements OnInit, OnDestroy {
   private readonly API_BASE = environment.apiBase;
   private http = inject(HttpClient);
   private router = inject(Router);
   private langService = inject(LanguageService);
   private dynTrans = inject(DynamicTranslationService);
+  private langSub?: Subscription;
 
   // --- 原有功能变量 ---
   requestList: CardItem[] = [];
@@ -55,11 +56,7 @@ export class Tab1Page implements OnInit {
   showLangConfirmModal = false;
   t = this.langService.getTranslations('zh').tab1;
 
-  // --- 翻译与适老化功能变量 ---
-  public dynamicSourceText: string = '你好，这是测试翻译的文本';
-  public translatedText: string = '';
-  public sourceLang: string = 'zh';
-  public targetLang: string = 'en';
+  // --- 适老化功能变量 ---
   public isElderlyMode: boolean = false; // 长辈模式开关
 
   get currentLangBtnText() {
@@ -76,16 +73,22 @@ export class Tab1Page implements OnInit {
     }
     let isFirstEmit = true;
     // 语言监听：切换语言时重新拉取数据（服务端根据 ?lang= 返回译文）
-    this.langService.currentLang$.subscribe((lang: 'zh' | 'en') => {
-      this.t = this.langService.getTranslations(lang).tab1;
-      if (isFirstEmit) {
-        isFirstEmit = false;
-        return;
-      }
-      this.loadCardLists();
-    });
+    this.langSub = this.langService.currentLang$.subscribe(
+      (lang: 'zh' | 'en') => {
+        this.t = this.langService.getTranslations(lang).tab1;
+        if (isFirstEmit) {
+          isFirstEmit = false;
+          return;
+        }
+        this.loadCardLists();
+      },
+    );
 
     this.loadCardLists();
+  }
+
+  ngOnDestroy() {
+    this.langSub?.unsubscribe();
   }
 
   ionViewWillEnter() {
@@ -109,30 +112,14 @@ export class Tab1Page implements OnInit {
     setTimeout(() => this.dynTrans.translateAll().subscribe(), 200);
   }
 
-  private updateEventData() {
-    this.eventData = [...this.requestList, ...this.helpList];
-  }
-
   private getCardData(type: 'request' | 'help') {
     return this.http.get<any[]>(`${this.API_BASE}/api/cards?type=${type}`).pipe(
       map((rawData) => {
         const processedData = rawData.map((item: any) => ({
-          id: String(item.id),
-          creatorId: Number(item.creatorId),
-          cardImage: item.cardImage,
+          ...mapApiCardToEventCardData(item),
           icon: 'navigate-outline',
           distance: this.t.unknownDistance,
-          name: item.name,
-          address: item.address,
-          demand: item.demand,
-          price: item.price ? item.price.toString() : '0.00',
-          avatar: item.avatar,
-          createTime: item.createTime,
-          title: item.title,
           tags: item.tags || '',
-          eventType: item.eventType != null ? Number(item.eventType) : null,
-          lng: item.lng != null ? Number(item.lng) : null,
-          lat: item.lat != null ? Number(item.lat) : null,
         }));
         let finalData = processedData;
         if (processedData.length > 4) {
@@ -251,11 +238,6 @@ export class Tab1Page implements OnInit {
 
   trackById(_index: number, item: CardItem): string {
     return item.id;
-  }
-
-  // 翻译按钮 - 切换整个项目的中英文
-  public onTranslateBtnClick(): void {
-    this.showLangConfirmModal = true;
   }
 
   toggleLanguage() {

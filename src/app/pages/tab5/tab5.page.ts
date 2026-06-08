@@ -50,10 +50,7 @@ import { AuthService } from '../../services/auth.service';
 import { AiService } from '../../services/ai.service';
 import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
-import {
-  LocationPickerComponent,
-  type PickedLocation,
-} from '../../components/location-picker/location-picker.component';
+import { LocationPickerService } from '../../services/location-picker.service';
 import type { Subscription } from 'rxjs';
 
 @Component({
@@ -127,6 +124,7 @@ export class Tab5Page implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   private aiService = inject(AiService);
   private langService = inject(LanguageService);
+  private locationPicker = inject(LocationPickerService);
   private langSub: Subscription | null = null;
 
   // 翻译对象
@@ -230,21 +228,12 @@ export class Tab5Page implements OnInit, OnDestroy {
           ? this.helpForm
           : this.identityForm;
 
-    const modal = await this.modalCtrl.create({
-      component: LocationPickerComponent,
-      cssClass: 'location-picker-modal',
-      componentProps: {
-        selectedPlaceId: form.get('LocationPlaceId')?.value || '',
-        selectedText: form.get('Location')?.value || '',
-      },
+    const picked = await this.locationPicker.pickLocation({
+      selectedPlaceId: form.get('LocationPlaceId')?.value || '',
+      selectedText: form.get('Location')?.value || '',
     });
+    if (!picked) return;
 
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss();
-
-    if (role !== 'confirm' || !data?.selected) return;
-
-    const picked: PickedLocation = data.selected;
     form.patchValue({
       Location: picked.text,
       LocationPlaceId: picked.placeId,

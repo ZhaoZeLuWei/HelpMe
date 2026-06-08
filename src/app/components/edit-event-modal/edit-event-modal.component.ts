@@ -38,8 +38,9 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
-import { environment } from '../../../environments/environment';
 import { LanguageService } from '../../services/language.service';
+import { UploadService } from '../../services/upload.service';
+import { resolveMediaUrl } from '../../utils/media-url.util';
 
 export interface EventEditData {
   id: string | number;
@@ -99,7 +100,6 @@ export class EditEventModalComponent implements OnChanges {
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
-  private readonly API_BASE = environment.apiBase;
   private readonly EDIT_MAX = 5;
   private readonly MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -109,6 +109,7 @@ export class EditEventModalComponent implements OnChanges {
 
   private toastController = inject(ToastController);
   private langService = inject(LanguageService);
+  private readonly uploadService = inject(UploadService);
 
   // 翻译对象
   t = this.langService.getTranslations('zh').shared.editEventModal;
@@ -166,9 +167,7 @@ export class EditEventModalComponent implements OnChanges {
   }
 
   getAssetUrl(path: string): string {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    return this.API_BASE + path;
+    return resolveMediaUrl(path, '');
   }
 
   getPhotoItems(): Array<{
@@ -267,24 +266,14 @@ export class EditEventModalComponent implements OnChanges {
   private async uploadPhotos(): Promise<string[] | null> {
     if (this.newPhotos.length === 0) return [];
 
-    const fd = new FormData();
-    for (const p of this.newPhotos) {
-      fd.append('images', p.file);
-    }
-
     try {
-      const resp = await fetch(`${this.API_BASE}/upload/images`, {
-        method: 'POST',
-        body: fd,
-      });
-      const data = await resp.json().catch(() => null);
-      if (!resp.ok || !data?.success || !Array.isArray(data.paths)) {
-        await this.showToast(data?.error || this.t.uploadFailed);
-        return null;
-      }
-      return data.paths;
-    } catch {
-      await this.showToast(this.t.networkError);
+      return await this.uploadService.uploadImages(
+        this.newPhotos.map((p) => p.file),
+      );
+    } catch (e) {
+      await this.showToast(
+        e instanceof Error ? e.message : this.t.uploadFailed,
+      );
       return null;
     }
   }

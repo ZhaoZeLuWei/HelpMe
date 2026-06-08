@@ -3,6 +3,12 @@
 
 const Core = require("@alicloud/pop-core");
 
+const IS_PROD = process.env.NODE_ENV === "production";
+
+function devLog(...args) {
+  if (!IS_PROD) console.log(...args);
+}
+
 const DEFAULT_COUNTRY_CODE = process.env.ALIYUN_SMS_COUNTRY_CODE || "86";
 const DEFAULT_SCHEME_NAME = process.env.ALIYUN_SMS_SCHEME_NAME?.trim() || "";
 const SHOULD_RETURN_VERIFY_CODE =
@@ -37,7 +43,7 @@ async function sendVerifyCode(phoneNumber) {
     params.ReturnVerifyCode = true;
   }
 
-  console.log("[短信] 发送验证码:", {
+  devLog("[短信] 发送验证码:", {
     phoneNumber,
     SignName: params.SignName,
     TemplateCode: params.TemplateCode,
@@ -51,16 +57,16 @@ async function sendVerifyCode(phoneNumber) {
       contentType: "application/x-www-form-urlencoded",
     });
 
-    console.log("[短信] 阿里云响应:", JSON.stringify(result, null, 2));
+    devLog("[短信] 阿里云响应:", JSON.stringify(result, null, 2));
 
     if (result.Code === "OK") {
       if (result.Model?.VerifyCode) {
-        console.log(
+        devLog(
           "[短信] 验证码发送成功, 阿里云生成的验证码:",
           result.Model.VerifyCode,
         );
       } else {
-        console.log("[短信] 验证码发送成功");
+        devLog("[短信] 验证码发送成功");
       }
       return { success: true, message: "验证码已发送" };
     } else {
@@ -88,7 +94,7 @@ async function verifyCode(phoneNumber, code) {
     params.SchemeName = DEFAULT_SCHEME_NAME;
   }
 
-  console.log("[短信] 校验验证码:", { phoneNumber, code });
+  devLog("[短信] 校验验证码:", { phoneNumber, code: IS_PROD ? "***" : code });
 
   try {
     const result = await smsClient.request("CheckSmsVerifyCode", params, {
@@ -96,13 +102,13 @@ async function verifyCode(phoneNumber, code) {
       contentType: "application/x-www-form-urlencoded",
     });
 
-    console.log("[短信] 校验结果:", JSON.stringify(result, null, 2));
+    devLog("[短信] 校验结果:", JSON.stringify(result, null, 2));
 
     if (result.Code === "OK" && result.Model?.VerifyResult === "PASS") {
-      console.log("[短信] 验证码校验通过");
+      devLog("[短信] 验证码校验通过");
       return { success: true };
     } else {
-      console.log("[短信] 验证码校验失败:", result.Model?.VerifyResult);
+      devLog("[短信] 验证码校验失败:", result.Model?.VerifyResult);
       return { success: false, error: "验证码错误或已过期" };
     }
   } catch (err) {

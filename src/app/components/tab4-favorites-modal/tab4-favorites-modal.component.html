@@ -1,0 +1,40 @@
+<ion-modal [isOpen]="isOpen" (didDismiss)="onDismiss()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ t.favoritesTitle }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" (click)="onDismiss()">{{
+            t.close
+          }}</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      @if (isLoading) {
+        <div class="empty-state">
+          <ion-text color="medium"
+            ><p>{{ t.loading }}</p></ion-text
+          >
+        </div>
+      } @else if (favoritesList.length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon-wrapper">
+            <ion-icon name="star-outline" class="empty-icon"></ion-icon>
+          </div>
+          <p class="empty-title">{{ t.noFavorites }}</p>
+          <p class="empty-sub">{{ t.noFavoritesHint }}</p>
+        </div>
+      } @else {
+        <div class="favorites-list">
+          @for (fav of favoritesList; track fav.id) {
+            <app-show-event
+              [event]="fav"
+              (cardClick)="onCardClick($event)"
+            ></app-show-event>
+          }
+        </div>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>

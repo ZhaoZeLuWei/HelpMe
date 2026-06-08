@@ -1,27 +1,24 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>{{ t.title }}</ion-title>
+    @if (isLoggedIn) {
     <ion-buttons slot="end">
-      <ion-button fill="clear" color="medium" (click)="logout()">
-        <ion-icon slot="icon-only" name="log-out"></ion-icon>
+      <ion-button fill="clear" color="medium" (click)="confirmLogout()">
+        <ion-icon slot="start" name="log-out"></ion-icon>
+        <span>{{ t.logout }}</span>
       </ion-button>
     </ion-buttons>
+    }
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   @if (!isLoggedIn) {
-  <div class="login-prompt">
-    <ion-icon name="person-circle" class="prompt-icon"></ion-icon>
-    <h2>{{ t.welcome }}</h2>
-    <p>{{ t.loginHint }}</p>
-    <div class="auth-buttons">
-      <ion-button (click)="openLoginModal()">{{ t.loginBtn }}</ion-button>
-      <ion-button fill="outline" (click)="openRegisterModal()"
-        >{{ t.registerBtn }}</ion-button
-      >
-    </div>
-  </div>
+  <app-tab4-login-prompt
+    [t]="t"
+    (login)="openLoginModal()"
+    (register)="openRegisterModal()"
+  ></app-tab4-login-prompt>
   } @if (isLoggedIn) {
   <app-tab4-profile-card
     [userInfo]="userInfo"
@@ -30,25 +27,22 @@
     (showFollowers)="openFollowersModal()"
   ></app-tab4-profile-card>
 
-  <ion-segment [value]="activeSection" (ionChange)="onSectionChange($event)">
-    <ion-segment-button value="events"
-      ><ion-label>{{ t.myEvents }}</ion-label></ion-segment-button
-    >
-    <ion-segment-button value="orders"
-      ><ion-label>{{ t.myOrders }}</ion-label></ion-segment-button
-    >
-  </ion-segment>
+  <app-tab4-quick-actions
+    [t]="t"
+    [favoritesDesc]="getFavoritesDesc()"
+    [followsDesc]="getFollowsDesc()"
+    (openFavorites)="openFavoritesModal()"
+    (openFollows)="openFollowsModal()"
+  ></app-tab4-quick-actions>
 
-  <div class="action-buttons-row">
-    <ion-button fill="outline" size="small" (click)="openFavoritesModal()">
-      <ion-icon slot="start" name="star-outline"></ion-icon>
-      {{ t.favoritesTitle }}
-    </ion-button>
-    <ion-button fill="outline" size="small" (click)="openFollowsModal()">
-      <ion-icon slot="start" name="people-outline"></ion-icon>
-      {{ t.followsTitle }}
-    </ion-button>
-  </div>
+  <ion-segment [value]="activeSection" (ionChange)="onSectionChange($event)">
+    <ion-segment-button value="events">
+      <ion-label>{{ t.myEvents }}</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="orders">
+      <ion-label>{{ t.myOrders }}</ion-label>
+    </ion-segment-button>
+  </ion-segment>
 
   @if (activeSection === 'events') {
   <app-tab4-events-panel
@@ -95,156 +89,15 @@
     (didDismiss)="closeReviewDetail()"
   ></app-review-detail-modal>
 
-  <ion-modal
+  <app-tab4-edit-profile-modal
     [isOpen]="isEditProfileModalOpen"
+    [userInfo]="userInfo"
+    [userId]="currentUserId"
+    [t]="t"
     (didDismiss)="closeEditProfileModal()"
-  >
-    <ng-template>
-      <ion-header [translucent]="true">
-        <ion-toolbar>
-          <ion-title>{{ t.editProfileTitle }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeEditProfileModal()"
-              >{{ t.close }}</ion-button
-            >
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content [fullscreen]="true" class="edit-profile-modal-content">
-        <form [formGroup]="editProfileForm">
-          <ion-list lines="full">
-            <div class="avatar-upload-section">
-              <div class="avatar-preview">
-                @if (profileAvatarPreview) {
-                <img [src]="profileAvatarPreview" alt="Avatar Preview" />
-                } @else if (!profileAvatarDeleted && userInfo.avatar) {
-                <img
-                  [src]="getAssetUrl(userInfo.avatar)"
-                  alt="Current Avatar"
-                />
-                } @else {
-                <ion-icon name="person-circle"></ion-icon>
-                }
-              </div>
-              <div class="avatar-actions">
-                <ion-button
-                  size="small"
-                  type="button"
-                  (click)="triggerProfileAvatarInput()"
-                >
-                  {{ profileAvatarPreview || (!profileAvatarDeleted &&
-                  userInfo.avatar) ? t.changeAvatar : t.uploadAvatar }}
-                </ion-button>
-                @if (profileAvatarPreview || (!profileAvatarDeleted &&
-                userInfo.avatar)) {
-                <ion-button
-                  size="small"
-                  type="button"
-                  fill="outline"
-                  color="danger"
-                  (click)="removeProfileAvatar()"
-                >
-                  {{ t.delete }}
-                </ion-button>
-                }
-              </div>
-              <input
-                #profileAvatarInput
-                type="file"
-                accept="image/*"
-                style="display: none"
-                (change)="onProfileAvatarSelected($event)"
-              />
-              <p class="avatar-hint">{{ t.avatarHint }}</p>
-            </div>
+    (profileSaved)="onProfileSaved($event)"
+  ></app-tab4-edit-profile-modal>
 
-            <ion-item>
-              <ion-label position="floating">{{ t.userNameLabel }} *</ion-label>
-              <ion-input
-                type="text"
-                formControlName="UserName"
-                [placeholder]="t.userNamePlaceholder"
-                [maxlength]="20"
-              ></ion-input>
-            </ion-item>
-
-            <ion-item>
-              <ion-label position="floating">{{ t.realNameLabel }} *</ion-label>
-              <ion-input
-                type="text"
-                formControlName="RealName"
-                [placeholder]="t.realNamePlaceholder"
-                [maxlength]="20"
-              ></ion-input>
-            </ion-item>
-
-            <ion-item>
-              <ion-label position="floating">{{ t.idCardLabel }} *</ion-label>
-              <ion-input
-                type="text"
-                formControlName="IdCardNumber"
-                [placeholder]="t.idCardPlaceholder"
-                [maxlength]="18"
-              ></ion-input>
-            </ion-item>
-
-            <ion-item
-              button
-              detail="true"
-              (click)="openLocationPicker('profileEdit')"
-            >
-              <ion-label>{{ t.locationLabelProfile }} *</ion-label>
-              <ion-note
-                slot="end"
-                [color]="editProfileForm.value.Location ? 'primary' : 'medium'"
-              >
-                {{ editProfileForm.value.Location ||
-                t.locationPlaceholderProfile }}
-              </ion-note>
-            </ion-item>
-
-            <ion-item>
-              <ion-label position="floating"
-                >{{ t.birthDateLabel }} *</ion-label
-              >
-              <ion-input type="date" formControlName="BirthDate"></ion-input>
-            </ion-item>
-
-            <ion-item>
-              <ion-label position="floating">{{ t.introLabel }}</ion-label>
-              <ion-textarea
-                formControlName="Introduction"
-                [placeholder]="t.introPlaceholder"
-                [maxlength]="200"
-                [autoGrow]="true"
-                rows="3"
-              ></ion-textarea>
-            </ion-item>
-          </ion-list>
-
-          <div class="hint-text">{{ t.requiredHint }}</div>
-
-          <div class="modal-actions">
-            <ion-button
-              type="button"
-              fill="outline"
-              color="medium"
-              (click)="closeEditProfileModal()"
-              >{{ t.cancel }}</ion-button
-            >
-            <ion-button
-              type="button"
-              (click)="submitProfileEdit()"
-              [disabled]="isSavingProfile"
-              >{{ isSavingProfile ? t.saving : t.save }}</ion-button
-            >
-          </div>
-        </form>
-      </ion-content>
-    </ng-template>
-  </ion-modal>
-
-  <!-- 删除确认弹窗 -->
   <ion-alert
     [isOpen]="isDeleteAlertOpen"
     [header]="t.deleteConfirmTitle || '确认删除'"
@@ -253,7 +106,6 @@
     (didDismiss)="onDeleteAlertDismiss()"
   ></ion-alert>
 
-  <!-- 编辑事件弹窗 -->
   <app-edit-event-modal
     #editEventModal
     [isOpen]="isEditModalOpen"
@@ -261,308 +113,41 @@
     [isSaving]="isSavingEdit"
     (didDismiss)="closeEditModal()"
     (save)="submitEdit($event)"
-    (openLocationPicker)="openLocationPicker('eventEdit')"
+    (openLocationPicker)="openLocationPicker()"
   ></app-edit-event-modal>
 
-  <!-- 我的收藏弹窗 -->
-  <ion-modal
+  <app-tab4-favorites-modal
     [isOpen]="isFavoritesModalOpen"
+    [t]="t"
+    [prefetchedFavorites]="favoritesCache"
     (didDismiss)="closeFavoritesModal()"
-  >
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>{{ t.favoritesTitle }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeFavoritesModal()"
-              >{{ t.close }}</ion-button
-            >
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        @if (isLoadingFavorites) {
-        <div class="empty-state">
-          <ion-text color="medium"><p>{{ t.loading }}</p></ion-text>
-        </div>
-        } @else if (favoritesList.length === 0) {
-        <div class="empty-state">
-          <div class="empty-icon-wrapper">
-            <ion-icon name="star-outline" class="empty-icon"></ion-icon>
-          </div>
-          <p class="empty-title">{{ t.noFavorites }}</p>
-          <p class="empty-sub">{{ t.noFavoritesHint }}</p>
-        </div>
-        } @else {
-        <div class="favorites-list">
-          @for (fav of favoritesList; track fav.id) {
-          <app-show-event
-            [event]="fav"
-            (cardClick)="onFavoriteCardClick($event)"
-          ></app-show-event>
-          }
-        </div>
-        }
-      </ion-content>
-    </ng-template>
-  </ion-modal>
+    (cardClick)="onFavoriteCardClick($event)"
+    (countChange)="onFavoritesCountChange($event)"
+    (listChange)="onFavoritesListChange($event)"
+  ></app-tab4-favorites-modal>
 
-  <!-- 关注的人弹窗 -->
-  <ion-modal [isOpen]="isFollowsModalOpen" (didDismiss)="closeFollowsModal()">
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>{{ t.followsTitle }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeFollowsModal()"
-              >{{ t.close }}</ion-button
-            >
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        @if (isLoadingFollows) {
-        <div class="empty-state">
-          <ion-text color="medium"><p>{{ t.loading }}</p></ion-text>
-        </div>
-        } @else if (followsList.length === 0) {
-        <div class="empty-state">
-          <div class="empty-icon-wrapper">
-            <ion-icon name="people-outline" class="empty-icon"></ion-icon>
-          </div>
-          <p class="empty-title">{{ t.noFollows }}</p>
-          <p class="empty-sub">{{ t.noFollowsHint }}</p>
-        </div>
-        } @else {
-        <div class="follows-list">
-          @for (user of followsList; track user.UserId) {
-          <div class="follow-item" (click)="goToUserFromFollow(user)">
-            <div class="follow-avatar-container">
-              <img
-                [src]="getAssetUrl(user.UserAvatar) || 'assets/icon/user.svg'"
-                alt="Avatar"
-                class="follow-avatar"
-              />
-            </div>
-            <div class="follow-info">
-              <h4>{{ user.UserName | tText }}</h4>
-              <p>{{ (user.Location | tText) || t.noLocation }}</p>
-              <p class="follow-meta">
-                {{ t.followers }}{{ user.FollowerCount || 0 }} · {{
-                t.serviceRatingLabel }}{{ user.ServiceRanking || 0 }} · {{
-                t.orderCount }}{{ user.OrderCount || 0 }}
-              </p>
-            </div>
-            <ion-button
-              fill="outline"
-              color="danger"
-              size="small"
-              (click)="removeFollow(user.UserId); $event.stopPropagation()"
-            >
-              {{ t.unfollow }}
-            </ion-button>
-          </div>
-          }
-        </div>
-        }
-      </ion-content>
-    </ng-template>
-  </ion-modal>
+  <app-tab4-user-list-modal
+    [isOpen]="isFollowsModalOpen"
+    mode="follows"
+    [t]="t"
+    (didDismiss)="closeFollowsModal()"
+    (userClick)="goToUserFromList($event)"
+    (countChange)="followsCount = $event"
+  ></app-tab4-user-list-modal>
 
-  <!-- 粉丝弹窗 -->
-  <ion-modal
+  <app-tab4-user-list-modal
     [isOpen]="isFollowersModalOpen"
+    mode="followers"
+    [t]="t"
     (didDismiss)="closeFollowersModal()"
-  >
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>{{ t.followersTitle }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeFollowersModal()"
-              >{{ t.close }}</ion-button
-            >
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        @if (isLoadingFollowers) {
-        <div class="empty-state">
-          <ion-text color="medium"><p>{{ t.loading }}</p></ion-text>
-        </div>
-        } @else if (followersList.length === 0) {
-        <div class="empty-state">
-          <div class="empty-icon-wrapper">
-            <ion-icon name="heart-outline" class="empty-icon"></ion-icon>
-          </div>
-          <p class="empty-title">{{ t.noFollowers }}</p>
-          <p class="empty-sub">{{ t.noFollowersHint }}</p>
-        </div>
-        } @else {
-        <div class="follows-list">
-          @for (user of followersList; track user.UserId) {
-          <div class="follow-item" (click)="goToUserFromFollower(user)">
-            <div class="follow-avatar-container">
-              <img
-                [src]="getAssetUrl(user.UserAvatar) || 'assets/icon/user.svg'"
-                alt="Avatar"
-                class="follow-avatar"
-              />
-            </div>
-            <div class="follow-info">
-              <h4>{{ user.UserName }}</h4>
-              <p>{{ user.Location || t.noLocation }}</p>
-              <p class="follow-meta">
-                {{ t.followers }}{{ user.FollowerCount || 0 }} · {{
-                t.serviceRatingLabel }}{{ user.ServiceRanking || 0 }} · {{
-                t.orderCount }}{{ user.OrderCount || 0 }}
-              </p>
-            </div>
-          </div>
-          }
-        </div>
-        }
-      </ion-content>
-    </ng-template>
-  </ion-modal>
+    (userClick)="goToUserFromList($event)"
+  ></app-tab4-user-list-modal>
 
-  <!-- 订单详情弹窗（显示下单时的快照信息） -->
-  <ion-modal
+  <app-tab4-order-detail-modal
     [isOpen]="isOrderDetailModalOpen"
+    [order]="currentOrderDetail"
+    [t]="t"
     (didDismiss)="closeOrderDetail()"
-  >
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>{{ t.orderDetailTitle }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button fill="clear" (click)="closeOrderDetail()"
-              >{{ t.close }}</ion-button
-            >
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content>
-        @if (currentOrderDetail) {
-        <div class="order-detail-content">
-          <!-- 订单基本信息 -->
-          <div class="detail-section">
-            <h3>{{ t.orderInfo }}</h3>
-            <p><strong>{{ t.orderId }}</strong>{{ currentOrderDetail.id }}</p>
-            <p>
-              <strong>{{ t.orderTime }}</strong>{{ currentOrderDetail.createdAt
-              }}
-            </p>
-            @if (currentOrderDetail.confirmedAt) {
-            <p>
-              <strong>{{ t.confirmTime }}</strong>{{
-              currentOrderDetail.confirmedAt }}
-            </p>
-            } @if (currentOrderDetail.completedAt) {
-            <p>
-              <strong>{{ t.completeTime }}</strong>{{
-              currentOrderDetail.completedAt }}
-            </p>
-            } @if (currentOrderDetail.cancelledAt) {
-            <p>
-              <strong>{{ t.cancelTime }}</strong>{{
-              currentOrderDetail.cancelledAt }}
-            </p>
-            }
-            <p>
-              <strong>{{ t.orderRole }}</strong>{{ currentOrderDetail.role ===
-              'buyer' ? t.buyer : t.seller }}
-            </p>
-            <p>
-              <strong>{{ t.orderStatus }}</strong>{{ currentOrderDetail.status
-              }}
-            </p>
-            <p>
-              <strong>{{ t.dealPrice }}</strong>¥{{ currentOrderDetail.price }}
-            </p>
-            @if (currentOrderDetail.cancelledByName) {
-            <p class="cancelled-info">
-              <strong>{{ t.cancelledBy || '取消人' }}</strong>{{
-              currentOrderDetail.cancelledByName | tText }}
-            </p>
-            }
-          </div>
-
-          <!-- 交付地址信息 -->
-          <div class="detail-section">
-            <h3>
-              <ion-icon name="location-outline"></ion-icon>
-              {{ t.deliveryAddress }}
-            </h3>
-            <p>
-              <strong>{{ t.address }}</strong>{{
-              (currentOrderDetail.deliveryAddress | tText) || t.notFilled }}
-            </p>
-            @if (currentOrderDetail.deliverySpecific) {
-            <p>
-              <strong>{{ t.specificLocation }}</strong>{{
-              currentOrderDetail.deliverySpecific | tText }}
-            </p>
-            } @if (currentOrderDetail.deliveryAdditionalInfo) {
-            <p>
-              <strong>{{ t.additionalInfo }}</strong>{{
-              currentOrderDetail.deliveryAdditionalInfo | tText }}
-            </p>
-            }
-          </div>
-
-          <!-- 下单时的事件快照 -->
-          <div class="detail-section snapshot-section">
-            <h3>
-              <ion-icon name="time-outline"></ion-icon>
-              {{ t.snapshotInfo }}
-            </h3>
-            <p>
-              <strong>{{ t.snapshotTitle }}</strong>{{
-              currentOrderDetail.snapshotTitle | tText }}
-            </p>
-            <p>
-              <strong>{{ t.snapshotCategory }}</strong>{{
-              (currentOrderDetail.snapshotCategory | tText) || t.uncategorized
-              }}
-            </p>
-            <p>
-              <strong>{{ t.snapshotLocation }}</strong>{{
-              (currentOrderDetail.snapshotLocation | tText) || t.notFilled }}
-            </p>
-            <p>
-              <strong>{{ t.snapshotPrice }}</strong>¥{{
-              currentOrderDetail.snapshotPrice }}
-            </p>
-            @if (currentOrderDetail.snapshotDetails) {
-            <p>
-              <strong>{{ t.snapshotDetails }}</strong>{{
-              currentOrderDetail.snapshotDetails | tText }}
-            </p>
-            }
-
-            <!-- 照片展示 -->
-            @if (currentOrderDetail.snapshotPhotos?.length > 0) {
-            <div class="snapshot-photos">
-              <p><strong>{{ t.snapshotPhotos }}</strong></p>
-              <div class="photo-grid">
-                @for (photo of currentOrderDetail.snapshotPhotos; track $index)
-                {
-                <img
-                  [src]="getAssetUrl(photo)"
-                  alt="Event Photo"
-                  class="snapshot-photo"
-                  (error)="$event.target.src = 'assets/icon/default-image.svg'"
-                />
-                }
-              </div>
-            </div>
-            }
-          </div>
-        </div>
-        }
-      </ion-content>
-    </ng-template>
-  </ion-modal>
+  ></app-tab4-order-detail-modal>
   }
 </ion-content>

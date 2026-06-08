@@ -9,7 +9,10 @@ import {
 import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
-import { AliyunCaptchaService } from '../../services/aliyun-captcha.service';
+import {
+  AliyunCaptchaService,
+  CAPTCHA_BUSY_ERROR,
+} from '../../services/aliyun-captcha.service';
 
 @Component({
   selector: 'app-login',
@@ -46,6 +49,7 @@ export class LoginPage {
 
   sending = signal(false);
   sendCooldown = signal(0); // 秒
+  private cooldownTimer: ReturnType<typeof setInterval> | null = null;
 
   async sendCode() {
     if (this.form.controls.phone.invalid) {
@@ -59,82 +63,98 @@ export class LoginPage {
       return;
     }
 
-    if (this.sendCooldown() > 0) return;
+    if (this.sending() || this.sendCooldown() > 0) return;
 
     const phone = this.form.controls.phone.value || '';
-
-    // 先检查手机号是否已注册（登录页面需要手机号已注册）
     this.sending.set(true);
-    const checkResult = await this.auth.checkPhoneExists(phone);
 
-    if (!checkResult) {
-      this.sending.set(false);
-      const toast = await this.toastCtrl.create({
-        message: this.t.phoneCheckFailed,
-        duration: 1500,
-        position: 'bottom',
-        positionAnchor: 'main-tab-bar',
-      });
-      await toast.present();
-      return;
-    }
-
-    if (!checkResult.exists) {
-      this.sending.set(false);
-      const toast = await this.toastCtrl.create({
-        message: this.t.phoneNotRegistered,
-        duration: 1500,
-        position: 'bottom',
-        positionAnchor: 'main-tab-bar',
-      });
-      await toast.present();
-      return;
-    }
-
-    // 手机号已注册，生产环境先通过阿里云 H5 SDK 获取验证结果
-    let captchaData = null;
     try {
-      captchaData = await this.captchaService.getValidate();
-    } catch (err) {
-      this.sending.set(false);
+      const checkResult = await this.auth.checkPhoneExists(phone);
+
+      if (!checkResult) {
+        const toast = await this.toastCtrl.create({
+          message: this.t.phoneCheckFailed,
+          duration: 1500,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await toast.present();
+        return;
+      }
+
+      if (!checkResult.exists) {
+        const toast = await this.toastCtrl.create({
+          message: this.t.phoneNotRegistered,
+          duration: 1500,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await toast.present();
+        return;
+      }
+
+      let captchaData = null;
+      try {
+        captchaData = await this.captchaService.getValidate();
+      } catch (err) {
+        const message =
+          err instanceof Error && err.message === CAPTCHA_BUSY_ERROR
+            ? this.t.captchaInProgress
+            : err instanceof Error
+              ? err.message
+              : this.t.captchaLoadFailed;
+        const toast = await this.toastCtrl.create({
+          message,
+          duration: 1500,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await toast.present();
+        return;
+      }
+
+      if (!captchaData) return;
+
+      const sendResult = await this.auth.sendVerificationCode(
+        phone,
+        captchaData,
+      );
+      if (!sendResult?.success) {
+        const toast = await this.toastCtrl.create({
+          message: sendResult?.error || this.t.codeSendFailed,
+          duration: 1500,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await toast.present();
+        return;
+      }
+
       const toast = await this.toastCtrl.create({
-        message: err instanceof Error ? err.message : this.t.captchaLoadFailed,
-        duration: 1500,
+        message: sendResult.message || this.t.codeSent,
+        duration: 750,
         position: 'bottom',
         positionAnchor: 'main-tab-bar',
       });
       await toast.present();
-      return;
-    }
 
-    const sendResult = await this.auth.sendVerificationCode(phone, captchaData);
-    if (!sendResult?.success) {
+      this.startSendCooldown();
+    } finally {
       this.sending.set(false);
-      const toast = await this.toastCtrl.create({
-        message: sendResult?.error || this.t.codeSendFailed,
-        duration: 1500,
-        position: 'bottom',
-        positionAnchor: 'main-tab-bar',
-      });
-      await toast.present();
-      return;
     }
+  }
 
-    const toast = await this.toastCtrl.create({
-      message: sendResult.message || this.t.codeSent,
-      duration: 750,
-      position: 'bottom',
-      positionAnchor: 'main-tab-bar',
-    });
-    await toast.present();
-
+  private startSendCooldown() {
+    if (this.cooldownTimer) {
+      clearInterval(this.cooldownTimer);
+    }
     this.sendCooldown.set(60);
-    const timer = setInterval(() => {
+    this.cooldownTimer = setInterval(() => {
       const next = this.sendCooldown() - 1;
       this.sendCooldown.set(next);
-      if (next <= 0) {
-        clearInterval(timer);
-        this.sending.set(false);
+      if (next <= 0 && this.cooldownTimer) {
+        clearInterval(this.cooldownTimer);
+        this.cooldownTimer = null;
       }
     }, 1000);
   }
@@ -169,7 +189,7 @@ export class LoginPage {
     const u = this.auth.currentUser;
     const name = u?.UserName ?? u?.userName ?? u?.name ?? '';
     const message = name
-      ? `${this.t.loginSuccess.replace('！', '')}，${name}，${this.t.loginSuccess}`
+      ? `${this.t.loginSuccess.replace('！', '')}，${name}！`
       : this.t.loginSuccess;
 
     const t = await this.toastCtrl.create({
@@ -180,7 +200,6 @@ export class LoginPage {
     });
     await t.present();
 
-    // 登录成功后关闭 Modal
     await this.modalCtrl.dismiss();
   }
 

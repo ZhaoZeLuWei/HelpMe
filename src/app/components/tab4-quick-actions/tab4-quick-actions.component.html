@@ -1,0 +1,22 @@
+<div class="quick-actions-grid">
+  <div class="quick-action-card" (click)="openFavorites.emit()">
+    <div class="quick-action-icon favorites">
+      <ion-icon name="star"></ion-icon>
+    </div>
+    <div class="quick-action-info">
+      <span class="quick-action-title">{{ t.favoritesTitle }}</span>
+      <span class="quick-action-desc">{{ favoritesDesc }}</span>
+    </div>
+    <ion-icon name="chevron-forward" class="quick-action-arrow"></ion-icon>
+  </div>
+  <div class="quick-action-card" (click)="openFollows.emit()">
+    <div class="quick-action-icon follows">
+      <ion-icon name="people"></ion-icon>
+    </div>
+    <div class="quick-action-info">
+      <span class="quick-action-title">{{ t.followsTitle }}</span>
+      <span class="quick-action-desc">{{ followsDesc }}</span>
+    </div>
+    <ion-icon name="chevron-forward" class="quick-action-arrow"></ion-icon>
+  </div>
+</div>

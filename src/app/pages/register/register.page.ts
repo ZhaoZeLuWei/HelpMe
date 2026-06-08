@@ -16,8 +16,12 @@ import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
 import { environment } from '../../../environments/environment';
-import { LocationPickerComponent } from '../../components/location-picker/location-picker.component';
-import { AliyunCaptchaService } from '../../services/aliyun-captcha.service';
+import { LocationPickerService } from '../../services/location-picker.service';
+import { UploadService } from '../../services/upload.service';
+import {
+  AliyunCaptchaService,
+  CAPTCHA_BUSY_ERROR,
+} from '../../services/aliyun-captcha.service';
 
 @Component({
   selector: 'app-register',
@@ -32,6 +36,8 @@ export class RegisterPage {
   private modalCtrl = inject(ModalController);
   private languageService = inject(LanguageService);
   private captchaService = inject(AliyunCaptchaService);
+  private locationPicker = inject(LocationPickerService);
+  private uploadService = inject(UploadService);
 
   t = this.languageService.getTranslations('zh').register;
 
@@ -90,6 +96,7 @@ export class RegisterPage {
   sending = signal(false);
   sendCooldown = signal(0); // 秒
   registering = signal(false);
+  private cooldownTimer: ReturnType<typeof setInterval> | null = null;
 
   async sendCode() {
     if (this.verifyForm.controls.phone.invalid) {
@@ -103,24 +110,17 @@ export class RegisterPage {
       return;
     }
 
-    if (this.sendCooldown() > 0) return;
+    if (this.sending() || this.sendCooldown() > 0) return;
 
-    // 先检查手机号是否已注册
     const phone = this.verifyForm.controls.phone.value || '';
     this.sending.set(true);
+
     try {
-      const resp = await fetch(`${this.auth['API_BASE']}/check-phone`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
+      const checkResult = await this.auth.checkPhoneExists(phone);
 
-      const data = await resp.json().catch(() => null);
-
-      if (!resp.ok || !data?.success) {
-        this.sending.set(false);
+      if (!checkResult) {
         const t = await this.toastCtrl.create({
-          message: data?.error || this.t.phoneCheckFailed,
+          message: this.t.phoneCheckFailed,
           duration: 2000,
           position: 'bottom',
           positionAnchor: 'main-tab-bar',
@@ -129,8 +129,7 @@ export class RegisterPage {
         return;
       }
 
-      if (data.exists) {
-        this.sending.set(false);
+      if (checkResult.exists) {
         const t = await this.toastCtrl.create({
           message: this.t.phoneExists,
           duration: 2000,
@@ -140,9 +139,55 @@ export class RegisterPage {
         await t.present();
         return;
       }
+
+      let captchaData = null;
+      try {
+        captchaData = await this.captchaService.getValidate();
+      } catch (err) {
+        const message =
+          err instanceof Error && err.message === CAPTCHA_BUSY_ERROR
+            ? this.t.captchaInProgress
+            : err instanceof Error
+              ? err.message
+              : this.t.captchaLoadFailed;
+        const toast = await this.toastCtrl.create({
+          message,
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await toast.present();
+        return;
+      }
+
+      if (!captchaData) return;
+
+      const sendResult = await this.auth.sendVerificationCode(
+        phone,
+        captchaData,
+      );
+      if (!sendResult?.success) {
+        const toast = await this.toastCtrl.create({
+          message: sendResult?.error || this.t.codeSendFailed,
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await toast.present();
+        return;
+      }
+
+      const toast = await this.toastCtrl.create({
+        message: sendResult.message || this.t.codeSent,
+        duration: 2000,
+        position: 'bottom',
+        positionAnchor: 'main-tab-bar',
+      });
+      await toast.present();
+
+      this.startSendCooldown();
     } catch (err) {
       console.error('Check phone error:', err);
-      this.sending.set(false);
       const t = await this.toastCtrl.create({
         message: this.t.networkError,
         duration: 2000,
@@ -150,52 +195,22 @@ export class RegisterPage {
         positionAnchor: 'main-tab-bar',
       });
       await t.present();
-      return;
-    }
-
-    let captchaData = null;
-    try {
-      captchaData = await this.captchaService.getValidate();
-    } catch (err) {
+    } finally {
       this.sending.set(false);
-      const toast = await this.toastCtrl.create({
-        message: err instanceof Error ? err.message : this.t.captchaLoadFailed,
-        duration: 2000,
-        position: 'bottom',
-        positionAnchor: 'main-tab-bar',
-      });
-      await toast.present();
-      return;
     }
+  }
 
-    const sendResult = await this.auth.sendVerificationCode(phone, captchaData);
-    if (!sendResult?.success) {
-      this.sending.set(false);
-      const toast = await this.toastCtrl.create({
-        message: sendResult?.error || this.t.codeSendFailed,
-        duration: 2000,
-        position: 'bottom',
-        positionAnchor: 'main-tab-bar',
-      });
-      await toast.present();
-      return;
+  private startSendCooldown() {
+    if (this.cooldownTimer) {
+      clearInterval(this.cooldownTimer);
     }
-
-    const toast = await this.toastCtrl.create({
-      message: sendResult.message || this.t.codeSent,
-      duration: 2000,
-      position: 'bottom',
-      positionAnchor: 'main-tab-bar',
-    });
-    await toast.present();
-
     this.sendCooldown.set(60);
-    const timer = setInterval(() => {
+    this.cooldownTimer = setInterval(() => {
       const next = this.sendCooldown() - 1;
       this.sendCooldown.set(next);
-      if (next <= 0) {
-        clearInterval(timer);
-        this.sending.set(false);
+      if (next <= 0 && this.cooldownTimer) {
+        clearInterval(this.cooldownTimer);
+        this.cooldownTimer = null;
       }
     }, 1000);
   }
@@ -312,6 +327,37 @@ export class RegisterPage {
 
     this.registering.set(true);
 
+    let avatarPath: string | null = null;
+    if (this.avatarFile) {
+      try {
+        const paths = await this.uploadService.uploadImages(this.avatarFile, {
+          guest: true,
+        });
+        avatarPath = paths[0] || null;
+        if (!avatarPath) {
+          this.registering.set(false);
+          const t = await this.toastCtrl.create({
+            message: this.t.avatarUploadFailed,
+            duration: 2000,
+            position: 'bottom',
+            positionAnchor: 'main-tab-bar',
+          });
+          await t.present();
+          return;
+        }
+      } catch (e) {
+        this.registering.set(false);
+        const t = await this.toastCtrl.create({
+          message: e instanceof Error ? e.message : this.t.avatarUploadFailed,
+          duration: 2000,
+          position: 'bottom',
+          positionAnchor: 'main-tab-bar',
+        });
+        await t.present();
+        return;
+      }
+    }
+
     const phone = this.verifyForm.controls.phone.value || '';
     const code = this.verifyForm.controls.code.value || '';
     const userName = this.infoForm.controls.userName.value || '';
@@ -334,12 +380,15 @@ export class RegisterPage {
         birthDate,
         introduction,
       },
-      this.avatarFile,
+      avatarPath,
     );
 
     this.registering.set(false);
 
     if (!result.ok) {
+      if (avatarPath) {
+        await this.uploadService.deleteUploadedFile(avatarPath);
+      }
       const t = await this.toastCtrl.create({
         message: result.message,
         duration: 2000,
@@ -367,23 +416,15 @@ export class RegisterPage {
   }
 
   async openLocationPicker() {
-    const modal = await this.modalCtrl.create({
-      component: LocationPickerComponent,
-      cssClass: 'location-picker-modal',
-      componentProps: {
-        selectedPlaceId:
-          this.infoForm.controls.locationPlaceId.value || undefined,
-        selectedText: this.infoForm.controls.location.value || undefined,
-      },
+    const picked = await this.locationPicker.pickLocation({
+      selectedPlaceId: this.infoForm.controls.locationPlaceId.value || '',
+      selectedText: this.infoForm.controls.location.value || '',
     });
-
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss();
-    if (role !== 'confirm' || !data?.selected) return;
+    if (!picked) return;
 
     this.infoForm.patchValue({
-      location: data.selected.text,
-      locationPlaceId: data.selected.placeId,
+      location: picked.text,
+      locationPlaceId: picked.placeId,
     });
   }
 }

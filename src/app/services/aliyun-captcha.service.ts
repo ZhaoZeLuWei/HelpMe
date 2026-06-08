@@ -14,9 +14,13 @@ declare global {
   }
 }
 
+/** 同一时刻仅允许一个图形验证会话，避免连点弹出多个验证码窗口 */
+export const CAPTCHA_BUSY_ERROR = 'CAPTCHA_BUSY';
+
 @Injectable({ providedIn: 'root' })
 export class AliyunCaptchaService {
   private loadingPromise: Promise<void> | null = null;
+  private activeValidatePromise: Promise<AliyunCaptchaValidate> | null = null;
 
   private get captchaScriptUrl(): string {
     return (environment as any).captchaScriptUrl || '';
@@ -74,12 +78,25 @@ export class AliyunCaptchaService {
   }
 
   async getValidate(): Promise<AliyunCaptchaValidate> {
+    if (this.activeValidatePromise) {
+      throw new Error(CAPTCHA_BUSY_ERROR);
+    }
+
     if (!this.captchaId) {
       throw new Error('未配置 captchaId');
     }
 
     await this.loadScript();
 
+    this.activeValidatePromise = this.openCaptchaSession();
+    try {
+      return await this.activeValidatePromise;
+    } finally {
+      this.activeValidatePromise = null;
+    }
+  }
+
+  private openCaptchaSession(): Promise<AliyunCaptchaValidate> {
     return new Promise<AliyunCaptchaValidate>((resolve, reject) => {
       if (!window.initAlicom4) {
         reject(new Error('阿里云图形验证码 SDK 未初始化'));
@@ -124,12 +141,14 @@ export class AliyunCaptchaService {
           captchaObj.onClose?.(() => {
             if (settled) return;
             settled = true;
+            captchaObj?.destroy?.();
             resolve(null);
           });
 
           captchaObj.onError?.((error: any) => {
             if (settled) return;
             settled = true;
+            captchaObj?.destroy?.();
             reject(new Error(error?.msg || '图形验证码加载失败'));
           });
 

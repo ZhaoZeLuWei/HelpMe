@@ -54,7 +54,10 @@ app.use(express.json());
 app.use(corsMiddleware);
 app.use(parseLang); // 解析客户端语言偏好（?lang=en）
 app.use("/img", express.static(uploadDir));
-app.use("/test", testRoutes);
+// 开发环境保留 /test 调试页，生产环境不挂载
+if (process.env.NODE_ENV !== "production") {
+  app.use("/test", testRoutes);
+}
 app.use(userRoutes);
 app.use(eventRoutes);
 app.use(orderRoutes);
@@ -66,6 +69,15 @@ app.use(locationRoutes);
 app.use(translationRoutes);
 app.use(configRoutes);
 app.use(aiRoutes);
+
+// 全局错误处理中间件
+app.use((err, req, res, next) => {
+  console.error("未捕获的错误:", err);
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ success: false, error: "请求体格式错误" });
+  }
+  return res.status(500).json({ success: false, error: "服务器内部错误" });
+});
 
 // JWT secret（必须从环境变量读取）
 const JWT_SECRET = process.env.JWT_SECRET;

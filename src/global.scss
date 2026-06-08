@@ -1,4 +1,5 @@
 /* App Global CSS */
+@use "./theme/elderly-mode";
 
 @import "@ionic/angular/css/core.css";
 @import "@ionic/angular/css/normalize.css";
@@ -21,39 +22,6 @@
 body {
   font-family: var(--ion-font-family);
   font-size: 14px;
-}
-
-/* 长辈模式全局字号放大 */
-body.elderly-mode {
-  font-size: 16px;
-
-  /* Ionic 全局组件覆盖 */
-  ion-title {
-    font-size: 24px;
-    font-weight: 800;
-  }
-  ion-back-button {
-    font-size: 18px;
-  }
-  ion-toolbar ion-button {
-    font-size: 16px;
-  }
-  ion-alert .alert-title {
-    font-size: 22px;
-  }
-  ion-alert .alert-message {
-    font-size: 18px;
-  }
-  ion-alert .alert-button {
-    font-size: 18px;
-  }
-  ion-toast {
-    font-size: 18px;
-  }
-  ion-segment-button {
-    font-size: 18px;
-    font-weight: 700;
-  }
 }
 
 h1,

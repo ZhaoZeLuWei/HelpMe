@@ -50,10 +50,13 @@ import { LanguageService } from 'src/app/services/language.service';
 import { DynamicTranslationService } from 'src/app/services/dynamic-translation.service';
 import { TranslateTextPipe } from 'src/app/pipes/translate-text.pipe';
 import { NavController } from '@ionic/angular';
+import { LocationPickerService } from '../../services/location-picker.service';
+import { resolveMediaUrl } from '../../utils/media-url.util';
+import { goBack as navGoBack, goHome as navGoHome } from '../../utils/nav.util';
 import {
-  LocationPickerComponent,
-  type PickedLocation,
-} from '../../components/location-picker/location-picker.component';
+  getServiceRoleColor as getRoleColor,
+  getServiceRoleText as getRoleText,
+} from '../../utils/role.util';
 import {
   FormBuilder,
   FormGroup,
@@ -132,6 +135,7 @@ export class ParticularPage implements OnInit {
   private toastController = inject(ToastController);
   private navCtrl = inject(NavController);
   private fb = inject(FormBuilder);
+  private locationPicker = inject(LocationPickerService);
   readonly apiBase = environment.apiBase;
 
   @ViewChild('editEventModal')
@@ -302,39 +306,20 @@ export class ParticularPage implements OnInit {
   }
 
   getAvatarUrl(avatarPath?: string): string {
-    if (!avatarPath || avatarPath.trim() === '') {
-      return '/assets/icon/user.svg';
-    }
-    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
-      return avatarPath;
-    }
-    return environment.apiBase + avatarPath;
+    return resolveMediaUrl(avatarPath);
   }
 
   getServiceRoleText(providerRole: number): string {
-    switch (providerRole) {
-      case 1:
-        return this.t.roleEnthusiast;
-      case 2:
-        return this.t.roleProfessional;
-      case 3:
-        return this.t.roleMerchant;
-      default:
-        return this.t.roleRegular;
-    }
+    return getRoleText(providerRole, {
+      roleEnthusiast: this.t.roleEnthusiast,
+      roleProfessional: this.t.roleProfessional,
+      roleMerchant: this.t.roleMerchant,
+      roleRegular: this.t.roleRegular,
+    });
   }
 
   getServiceRoleColor(providerRole: number): string {
-    switch (providerRole) {
-      case 1:
-        return 'warning';
-      case 2:
-        return 'success';
-      case 3:
-        return 'success';
-      default:
-        return 'medium';
-    }
+    return getRoleColor(providerRole);
   }
 
   goToUserParticular() {
@@ -351,15 +336,11 @@ export class ParticularPage implements OnInit {
   }
 
   goBack() {
-    if (window.history.length > 1) {
-      this.location.back();
-    } else {
-      this.router.navigate(['/tabs/tab1']);
-    }
+    navGoBack(this.location, this.router);
   }
 
   goHome() {
-    this.router.navigate(['/tabs/tab1']);
+    navGoHome(this.router);
   }
 
   openOrderModal() {
@@ -387,19 +368,11 @@ export class ParticularPage implements OnInit {
   }
 
   async openOrderLocationPicker() {
-    const modal = await this.modalCtrl.create({
-      component: LocationPickerComponent,
-      cssClass: 'location-picker-modal',
-      componentProps: {
-        selectedPlaceId: '',
-        selectedText: this.orderForm.value.DetailLocation || '',
-      },
+    const picked = await this.locationPicker.pickLocation({
+      selectedText: this.orderForm.value.DetailLocation || '',
     });
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss();
-    if (role !== 'confirm' || !data?.selected) return;
+    if (!picked) return;
 
-    const picked: PickedLocation = data.selected;
     this.orderForm.patchValue({ DetailLocation: picked.text });
     this.pickedLocationDisplay = picked.text;
   }
@@ -575,18 +548,12 @@ export class ParticularPage implements OnInit {
     const sharedModal = this.editEventModal;
     if (!sharedModal) return;
 
-    const modal = await this.modalCtrl.create({
-      component: LocationPickerComponent,
-      componentProps: {
-        selectedPlaceId: sharedModal.getFormValue('LocationPlaceId') || '',
-        selectedText: sharedModal.getFormValue('Location') || '',
-      },
+    const picked = await this.locationPicker.pickLocation({
+      selectedPlaceId: sharedModal.getFormValue('LocationPlaceId') || '',
+      selectedText: sharedModal.getFormValue('Location') || '',
     });
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss();
-    if (role !== 'confirm' || !data?.selected) return;
+    if (!picked) return;
 
-    const picked: PickedLocation = data.selected;
     sharedModal.patchForm({
       Location: picked.text,
       LocationPlaceId: picked.placeId,

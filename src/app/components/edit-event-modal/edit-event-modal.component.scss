@@ -139,9 +139,10 @@
 }
 
 /* =========================================================================
-   Elderly Mode (长辈模式)
+   Elderly Mode (长辈模式) — 弹窗挂 body，:host-context 无效，见 theme/elderly-mode.scss
    ========================================================================= */
-:host-context(body.elderly-mode) .edit-modal-content {
+:host-context(body.elderly-mode) .edit-modal-content,
+body.elderly-mode .edit-modal-content {
   .form-section {
     .section-title {
       font-size: 18px;

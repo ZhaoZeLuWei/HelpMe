@@ -24,6 +24,7 @@ import {
   IonIcon,
 } from '@ionic/angular/standalone';
 import { environment } from '../../../environments/environment';
+import { resolveMediaUrl } from '../../utils/media-url.util';
 import { LanguageService } from '../../services/language.service';
 import { DynamicTranslationService } from '../../services/dynamic-translation.service';
 import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
@@ -110,8 +111,7 @@ export class ReviewDetailModalComponent implements OnChanges {
   }
 
   getAvatarUrl(path?: string): string {
-    if (!path) return 'assets/icon/user.svg';
-    return path.startsWith('http') ? path : `${this.apiBase}${path}`;
+    return resolveMediaUrl(path);
   }
 
   close() {

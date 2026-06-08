@@ -231,7 +231,11 @@
 }
 
 <!-- 订单预览弹窗 -->
-<ion-modal [isOpen]="isOrderPreviewOpen" (didDismiss)="closeOrderPreview()">
+<ion-modal
+  class="chat-order-preview-modal"
+  [isOpen]="isOrderPreviewOpen"
+  (didDismiss)="closeOrderPreview()"
+>
   <ng-template>
     <ion-header>
       <ion-toolbar>

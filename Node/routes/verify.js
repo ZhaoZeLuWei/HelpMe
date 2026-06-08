@@ -11,15 +11,10 @@ const {
   cleanupUploadedFiles,
 } = require("./upload.js");
 const { authRequired, adminRequired } = require("./auth.js");
+const { normalizeLocationPlaceId } = require("./utils.js");
 
 const { sendSystemMessage } = require("../chatHandler.js");
 const router = express.Router();
-
-function normalizeLocationPlaceId(value) {
-  if (value === undefined || value === null) return null;
-  const text = String(value).trim();
-  return text ? text : null;
-}
 
 //GET 获取所有申请记录（仅包含通过和待审核) by Zewei 2-3
 router.get("/adminVerify", adminRequired, async (req, res) => {

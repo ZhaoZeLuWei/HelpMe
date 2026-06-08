@@ -110,7 +110,8 @@
 /* =========================================================================
    Elderly Mode (长辈模式)
    ========================================================================= */
-:host-context(body.elderly-mode) {
+:host-context(body.elderly-mode),
+body.elderly-mode {
   .review-header ion-avatar {
     width: 56px;
     height: 56px;
@@ -120,7 +121,7 @@
     font-weight: 700;
   }
   .review-meta .review-time {
-    font-size: 14px;
+    font-size: 16px;
   }
   .score-badge .star-icon {
     font-size: 20px;
