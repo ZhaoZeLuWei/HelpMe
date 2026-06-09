@@ -57,6 +57,7 @@ export class Tab3Page implements OnInit {
   getUser: any;
   showChat: boolean | undefined;
   systemRoom: any = null;
+  supportRoom: any = null;
   //init chat rooms (nothing)
   chatRooms: any[] = [];
 
@@ -116,6 +117,7 @@ export class Tab3Page implements OnInit {
     const userId = this.auth.currentUserId;
     const sysRoom = `system_${userId}`;
     this.initSystemRoom(sysRoom);
+    this.initSupportRoom(userId);
 
     this.socket.emit('joinRoom', null);
     this.socket.off('listUpdate');
@@ -165,6 +167,20 @@ export class Tab3Page implements OnInit {
                   count: unreadCount,
                   updatedAt: room.updatedAt,
                 };
+              } else if (
+                room.type === 'support' ||
+                (room.roomId && room.roomId.startsWith('support_'))
+              ) {
+                name = this.t.supportName;
+                avatar = 'assets/icon/support.svg';
+
+                // 更新客服房间的最新消息和未读数
+                this.supportRoom = {
+                  ...this.supportRoom,
+                  lastMsg: room.lastMsg || this.t.supportNoMessage,
+                  count: unreadCount,
+                  updatedAt: room.updatedAt,
+                };
               } else {
                 const eventName = room.event?.name || '';
                 let otherChatName = `${this.t.unknownUser} ${room.partnerId ?? ''}`;
@@ -201,8 +217,10 @@ export class Tab3Page implements OnInit {
                 new Date(a.updatedAt).getTime(),
             );
 
-            // 过滤掉系统通知房间（已在顶部单独显示）
-            this.chatRooms = this.chatRooms.filter((r) => r.type !== 'system');
+            // 过滤掉系统通知和客服房间（已在顶部单独显示）
+            this.chatRooms = this.chatRooms.filter(
+              (r) => r.type !== 'system' && r.type !== 'support',
+            );
           }
           this.showChat = true;
         },
@@ -221,7 +239,7 @@ export class Tab3Page implements OnInit {
   //根据登陆用户信息来进入对应用户的通知聊天房间
   private initSystemRoom(sysRoom: any) {
     this.systemRoom = {
-      roomId: sysRoom, // 现在这里不会是 undefined 了
+      roomId: sysRoom,
       name: this.t.systemNotification,
       avatar: 'assets/icon/notification.svg',
       lastMsg: this.t.noNewNotification,
@@ -229,6 +247,25 @@ export class Tab3Page implements OnInit {
       type: 'system',
       updatedAt: new Date(),
     };
+  }
+
+  private initSupportRoom(userId: number | null) {
+    if (!userId) return;
+    this.supportRoom = {
+      roomId: `support_${userId}`,
+      name: this.t.supportName,
+      avatar: 'assets/icon/support.svg',
+      lastMsg: this.t.supportNoMessage,
+      count: 0,
+      type: 'support',
+      updatedAt: new Date(),
+    };
+  }
+
+  // 客服房间使用独立页面
+  goSupportChat() {
+    this.clearRoomUnread(this.supportRoom?.roomId);
+    this.navCtrl.navigateForward('/support-chat');
   }
 
   private async checkAuth() {

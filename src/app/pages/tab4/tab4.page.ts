@@ -36,6 +36,7 @@ import {
   receiptOutline,
   clipboardOutline,
   chevronForward,
+  chatbubbleEllipses,
 } from 'ionicons/icons';
 
 import {
@@ -265,6 +266,7 @@ export class Tab4Page implements OnDestroy {
       receiptOutline,
       clipboardOutline,
       chevronForward,
+      chatbubbleEllipses,
     });
 
     // 订阅登录状态
@@ -967,6 +969,10 @@ export class Tab4Page implements OnDestroy {
 
   closeFollowersModal(): void {
     this.isFollowersModalOpen = false;
+  }
+
+  openSupportChat(): void {
+    this.router.navigate(['/support-chat']);
   }
 
   goToUserFromList(user: any): void {

@@ -15,4 +15,5 @@ export class Tab4QuickActionsComponent {
 
   @Output() openFavorites = new EventEmitter<void>();
   @Output() openFollows = new EventEmitter<void>();
+  @Output() openSupport = new EventEmitter<void>();
 }

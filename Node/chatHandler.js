@@ -10,10 +10,18 @@ const { moderateContent } = require("./Services/contentModeration.js");
 //io.emit  系统公告，全站广播
 
 // 校验用户是否有权限访问该房间
-const validateRoomAccess = async (roomId, userId) => {
+const validateRoomAccess = async (roomId, userId, userRole) => {
   // 系统房间校验：system_{userId} 格式，且 userId 必须与当前用户一致
   if (String(roomId).startsWith("system_")) {
     const roomUserId = String(roomId).replace("system_", "");
+    return Number(roomUserId) === Number(userId);
+  }
+
+  // 客服房间校验：support_{userId} 格式
+  // 普通用户只能访问自己的客服房间，管理员可访问所有客服房间
+  if (String(roomId).startsWith("support_")) {
+    if (userRole === "admin") return true;
+    const roomUserId = String(roomId).replace("support_", "");
     return Number(roomUserId) === Number(userId);
   }
 
@@ -24,7 +32,7 @@ const validateRoomAccess = async (roomId, userId) => {
 };
 
 //根据roomId， 读取mongodb中所有符合条件的消息
-const getChatHistory = async (queryParams, currentUserId) => {
+const getChatHistory = async (queryParams, currentUserId, userRole) => {
   try {
     const {
       roomId,
@@ -42,7 +50,11 @@ const getChatHistory = async (queryParams, currentUserId) => {
 
     // 校验用户是否有权限访问该房间
     if (currentUserId) {
-      const hasAccess = await validateRoomAccess(roomId, currentUserId);
+      const hasAccess = await validateRoomAccess(
+        roomId,
+        currentUserId,
+        userRole,
+      );
       if (!hasAccess) {
         return { success: false, message: "无权访问此聊天房间", code: 403 };
       }
@@ -132,10 +144,15 @@ const getRoomList = async (queryParams) => {
     if (roomId) {
       // 如果指定了 roomId，必须校验当前用户是否为房间成员
       const currentUserId = queryParams.currentUserId;
+      const userRole = queryParams.userRole;
       if (!currentUserId) {
         return { success: false, message: "缺少用户身份信息" };
       }
-      const hasAccess = await validateRoomAccess(roomId, currentUserId);
+      const hasAccess = await validateRoomAccess(
+        roomId,
+        currentUserId,
+        userRole,
+      );
       if (!hasAccess) {
         return { success: false, message: "无权访问此房间", code: 403 };
       }
@@ -225,6 +242,8 @@ const getRoomList = async (queryParams) => {
     // 构造返回数据，不区分谁是登录用户
     const formattedRooms = rooms.map((room) => {
       const isSystem = String(room._id).startsWith("system_");
+      const isSupport = String(room._id).startsWith("support_");
+      const roomType = isSystem ? "system" : isSupport ? "support" : "user";
       const userAId = Number(room.creatorId);
       const userBId = Number(room.partnerId);
 
@@ -242,7 +261,7 @@ const getRoomList = async (queryParams) => {
 
       return {
         roomId: room._id,
-        type: isSystem ? "system" : "user",
+        type: roomType,
         userA,
         userB,
         event: {
@@ -381,6 +400,7 @@ module.exports.registerChatHandler = (io, socket) => {
     // 校验 roomId 格式（白名单）
     const isValidRoomId =
       String(roomId).startsWith("system_") ||
+      String(roomId).startsWith("support_") ||
       /^\d+_\d+_\d+$/.test(String(roomId)); // eventId_creatorId_partnerId 格式
 
     if (!isValidRoomId) {
@@ -400,7 +420,17 @@ module.exports.registerChatHandler = (io, socket) => {
         }
       }
 
-      // 如果房间不存在，自动创建（普通房间和系统房间均支持）
+      // 客服房间：普通用户只能加入自己的客服房间，管理员可加入任何客服房间
+      if (String(roomId).startsWith("support_")) {
+        const roomUserId = Number(String(roomId).replace("support_", ""));
+        const isAdmin = socket.user.role === "admin";
+        if (!isAdmin && roomUserId !== socket.user.id) {
+          socket.emit("joinRoomError", { message: "无权加入此客服房间" });
+          return;
+        }
+      }
+
+      // 如果房间不存在，自动创建（普通房间、系统房间、客服房间均支持）
       if (!room) {
         if (String(roomId).startsWith("system_")) {
           // 系统房间：creatorId 和 partnerId 均为当前用户
@@ -410,6 +440,15 @@ module.exports.registerChatHandler = (io, socket) => {
             partnerId: socket.user.id,
           });
           console.log(`系统房间已创建: ${roomId}`);
+        } else if (String(roomId).startsWith("support_")) {
+          // 客服房间：creatorId 为用户，partnerId 为 0（管理员）
+          const roomUserId = Number(String(roomId).replace("support_", ""));
+          room = await Room.create({
+            _id: roomId,
+            creatorId: roomUserId,
+            partnerId: 0,
+          });
+          console.log(`客服房间已创建: ${roomId}`);
         } else {
           // 普通房间：从 roomId（eventId_creatorId_partnerId）中解析用户 ID
           const parts = String(roomId).split("_");
@@ -436,7 +475,9 @@ module.exports.registerChatHandler = (io, socket) => {
         // 房间已存在，校验用户是否为成员
         const isMember =
           room.creatorId === socket.user.id ||
-          room.partnerId === socket.user.id;
+          room.partnerId === socket.user.id ||
+          (String(roomId).startsWith("support_") &&
+            socket.user.role === "admin");
         if (!isMember) {
           socket.emit("joinRoomError", { message: "无权加入此聊天房间" });
           return;
@@ -493,7 +534,9 @@ module.exports.registerChatHandler = (io, socket) => {
       }
 
       const isMember =
-        room.creatorId === socket.user.id || room.partnerId === socket.user.id;
+        room.creatorId === socket.user.id ||
+        room.partnerId === socket.user.id ||
+        (String(roomId).startsWith("support_") && socket.user.role === "admin");
       if (!isMember) {
         socket.emit("messageError", { message: "无权在此房间发送消息" });
         return;

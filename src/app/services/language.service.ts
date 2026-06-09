@@ -65,6 +65,8 @@ export class LanguageService {
         loginToast: '请您登录或注册',
         loadRoomsFailed: '加载聊天列表失败',
         unknownUser: '用户',
+        supportName: '在线客服',
+        supportNoMessage: '点击联系客服',
       },
       // Tab4 页面 (个人中心)
       tab4: {
@@ -649,6 +651,24 @@ export class LanguageService {
         additionalInfo: '补充信息',
         confirmOrder: '确认订单',
       },
+      // 客服聊天页
+      supportChat: {
+        pageTitle: '在线客服',
+        welcomeHint: '您好！请描述您遇到的问题，客服将尽快回复。',
+        connecting: '正在连接客服...',
+        connectFailed: '连接客服失败，请稍后重试',
+        inputMessage: '输入消息...',
+        send: '发送',
+        me: '我',
+        customerService: '客服',
+        selectImage: '请选择图片文件',
+        imageTooLarge: '图片大小不能超过10MB',
+        uploadFailed: '上传失败',
+        uploadError: '图片上传失败',
+        moderationFailed: '内容安全检测暂时不可用，请稍后重试',
+        connected: '已连接至客服',
+        connectSuccess: '客服已接入',
+      },
       // 登录页
       login: {
         title: '登录',
@@ -836,6 +856,8 @@ export class LanguageService {
         loginToast: 'Please login or register',
         loadRoomsFailed: 'Failed to load chat list',
         unknownUser: 'User',
+        supportName: 'Customer Service',
+        supportNoMessage: 'Tap to contact support',
       },
       // Tab4 页面 (个人中心)
       tab4: {
@@ -1451,6 +1473,26 @@ export class LanguageService {
         deliveryAddress: 'Delivery Address',
         additionalInfo: 'Additional Info',
         confirmOrder: 'Confirm Order',
+      },
+      // Support chat page
+      supportChat: {
+        pageTitle: 'Customer Service',
+        welcomeHint:
+          'Hello! Please describe your issue and our team will respond shortly.',
+        connecting: 'Connecting to support...',
+        connectFailed: 'Failed to connect, please try again later',
+        inputMessage: 'Type a message...',
+        send: 'Send',
+        me: 'Me',
+        customerService: 'Support',
+        selectImage: 'Please select an image file',
+        imageTooLarge: 'Image size cannot exceed 10MB',
+        uploadFailed: 'Upload failed',
+        uploadError: 'Image upload failed',
+        moderationFailed:
+          'Content safety check temporarily unavailable, please try again later',
+        connected: 'Connected to support',
+        connectSuccess: 'Support agent joined',
       },
       // Register Page
       register: {
