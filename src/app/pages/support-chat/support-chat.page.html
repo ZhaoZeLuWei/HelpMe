@@ -25,10 +25,9 @@
     <div
       class="message-group"
       [class.me]="isMyMessage(msg)"
-      [class.system]="msg.userName === '系统通知' || msg.userName === 'System Notification' || msg.senderId === -1"
+      [class.system]="isSystemMessage(msg)"
     >
-      @if (msg.userName === '系统通知' || msg.userName === 'System Notification'
-      || msg.senderId === -1) {
+      @if (isSystemMessage(msg)) {
       <div class="system-msg">
         <span>{{ msg.text | tText }}</span>
       </div>

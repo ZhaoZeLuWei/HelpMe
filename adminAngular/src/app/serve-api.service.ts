@@ -72,9 +72,12 @@ export class ServeAPIService {
     return this.http.get<any>(`${this.adminUsersUrl}/${userId}`);
   }
 
-  // 删除用户
-  deleteUser(userId: number): Observable<any> {
-    return this.http.delete<any>(`${this.adminUsersUrl}/${userId}`);
+  // 封禁/解封用户
+  banUser(userId: number, ban: boolean, reason?: string): Observable<any> {
+    return this.http.patch<any>(`${this.adminUsersUrl}/${userId}/ban`, {
+      ban,
+      reason,
+    });
   }
 
   // ========== 订单管理相关 ==========

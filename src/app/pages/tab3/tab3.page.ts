@@ -101,6 +101,22 @@ export class Tab3Page implements OnInit {
         this.loadUserRooms(userId);
       }
     });
+
+    // 监听封禁强制登出 → 跳转申诉页
+    this.socket.on('forceLogout', (data: any) => {
+      const phone =
+        this.auth.currentUser?.PhoneNumber ||
+        this.auth.currentUser?.phoneNumber ||
+        '';
+      if (phone) {
+        sessionStorage.setItem('ban_appeal_phone', phone);
+      }
+      this.auth.logout();
+      this.navCtrl.navigateRoot('/ban-appeal', {
+        state: { phone },
+        replaceUrl: true,
+      });
+    });
   }
 
   ionViewWillEnter() {

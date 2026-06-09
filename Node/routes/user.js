@@ -5,7 +5,14 @@ const path = require("node:path");
 const fs = require("node:fs");
 const bcrypt = require("bcrypt");
 const pool = require("../help_me_db.js");
-const { signToken, authRequired, adminRequired } = require("./auth.js");
+const {
+  signToken,
+  authRequired,
+  adminRequired,
+  banUser,
+  unbanUser,
+} = require("./auth.js");
+const { getIO } = require("../socketInstance.js");
 const { translateFields } = require("./translateHelper.js");
 const {
   upload,
@@ -634,7 +641,7 @@ router.post("/login", async (req, res) => {
 
   try {
     const [rows] = await pool.query(
-      "SELECT UserId, UserName, PhoneNumber FROM Users WHERE PhoneNumber = ? LIMIT 1",
+      "SELECT UserId, UserName, PhoneNumber, IsBanned FROM Users WHERE PhoneNumber = ? LIMIT 1",
       [phone],
     );
     if (!rows || rows.length === 0) {
@@ -642,6 +649,14 @@ router.post("/login", async (req, res) => {
     }
 
     const user = rows[0];
+
+    // 检查用户是否被封禁
+    if (user.IsBanned) {
+      return res
+        .status(403)
+        .json({ error: "该账号已被封禁，如有疑问请联系客服" });
+    }
+
     const token = signToken(user);
 
     return res.json({ success: true, user, token });
@@ -909,6 +924,8 @@ router.get("/admin/users", adminRequired, async (req, res) => {
         u.RealName,
         u.PhoneNumber,
         u.Location,
+        u.IsBanned,
+        u.BannedAt,
         IFNULL(c.BuyerRanking, 0) AS BuyerRanking,
         p.ProviderRole,
         IFNULL(p.ServiceRanking, 0) AS ServiceRanking,
@@ -955,6 +972,8 @@ router.get("/admin/users/:id", adminRequired, async (req, res) => {
         u.Introduction,
         u.FollowerCount,
         u.CreateTime,
+        u.IsBanned,
+        u.BannedAt,
         (SELECT VerificationStatus FROM Verifications v
          WHERE v.ProviderId = u.UserId
          ORDER BY v.SubmissionTime DESC LIMIT 1) AS VerificationStatus,
@@ -991,9 +1010,10 @@ router.get("/admin/users/:id", adminRequired, async (req, res) => {
   }
 });
 
-// 管理端：删除用户
-router.delete("/admin/users/:id", adminRequired, async (req, res) => {
+// 管理端：封禁/解封用户（软删除）
+router.patch("/admin/users/:id/ban", adminRequired, async (req, res) => {
   const userId = req.params.id;
+  const { ban = true } = req.body || {};
 
   let conn;
   try {
@@ -1002,7 +1022,7 @@ router.delete("/admin/users/:id", adminRequired, async (req, res) => {
 
     // 检查用户是否存在
     const [userCheck] = await conn.query(
-      "SELECT UserId FROM Users WHERE UserId = ? LIMIT 1",
+      "SELECT UserId, IsBanned FROM Users WHERE UserId = ? LIMIT 1",
       [userId],
     );
 
@@ -1014,48 +1034,68 @@ router.delete("/admin/users/:id", adminRequired, async (req, res) => {
       });
     }
 
-    // 删除用户评论（作为评论者）
-    await conn.query("DELETE FROM Comments WHERE AuthorId = ?", [userId]);
+    if (ban) {
+      // 封禁用户
+      await conn.query(
+        "UPDATE Users SET IsBanned = 1, BannedAt = NOW() WHERE UserId = ?",
+        [userId],
+      );
 
-    // 删除用户收到的评论（作为被评论者）
-    await conn.query("DELETE FROM Comments WHERE TargetUserId = ?", [userId]);
+      // 下架该用户发布的上架事件
+      await conn.query(
+        "UPDATE Events SET Status = 2 WHERE CreatorId = ? AND Status = 0",
+        [userId],
+      );
 
-    // 删除用户的订单（作为消费者）
-    await conn.query("DELETE FROM Orders WHERE ConsumerId = ?", [userId]);
+      // 取消该用户进行中的订单（待确认 + 进行中）
+      await conn.query(
+        `UPDATE Orders SET OrderStatus = 4, CancelledBy = 'admin'
+         WHERE (ConsumerId = ? OR ProviderId = ?) AND OrderStatus IN (0, 1)`,
+        [userId, userId],
+      );
 
-    // 删除用户的订单（作为服务提供者）
-    await conn.query("DELETE FROM Orders WHERE ProviderId = ?", [userId]);
+      // 加入内存封禁名单（立即生效）
+      banUser(userId);
 
-    // 删除用户发布的事件
-    await conn.query("DELETE FROM Events WHERE CreatorId = ?", [userId]);
+      // 通过 Socket.io 踢出被封禁用户（主 namespace + 客服 namespace）
+      const io = getIO();
+      if (io) {
+        const forceLogoutData = {
+          message: "该账号已被封禁，如有疑问请联系客服",
+        };
+        io.to(String(userId)).emit("forceLogout", forceLogoutData);
+        try {
+          io.of("/support")
+            .to(String(userId))
+            .emit("forceLogout", forceLogoutData);
+        } catch (_) {
+          // support namespace 可能未初始化，忽略错误
+        }
+      }
+    } else {
+      // 解封用户
+      await conn.query(
+        "UPDATE Users SET IsBanned = 0, BannedAt = NULL WHERE UserId = ?",
+        [userId],
+      );
 
-    // 删除用户的认证记录
-    await conn.query("DELETE FROM Verifications WHERE ProviderId = ?", [
-      userId,
-    ]);
-
-    // 删除Providers记录（如果存在）
-    await conn.query("DELETE FROM Providers WHERE ProviderId = ?", [userId]);
-
-    // 删除Consumers记录（如果存在）
-    await conn.query("DELETE FROM Consumers WHERE ConsumerId = ?", [userId]);
-
-    // 最后删除用户记录
-    await conn.query("DELETE FROM Users WHERE UserId = ?", [userId]);
+      // 从内存封禁名单移除
+      unbanUser(userId);
+    }
 
     await conn.commit();
     return res.json({
       success: true,
-      message: "用户删除成功",
+      message: ban ? "用户已封禁" : "用户已解封",
     });
   } catch (err) {
     if (conn) {
       await conn.rollback().catch(console.error);
     }
-    console.error("DB query error (admin delete user):", err);
+    console.error("DB query error (admin ban user):", err);
     return res.status(500).json({
       success: false,
-      error: "删除用户失败",
+      error: ban ? "封禁用户失败" : "解封用户失败",
     });
   } finally {
     if (conn) conn.release();

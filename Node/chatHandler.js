@@ -490,17 +490,14 @@ module.exports.registerChatHandler = (io, socket) => {
       socket.currentRoom = roomId;
       console.log(`connect to room ${roomId} SUCCESS`);
 
-      // 根据房间类型发送不同的连接提示
+      // 根据房间类型发送不同的连接提示（前端根据 type 自行翻译显示）
       const isSystemRoom = roomId.startsWith("system_");
-      const connectText = isSystemRoom
-        ? "已连接至通知中心"
-        : `${socket.user?.name || "对方"}已加入，可以开始聊天了`;
 
       //send connectSuccess Msg
       io.to(roomId).emit("connectSuccess", {
-        text: connectText,
+        type: isSystemRoom ? "system" : "chat",
+        userName: socket.user?.name || "",
         senderId: "system_bot",
-        userName: "系统通知",
         sendTime: new Date(),
       });
 

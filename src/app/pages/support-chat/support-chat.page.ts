@@ -38,10 +38,8 @@ import { environment } from '../../../environments/environment';
 import { ChatModel } from '../../models/chat.model';
 import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
-import { DynamicTranslationService } from '../../services/dynamic-translation.service';
 import { UploadService } from '../../services/upload.service';
 import { LocationPickerService } from '../../services/location-picker.service';
-import { RealtimeService } from '../../services/realtime.service';
 import { TranslateTextPipe } from '../../pipes/translate-text.pipe';
 import { io, Socket } from 'socket.io-client';
 
@@ -82,7 +80,6 @@ export class SupportChatPage implements OnInit, OnDestroy {
   private uploadService = inject(UploadService);
   private locationPicker = inject(LocationPickerService);
   private langService = inject(LanguageService);
-  private dynTrans = inject(DynamicTranslationService);
 
   env = environment;
   messages = signal<ChatModel[]>([]);
@@ -181,8 +178,10 @@ export class SupportChatPage implements OnInit, OnDestroy {
     });
 
     this.socket.on('support:connected', async (msg: any) => {
+      const message =
+        msg.type === 'admin' ? this.t.connectSuccess : this.t.connected;
       const toast = await this.toastCtrl.create({
-        message: msg.text,
+        message,
         duration: 1500,
         position: 'top',
         color: 'light',
@@ -191,11 +190,27 @@ export class SupportChatPage implements OnInit, OnDestroy {
     });
 
     this.socket.on('support:error', (data: any) => {
-      this.showToast(data.message || '操作失败');
+      this.showToast(data.message || this.t.operationFailed);
     });
 
     this.socket.on('support:moderationFailed', (data: any) => {
-      this.showToast(data.message || '内容审核未通过');
+      this.showToast(data.message || this.t.moderationFailed);
+    });
+
+    // 监听封禁强制登出 → 跳转申诉页
+    this.socket.on('forceLogout', () => {
+      const phone =
+        this.auth.currentUser?.PhoneNumber ||
+        this.auth.currentUser?.phoneNumber ||
+        '';
+      if (phone) {
+        sessionStorage.setItem('ban_appeal_phone', phone);
+      }
+      this.auth.logout();
+      this.router.navigate(['/ban-appeal'], {
+        state: { phone },
+        replaceUrl: true,
+      });
     });
   }
 
@@ -292,6 +307,15 @@ export class SupportChatPage implements OnInit, OnDestroy {
 
   isMyMessage(msg: ChatModel): boolean {
     return Number(msg.senderId) === Number(this.myself?.id);
+  }
+
+  isSystemMessage(msg: ChatModel): boolean {
+    return (
+      msg.senderId === -1 ||
+      msg.userName ===
+        this.langService.getTranslations(this.langService.getCurrentLang())
+          .chatDetail?.systemNotification
+    );
   }
 
   getMessageAvatar(msg: ChatModel): string {

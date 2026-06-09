@@ -3,6 +3,10 @@
     <ion-title>{{ t.title }}</ion-title>
     @if (isLoggedIn) {
     <ion-buttons slot="end">
+      <ion-button fill="clear" color="medium" (click)="openSupportChat()">
+        <ion-icon slot="start" name="chatbubble-ellipses"></ion-icon>
+        <span>{{ t.supportBtn }}</span>
+      </ion-button>
       <ion-button fill="clear" color="medium" (click)="confirmLogout()">
         <ion-icon slot="start" name="log-out"></ion-icon>
         <span>{{ t.logout }}</span>
@@ -33,7 +37,6 @@
     [followsDesc]="getFollowsDesc()"
     (openFavorites)="openFavoritesModal()"
     (openFollows)="openFollowsModal()"
-    (openSupport)="openSupportChat()"
   ></app-tab4-quick-actions>
 
   <ion-segment [value]="activeSection" (ionChange)="onSectionChange($event)">

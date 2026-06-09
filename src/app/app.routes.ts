@@ -22,6 +22,11 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'ban-appeal',
+    loadComponent: () =>
+      import('./pages/ban-appeal/ban-appeal.page').then((m) => m.BanAppealPage),
+  },
+  {
     path: 'search',
     loadComponent: () =>
       import('./pages/search/search.page').then((m) => m.SearchPage),

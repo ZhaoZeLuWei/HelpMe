@@ -59,6 +59,20 @@ export class AuthService {
 
   constructor() {
     this.scheduleSessionExpiryCheck();
+
+    // 监听全局封禁事件（由 fetch 补丁触发）→ 跳转申诉页
+    window.addEventListener('user-banned', () => {
+      const phone =
+        this.currentUser?.PhoneNumber || this.currentUser?.phoneNumber || '';
+      if (phone) {
+        sessionStorage.setItem('ban_appeal_phone', phone);
+      }
+      this.logout();
+      this.router.navigate(['/ban-appeal'], {
+        state: { phone },
+        replaceUrl: true,
+      });
+    });
   }
 
   // ----------------- getters（同步读取，方便页面直接用） -----------------

@@ -41,7 +41,10 @@
       <tbody>
         <tr *ngFor="let user of filteredUsers">
           <td class="id-cell">#{{ user.UserId }}</td>
-          <td class="title-cell">{{ user.UserName }}</td>
+          <td class="title-cell">
+            {{ user.UserName }}
+            <span class="banned-tag" *ngIf="user.IsBanned">已封禁</span>
+          </td>
           <td>{{ user.RealName || "-" }}</td>
           <td>{{ user.PhoneNumber }}</td>
           <td>
@@ -169,26 +172,46 @@
 
     <!-- 危险操作 -->
     <div class="detail-section danger-section">
-      <h4>危险操作</h4>
-      <p>
-        删除用户将会删除该用户的所有相关数据，包括订单、事件、评论等，此操作不可恢复！
+      <h4>账号管理</h4>
+      <div class="ban-status" *ngIf="currentUser.IsBanned">
+        <span class="banned-tag-large">该用户已被封禁</span>
+        <span class="ban-time" *ngIf="currentUser.BannedAt">封禁时间：{{ currentUser.BannedAt }}</span>
+      </div>
+      <p *ngIf="!currentUser.IsBanned">
+        封禁后该用户将无法登录和发布，但历史数据（订单、评论等）将完整保留。
       </p>
-      <button class="btn-danger" (click)="confirmDelete()">删除用户</button>
+      <p *ngIf="currentUser.IsBanned">
+        解封后该用户将恢复登录和使用权限。
+      </p>
+      <button
+        class="btn-danger"
+        *ngIf="!currentUser.IsBanned"
+        (click)="confirmBan('ban')"
+      >
+        封禁用户
+      </button>
+      <button
+        class="btn-success"
+        *ngIf="currentUser.IsBanned"
+        (click)="confirmBan('unban')"
+      >
+        解封用户
+      </button>
     </div>
   </div>
 </app-detail-modal>
 
-<!-- 删除确认弹窗 -->
+<!-- 封禁确认弹窗 -->
 <app-confirm-dialog
-  [visible]="showDeleteDialog"
-  title="删除用户"
+  [visible]="showBanDialog"
+  [title]="banAction === 'ban' ? '封禁用户' : '解封用户'"
   [message]="
-    '确定要删除用户 #' +
-    (currentUser?.UserId || '') +
-    ' 吗？该用户的所有订单、事件、评论都将被删除，此操作不可恢复！'
+    banAction === 'ban'
+      ? '确定要封禁用户 #' + (currentUser?.UserId || '') + ' 吗？封禁后该用户将无法登录，其发布的事件将被下架，进行中的订单将被取消。'
+      : '确定要解封用户 #' + (currentUser?.UserId || '') + ' 吗？解封后该用户将恢复正常使用。'
   "
-  confirmText="确定删除"
-  type="danger"
-  (confirmed)="onDeleteConfirmed()"
-  (cancelled)="onDeleteCancelled()"
+  [confirmText]="banAction === 'ban' ? '确定封禁' : '确定解封'"
+  [type]="banAction === 'ban' ? 'danger' : 'info'"
+  (confirmed)="onBanConfirmed()"
+  (cancelled)="onBanCancelled()"
 ></app-confirm-dialog>

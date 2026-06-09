@@ -33,6 +33,8 @@ const { registerChatHandler } = require("./chatHandler.js");
 const { registerSupportHandler } = require("./supportHandler.js");
 const { setIO } = require("./socketInstance.js");
 const connectDB = require("./help_me_chat_db");
+const pool = require("./help_me_db.js");
+const { banUser, isBanned } = require("./routes/auth.js");
 
 //all routes imports here 这里引用路由
 const testRoutes = require("./routes/test.js");
@@ -101,6 +103,19 @@ const mongoDBConnect = async () => {
 };
 mongoDBConnect();
 
+// 启动时从数据库加载封禁用户列表到内存
+(async () => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT UserId FROM Users WHERE IsBanned = 1",
+    );
+    rows.forEach((r) => banUser(r.UserId));
+    console.log(`已加载 ${rows.length} 个封禁用户到内存名单`);
+  } catch (err) {
+    console.error("加载封禁用户列表失败:", err.message);
+  }
+})();
+
 //connect to local node server
 const server = createServer(app);
 const io = new Server(server, {
@@ -134,6 +149,12 @@ io.use((socket, next) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
+
+    // 检查用户是否被封禁
+    if (decoded.role !== "admin" && isBanned(decoded.id)) {
+      return next(new Error("BANNED"));
+    }
+
     socket.user = decoded;
     return next();
   } catch (e) {

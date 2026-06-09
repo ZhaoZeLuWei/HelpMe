@@ -5,6 +5,7 @@ const Room = require("../models/Room.js");
 const Message = require("../models/Message.js");
 const { authRequired, adminRequired } = require("./auth.js");
 const { getIO } = require("../socketInstance.js");
+const { moderateContent } = require("../Services/contentModeration.js");
 
 // 用户创建或获取自己的客服房间
 router.post("/api/support/room", authRequired, async (req, res) => {
@@ -205,6 +206,163 @@ router.get("/api/support/stats", adminRequired, async (req, res) => {
     });
   } catch (err) {
     console.error("获取客服统计失败:", err);
+    return res.status(500).json({ success: false, message: "服务器错误" });
+  }
+});
+
+// 封禁申诉（免登录，通过手机号识别被封禁用户）
+router.post("/api/support/appeal", async (req, res) => {
+  try {
+    const { phone, message } = req.body || {};
+
+    if (!phone || !message || !message.trim()) {
+      return res
+        .status(400)
+        .json({ success: false, message: "请填写手机号和申诉内容" });
+    }
+
+    // 查找用户并验证是否被封禁
+    const [rows] = await pool.query(
+      "SELECT UserId, UserName, IsBanned FROM Users WHERE PhoneNumber = ? LIMIT 1",
+      [phone],
+    );
+
+    if (!rows || rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "该手机号未注册" });
+    }
+
+    const user = rows[0];
+    if (!user.IsBanned) {
+      return res
+        .status(400)
+        .json({ success: false, message: "该账号未被封禁，请直接登录" });
+    }
+
+    const userId = user.UserId;
+    const roomId = `support_${userId}`;
+
+    // 内容安全审核
+    let finalText = message.trim();
+    try {
+      const modResult = await moderateContent(
+        finalText,
+        "chatText",
+        String(userId),
+      );
+      if (!modResult.safe) {
+        finalText = modResult.maskedContent || finalText;
+      }
+    } catch (modErr) {
+      console.error("申诉内容审核异常:", modErr);
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message: "内容安全检测暂时不可用，请稍后重试",
+        });
+    }
+
+    // 确保客服房间存在
+    let room = await Room.findById(roomId);
+    if (!room) {
+      room = await Room.create({
+        _id: roomId,
+        creatorId: userId,
+        partnerId: 0,
+      });
+    }
+
+    // 发送申诉消息
+    const messageData = {
+      roomId,
+      senderId: userId,
+      messageType: "text",
+      text: `[封禁申诉] ${finalText}`,
+      userName: user.UserName,
+      sendTime: new Date(),
+    };
+    await Message.create(messageData);
+
+    // 更新房间
+    await Room.updateOne(
+      { _id: roomId },
+      {
+        $set: { lastMsg: messageData.text, updatedAt: new Date() },
+        $inc: { "unreadCount.0": 1 },
+      },
+    );
+
+    // 通知管理员（主 namespace + 客服 namespace）
+    const io = getIO();
+    if (io) {
+      const listUpdate = {
+        roomId,
+        lastMsg: messageData.text,
+        updatedAt: new Date(),
+      };
+      io.of("/support").to("0").emit("support:listUpdate", listUpdate);
+      io.of("/support").to("0").emit("support:newRoom", {
+        roomId,
+        userId,
+        userName: user.UserName,
+      });
+    }
+
+    return res.json({ success: true, message: "申诉已提交，管理员会尽快处理" });
+  } catch (err) {
+    console.error("封禁申诉失败:", err);
+    return res.status(500).json({ success: false, message: "服务器错误" });
+  }
+});
+
+// 封禁用户查看客服回复（免登录，通过手机号验证）
+router.get("/api/support/appeal/messages", async (req, res) => {
+  try {
+    const { phone } = req.query;
+
+    if (!phone) {
+      return res.status(400).json({ success: false, message: "缺少手机号" });
+    }
+
+    // 查找用户并验证是否被封禁
+    const [rows] = await pool.query(
+      "SELECT UserId, IsBanned FROM Users WHERE PhoneNumber = ? LIMIT 1",
+      [phone],
+    );
+
+    if (!rows || rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "该手机号未注册" });
+    }
+
+    if (!rows[0].IsBanned) {
+      return res
+        .status(400)
+        .json({ success: false, message: "该账号未被封禁" });
+    }
+
+    const roomId = `support_${rows[0].UserId}`;
+    const messages = await Message.find({ roomId })
+      .sort({ sendTime: 1 })
+      .limit(100)
+      .lean();
+
+    const formattedMessages = messages.map((msg) => ({
+      id: msg._id.toString(),
+      senderId: msg.senderId,
+      messageType: msg.messageType || "text",
+      text: msg.text || "",
+      imageUrl: msg.imageUrl || "",
+      sendTime: msg.sendTime,
+      userName: msg.userName,
+    }));
+
+    return res.json({ success: true, data: { messages: formattedMessages } });
+  } catch (err) {
+    console.error("获取申诉消息失败:", err);
     return res.status(500).json({ success: false, message: "服务器错误" });
   }
 });

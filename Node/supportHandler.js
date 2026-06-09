@@ -52,15 +52,10 @@ module.exports.registerSupportHandler = (io, socket) => {
         `客服房间连接成功: ${roomId} (用户: ${socket.user.name}, 角色: ${socket.user.role})`,
       );
 
-      // 发送连接成功消息
-      const connectText = isAdmin
-        ? "客服已接入，可以开始对话"
-        : "已连接至客服，请描述您遇到的问题";
-
+      // 发送连接成功消息（前端根据 type 自行翻译显示）
       io.to(roomId).emit("support:connected", {
-        text: connectText,
+        type: isAdmin ? "admin" : "user",
         senderId: "system_bot",
-        userName: "系统通知",
         sendTime: new Date(),
       });
 

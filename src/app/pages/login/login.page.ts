@@ -1,5 +1,6 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import {
   FormControl,
   FormGroup,
@@ -25,6 +26,7 @@ export class LoginPage {
   private auth = inject(AuthService);
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
+  private router = inject(Router);
   private languageService = inject(LanguageService);
   private captchaService = inject(AliyunCaptchaService);
 
@@ -176,6 +178,17 @@ export class LoginPage {
 
     const result = await this.auth.loginWithPhone(phone, code);
     if (!result.ok) {
+      // 封禁用户跳转到申诉页面
+      if (result.status === 403) {
+        sessionStorage.setItem('ban_appeal_phone', phone);
+        await this.modalCtrl.dismiss();
+        this.router.navigate(['/ban-appeal'], {
+          state: { phone },
+          replaceUrl: true,
+        });
+        return;
+      }
+
       const t = await this.toastCtrl.create({
         message: result.message,
         duration: 750,
