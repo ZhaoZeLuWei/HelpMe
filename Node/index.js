@@ -122,7 +122,7 @@ const io = new Server(server, {
   connectionStateRecovery: {},
   //cors allow connections
   cors: {
-    origin: ["http://localhost:8100", "http://localhost:4200"],
+    origin: (process.env.CORS_ORIGINS || "").split(",").filter(Boolean),
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });

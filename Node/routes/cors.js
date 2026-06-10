@@ -1,7 +1,7 @@
-// Simple CORS for the Ionic dev server.
-// 此文件用于解决跨域问题，后续在部署的时候，可以采用其他方案
-//zewei: add localhost:4200 2-3
-const allowedOrigins = ["http://localhost:8100", "http://localhost:4200"];
+// CORS 配置：从 .env 的 CORS_ORIGINS 读取（逗号分隔）
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .filter(Boolean);
 
 module.exports = function corsMiddleware(req, res, next) {
   const origin = req.headers.origin;
