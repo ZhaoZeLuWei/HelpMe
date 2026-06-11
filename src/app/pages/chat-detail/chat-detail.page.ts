@@ -263,6 +263,22 @@ export class ChatDetailPage implements OnInit, OnDestroy {
       }
     });
 
+    // 监听封禁强制登出 → 跳转申诉页
+    this.socket.on('forceLogout', () => {
+      const phone =
+        this.auth.currentUser?.PhoneNumber ||
+        this.auth.currentUser?.phoneNumber ||
+        '';
+      if (phone) {
+        sessionStorage.setItem('ban_appeal_phone', phone);
+      }
+      this.auth.logout();
+      this.router.navigate(['/ban-appeal'], {
+        state: { phone },
+        replaceUrl: true,
+      });
+    });
+
     // step 2: receive msg from node and show it
     this.socket.on('chat message', (msg: any, offset?: number) => {
       // 构造完整消息对象，兼容新旧格式
@@ -296,9 +312,16 @@ export class ChatDetailPage implements OnInit, OnDestroy {
     });
 
     //tell user the connnection with this room chat finally success!!~~
-    this.socket.on('connectSuccess', async (msg: ChatModel) => {
+    this.socket.on('connectSuccess', async (msg: any) => {
+      const message =
+        msg.type === 'system'
+          ? this.t.systemConnected
+          : this.t.userJoined.replace(
+              '{name}',
+              msg.userName || this.t.otherParty,
+            );
       const toast = await this.toastCtrl.create({
-        message: msg.text,
+        message,
         duration: 500,
         position: 'top',
         color: 'light',

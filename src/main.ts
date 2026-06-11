@@ -29,6 +29,7 @@ import { AppComponent } from './app/app.component';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ConfigService } from './app/services/config.service';
 import { langInterceptor } from './app/services/lang.interceptor';
+import { banInterceptor } from './app/services/ban.interceptor';
 
 // 全局 fetch 补丁：自动附加 lang 参数到 API 请求
 const _originalFetch = window.fetch;
@@ -43,9 +44,15 @@ window.fetch = function (input: RequestInfo | URL, init?: RequestInit) {
     } else {
       urlStr = input.url;
     }
-    if (urlStr.includes('/api/') || urlStr.includes('/events/') || urlStr.includes('/users/') ||
-        urlStr.includes('/favorites') || urlStr.includes('/follows') || urlStr.includes('/reviews') ||
-        urlStr.includes('/orders')) {
+    if (
+      urlStr.includes('/api/') ||
+      urlStr.includes('/events/') ||
+      urlStr.includes('/users/') ||
+      urlStr.includes('/favorites') ||
+      urlStr.includes('/follows') ||
+      urlStr.includes('/reviews') ||
+      urlStr.includes('/orders')
+    ) {
       const sep = urlStr.includes('?') ? '&' : '?';
       const newUrl = `${urlStr}${sep}lang=${lang}`;
       if (typeof input === 'string') {
@@ -55,7 +62,22 @@ window.fetch = function (input: RequestInfo | URL, init?: RequestInit) {
       }
     }
   }
-  return _originalFetch(input, init);
+  return _originalFetch(input, init).then((response) => {
+    // 检查封禁响应
+    if (response.status === 403) {
+      response
+        .clone()
+        .json()
+        .then((body) => {
+          if (body?.error === 'BANNED') {
+            const event = new CustomEvent('user-banned', { detail: body });
+            window.dispatchEvent(event);
+          }
+        })
+        .catch(() => {});
+    }
+    return response;
+  });
 };
 
 /* 2. 一次性注册全局图标 */
@@ -81,7 +103,7 @@ function initializeApp(configService: ConfigService) {
 bootstrapApplication(AppComponent, {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
-    provideHttpClient(withInterceptors([langInterceptor])),
+    provideHttpClient(withInterceptors([langInterceptor, banInterceptor])),
     provideIonicAngular(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
     {

@@ -1,0 +1,124 @@
+<div class="support-container">
+  <!-- 左侧：房间列表 -->
+  <div class="room-list">
+    <div class="room-list-header">
+      <h2>客服会话</h2>
+      <span class="room-count">共 {{ filteredRooms.length }} 个会话</span>
+    </div>
+
+    <div class="room-search">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        (input)="filterRooms()"
+        placeholder="搜索用户或消息..."
+      />
+    </div>
+
+    <div class="rooms">
+      <div
+        class="room-item"
+        *ngFor="let room of filteredRooms"
+        [class.active]="selectedRoom?.roomId === room.roomId"
+        [class.unread]="getUnreadCount(room) > 0"
+        (click)="selectRoom(room)"
+      >
+        <div class="room-avatar">
+          <img [src]="getAvatarUrl(room.userAvatar)" [alt]="room.userName" />
+        </div>
+        <div class="room-info">
+          <div class="room-top">
+            <span class="room-name">{{ room.userName }}</span>
+            <span class="room-time">{{ formatTime(room.updatedAt) }}</span>
+          </div>
+          <div class="room-bottom">
+            <span class="room-last-msg">{{ room.lastMsg || "暂无消息" }}</span>
+            <span class="unread-badge" *ngIf="getUnreadCount(room) > 0">
+              {{ getUnreadCount(room) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-rooms" *ngIf="filteredRooms.length === 0 && !loading">
+        <mat-icon>support_agent</mat-icon>
+        <p>暂无客服会话</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧：聊天区域 -->
+  <div class="chat-area">
+    <ng-container *ngIf="selectedRoom; else noChat">
+      <div class="chat-header">
+        <div class="chat-user-info">
+          <img
+            [src]="getAvatarUrl(selectedRoom.userAvatar)"
+            [alt]="selectedRoom.userName"
+          />
+          <div>
+            <span class="chat-user-name">{{ selectedRoom.userName }}</span>
+            <span class="chat-user-id">ID: {{ selectedRoom.userId }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="messages" #messageContainer>
+        <div
+          class="message"
+          *ngFor="let msg of messages"
+          [class.own]="isOwnMessage(msg)"
+          [class.other]="!isOwnMessage(msg) && !isSystemMessage(msg)"
+          [class.system]="isSystemMessage(msg)"
+        >
+          <div class="msg-system" *ngIf="isSystemMessage(msg)">
+            <span>{{ msg.text }}</span>
+          </div>
+          <ng-container *ngIf="!isSystemMessage(msg)">
+            <div class="msg-sender">{{ msg.userName }}</div>
+            <div class="msg-bubble">
+              <ng-container [ngSwitch]="msg.messageType">
+                <span *ngSwitchCase="'text'">{{ msg.text }}</span>
+                <img
+                  *ngSwitchCase="'image'"
+                  [src]="msg.imageUrl"
+                  class="msg-image"
+                />
+                <div *ngSwitchCase="'location'" class="msg-location">
+                  <mat-icon>location_on</mat-icon>
+                  <span>{{ msg.location?.address || "位置信息" }}</span>
+                </div>
+              </ng-container>
+            </div>
+            <div class="msg-time">{{ formatTime(msg.sendTime) }}</div>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="chat-input">
+        <input
+          #messageInput
+          type="text"
+          [(ngModel)]="inputText"
+          (keydown)="onKeydown($event)"
+          placeholder="输入消息..."
+        />
+        <button
+          class="send-btn"
+          (click)="sendMessage()"
+          [disabled]="!inputText.trim()"
+        >
+          <mat-icon>send</mat-icon>
+        </button>
+      </div>
+    </ng-container>
+
+    <ng-template #noChat>
+      <div class="no-chat-selected">
+        <mat-icon>forum</mat-icon>
+        <p>选择一个客服会话开始回复</p>
+      </div>
+    </ng-template>
+  </div>
+</div>

@@ -1,0 +1,290 @@
+.appeal-content {
+  --background: #f9fafb;
+}
+
+.appeal-container,
+.success-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.ban-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #fef2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+
+  ion-icon {
+    font-size: 44px;
+    width: 44px;
+    height: 44px;
+    color: #ef4444;
+  }
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ion-text-color);
+  margin: 0 0 8px;
+}
+
+.ban-desc {
+  font-size: 14px;
+  color: var(--ion-color-medium);
+  margin: 0 0 28px;
+  line-height: 1.6;
+}
+
+.appeal-form {
+  width: 100%;
+  text-align: left;
+
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ion-text-color);
+    margin: 0 0 4px;
+  }
+
+  .appeal-hint {
+    font-size: 13px;
+    color: var(--ion-color-medium);
+    margin: 0 0 12px;
+  }
+}
+
+.appeal-input-item {
+  --border-radius: 12px;
+  --padding-start: 12px;
+  --inner-padding-end: 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--ion-color-step-200, #e5e7eb);
+  border-radius: 12px;
+}
+
+.submit-btn {
+  --border-radius: 12px;
+  margin-bottom: 12px;
+  height: 48px;
+  font-size: 16px;
+}
+
+.back-btn {
+  --border-radius: 12px;
+  margin-top: 8px;
+  height: 48px;
+  font-size: 16px;
+  width: 100%;
+}
+
+/* 提交成功 */
+.success-container {
+  min-height: 80vh;
+  justify-content: center;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #f0fdf4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+
+  ion-icon {
+    font-size: 44px;
+    width: 44px;
+    height: 44px;
+    color: #10b981;
+  }
+}
+
+.success-container p {
+  font-size: 14px;
+  color: var(--ion-color-medium);
+  margin: 0 0 28px;
+  line-height: 1.6;
+}
+
+/* 回复消息列表 */
+.replies-section {
+  width: 100%;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.toggle-btn {
+  --border-radius: 12px;
+  margin-bottom: 12px;
+  height: 44px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.messages-list {
+  background: var(--ion-card-background, #fff);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid var(--ion-color-step-200, #e5e7eb);
+}
+
+.loading-msg {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.empty-msg {
+  text-align: center;
+  padding: 16px;
+
+  p {
+    font-size: 13px;
+    color: var(--ion-color-medium);
+    margin: 0;
+  }
+}
+
+.msg-item {
+  margin-bottom: 12px;
+
+  &.mine {
+    .msg-header {
+      text-align: right;
+    }
+    .msg-bubble {
+      background: #4f9cff;
+      color: white;
+      margin-left: auto;
+    }
+  }
+
+  .msg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .msg-sender {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ion-text-color);
+  }
+
+  .msg-time {
+    font-size: 11px;
+    color: var(--ion-color-medium);
+  }
+
+  .msg-bubble {
+    display: inline-block;
+    max-width: 85%;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--ion-color-step-100, #f1f0f0);
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+    color: var(--ion-text-color);
+  }
+
+  &.system {
+    text-align: center;
+    margin: 8px 0;
+  }
+
+  .system-msg {
+    display: inline-block;
+    font-size: 12px;
+    color: var(--ion-color-medium);
+    background: rgba(0, 0, 0, 0.04);
+    padding: 4px 12px;
+    border-radius: 10px;
+  }
+}
+
+.refresh-btn {
+  --color: var(--ion-color-medium);
+  font-size: 13px;
+}
+
+.appeal-form {
+  width: 100%;
+  text-align: left;
+}
+
+/* 长辈模式适配 */
+:host-context(body.elderly-mode) {
+  h2 {
+    font-size: 28px;
+  }
+
+  .ban-desc,
+  .appeal-hint,
+  .success-container p {
+    font-size: 18px;
+  }
+
+  .appeal-form h3 {
+    font-size: 22px;
+  }
+
+  .submit-btn,
+  .back-btn,
+  .toggle-btn {
+    height: 56px;
+    font-size: 20px;
+  }
+
+  .msg-item {
+    .msg-sender {
+      font-size: 15px;
+    }
+    .msg-bubble {
+      font-size: 18px;
+      padding: 12px 16px;
+    }
+  }
+}
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .appeal-content {
+    --background: #1a1a1a;
+  }
+
+  .ban-icon {
+    background: rgba(239, 68, 68, 0.15);
+  }
+
+  .success-icon {
+    background: rgba(16, 185, 129, 0.15);
+  }
+
+  .appeal-input-item {
+    border-color: var(--ion-color-step-400, #444);
+  }
+
+  .messages-list {
+    border-color: var(--ion-color-step-400, #444);
+  }
+
+  .msg-item .msg-bubble {
+    background: var(--ion-color-step-200, #333);
+  }
+
+  .msg-item.mine .msg-bubble {
+    background: #1677ff;
+  }
+}

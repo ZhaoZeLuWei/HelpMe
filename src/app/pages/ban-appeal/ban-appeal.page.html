@@ -1,0 +1,107 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>{{ t.pageTitle }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="appeal-content">
+  <div class="appeal-container">
+    <div class="ban-icon">
+      <ion-icon name="alert-circle-outline"></ion-icon>
+    </div>
+    <h2>{{ t.banTitle }}</h2>
+    <p class="ban-desc">{{ t.banDesc }}</p>
+
+    <!-- 查看回复 -->
+    <div class="replies-section">
+      <ion-button
+        expand="block"
+        fill="outline"
+        class="toggle-btn"
+        (click)="toggleReplies()"
+      >
+        <ion-icon name="chatbubble-ellipses-outline" slot="start"></ion-icon>
+        {{ showReplies ? t.hideReplies : t.viewReplies }}
+      </ion-button>
+
+      @if (showReplies) {
+      <div class="messages-list">
+        @if (loadingMessages) {
+        <div class="loading-msg">
+          <ion-spinner name="crescent"></ion-spinner>
+        </div>
+        } @else if (messages().length === 0) {
+        <div class="empty-msg">
+          <p>{{ t.noReplies }}</p>
+        </div>
+        } @else { @for (msg of messages(); track msg.id) {
+        <div
+          class="msg-item"
+          [class.mine]="isMyMessage(msg)"
+          [class.system]="isSystemMessage(msg)"
+        >
+          @if (isSystemMessage(msg)) {
+          <div class="system-msg">{{ msg.text | tText }}</div>
+          } @else {
+          <div class="msg-header">
+            <span class="msg-sender"
+              >{{ isMyMessage(msg) ? t.me : t.adminReply }}</span
+            >
+            <span class="msg-time"
+              >{{ msg.sendTime | date:'MM/dd HH:mm' }}</span
+            >
+          </div>
+          <div class="msg-bubble">{{ msg.text | tText }}</div>
+          }
+        </div>
+        } }
+        <ion-button
+          expand="block"
+          fill="clear"
+          size="small"
+          class="refresh-btn"
+          (click)="loadMessages()"
+        >
+          <ion-icon name="refresh-outline" slot="start"></ion-icon>
+          {{ t.refresh }}
+        </ion-button>
+      </div>
+      }
+    </div>
+
+    <!-- 申诉表单 -->
+    <div class="appeal-form">
+      <h3>{{ t.appealTitle }}</h3>
+      <p class="appeal-hint">{{ t.appealHint }}</p>
+
+      <ion-item lines="inset" class="appeal-input-item">
+        <ion-textarea
+          [formControl]="appealInput"
+          [placeholder]="t.inputPlaceholder"
+          [rows]="5"
+          [maxlength]="500"
+          autoGrow="true"
+        ></ion-textarea>
+      </ion-item>
+
+      <ion-button
+        expand="block"
+        class="submit-btn"
+        [disabled]="!appealInput.value.trim() || submitting"
+        (click)="submitAppeal()"
+      >
+        <ion-icon name="send-outline" slot="start"></ion-icon>
+        {{ submitting ? t.submitting : t.submitBtn }}
+      </ion-button>
+    </div>
+
+    <ion-button
+      expand="block"
+      fill="outline"
+      class="back-btn"
+      (click)="goBack()"
+    >
+      {{ t.backBtn }}
+    </ion-button>
+  </div>
+</ion-content>
