@@ -7,6 +7,7 @@ import { StaffManagementComponent } from './Components/staff-management/staff-ma
 import { OrderManagementComponent } from './Components/order-management/order-management.component';
 import { EventManagementComponent } from './Components/event-management/event-management.component';
 import { ReviewManagementComponent } from './Components/review-management/review-management.component';
+import { SupportChatComponent } from './Components/support-chat/support-chat.component';
 
 export const routes: Routes = [
   {
@@ -45,6 +46,12 @@ export const routes: Routes = [
   {
     path: 'reviews',
     component: ReviewManagementComponent,
+    runGuardsAndResolvers: 'always',
+    canActivate: [authGuard],
+  },
+  {
+    path: 'support',
+    component: SupportChatComponent,
     runGuardsAndResolvers: 'always',
     canActivate: [authGuard],
   },

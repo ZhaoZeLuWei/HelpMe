@@ -13,8 +13,8 @@ const {
   extractTags,
   extractSearchKeywords,
   enhanceSearch,
-} = require("../services/aiService.js");
-const { filter: sensitiveFilter } = require("../services/sensitiveFilter.js");
+} = require("../Services/aiService.js");
+const { filter: sensitiveFilter } = require("../Services/sensitiveFilter.js");
 
 // ---------- 内存级调用限速 ----------
 const dailyUsage = new Map();
@@ -44,12 +44,10 @@ function checkRateLimit(req) {
 router.post("/api/ai/fill-form", authOptional, async (req, res) => {
   try {
     if (!checkRateLimit(req)) {
-      return res
-        .status(429)
-        .json({
-          success: false,
-          error: "今日 AI 调用次数已达上限，请明天再试",
-        });
+      return res.status(429).json({
+        success: false,
+        error: "今日 AI 调用次数已达上限，请明天再试",
+      });
     }
 
     const { input, type = "request" } = req.body;
@@ -83,12 +81,10 @@ router.post("/api/ai/fill-form", authOptional, async (req, res) => {
 router.post("/api/ai/extract-tags", authOptional, async (req, res) => {
   try {
     if (!checkRateLimit(req)) {
-      return res
-        .status(429)
-        .json({
-          success: false,
-          error: "今日 AI 调用次数已达上限，请明天再试",
-        });
+      return res.status(429).json({
+        success: false,
+        error: "今日 AI 调用次数已达上限，请明天再试",
+      });
     }
 
     const { text } = req.body;
@@ -113,12 +109,10 @@ router.post("/api/ai/extract-tags", authOptional, async (req, res) => {
 router.post("/api/ai/enhance-search", authOptional, async (req, res) => {
   try {
     if (!checkRateLimit(req)) {
-      return res
-        .status(429)
-        .json({
-          success: false,
-          error: "今日 AI 调用次数已达上限，请明天再试",
-        });
+      return res.status(429).json({
+        success: false,
+        error: "今日 AI 调用次数已达上限，请明天再试",
+      });
     }
 
     const { keyword, location = "" } = req.body;

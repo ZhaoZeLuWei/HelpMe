@@ -3,27 +3,51 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    loadChildren: () => import('./components/tabs/tabs.routes').then((m) => m.routes),
+    loadChildren: () =>
+      import('./components/tabs/tabs.routes').then((m) => m.routes),
   },
   {
     //this path for different chat user
     path: 'chat-detail/:username',
-    loadComponent: () => import('./pages/chat-detail/chat-detail.page').then(m => m.ChatDetailPage)
+    loadComponent: () =>
+      import('./pages/chat-detail/chat-detail.page').then(
+        (m) => m.ChatDetailPage,
+      ),
+  },
+  {
+    path: 'support-chat',
+    loadComponent: () =>
+      import('./pages/support-chat/support-chat.page').then(
+        (m) => m.SupportChatPage,
+      ),
+  },
+  {
+    path: 'ban-appeal',
+    loadComponent: () =>
+      import('./pages/ban-appeal/ban-appeal.page').then((m) => m.BanAppealPage),
   },
   {
     path: 'search',
-    loadComponent: () => import('./pages/search/search.page').then( m => m.SearchPage)
+    loadComponent: () =>
+      import('./pages/search/search.page').then((m) => m.SearchPage),
   },
   {
     path: 'particular',
-    loadComponent: () => import('./pages/particular/particular.page').then( m => m.ParticularPage)
+    loadComponent: () =>
+      import('./pages/particular/particular.page').then(
+        (m) => m.ParticularPage,
+      ),
   },
   {
     path: 'login',
-    loadComponent: () => import('./pages/login/login.page').then(m => m.LoginPage)
+    loadComponent: () =>
+      import('./pages/login/login.page').then((m) => m.LoginPage),
   },
   {
     path: 'user-particular',
-    loadComponent: () => import('./pages/user-particular/user-particular.page').then(m => m.UserParticularPage)
+    loadComponent: () =>
+      import('./pages/user-particular/user-particular.page').then(
+        (m) => m.UserParticularPage,
+      ),
   },
 ];

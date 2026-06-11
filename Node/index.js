@@ -30,8 +30,11 @@ const { createServer } = require("node:http");
 const { Server } = require("socket.io");
 const { uploadDir } = require("./routes/upload.js");
 const { registerChatHandler } = require("./chatHandler.js");
+const { registerSupportHandler } = require("./supportHandler.js");
 const { setIO } = require("./socketInstance.js");
 const connectDB = require("./help_me_chat_db");
+const pool = require("./help_me_db.js");
+const { banUser, isBanned } = require("./routes/auth.js");
 
 //all routes imports here 这里引用路由
 const testRoutes = require("./routes/test.js");
@@ -43,6 +46,7 @@ const verifyRoutes = require("./routes/verify.js");
 const reviewRoutes = require("./routes/review.js");
 const favoriteRoutes = require("./routes/favorite.js");
 const chatRoutes = require("./routes/chat.js");
+const supportRoutes = require("./routes/support.js");
 const locationRoutes = require("./routes/location.js");
 const translationRoutes = require("./routes/translation.js");
 const configRoutes = require("./routes/config.js");
@@ -65,6 +69,7 @@ app.use(verifyRoutes);
 app.use(reviewRoutes);
 app.use(favoriteRoutes);
 app.use(chatRoutes);
+app.use(supportRoutes);
 app.use(locationRoutes);
 app.use(translationRoutes);
 app.use(configRoutes);
@@ -98,13 +103,26 @@ const mongoDBConnect = async () => {
 };
 mongoDBConnect();
 
+// 启动时从数据库加载封禁用户列表到内存
+(async () => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT UserId FROM Users WHERE IsBanned = 1",
+    );
+    rows.forEach((r) => banUser(r.UserId));
+    console.log(`已加载 ${rows.length} 个封禁用户到内存名单`);
+  } catch (err) {
+    console.error("加载封禁用户列表失败:", err.message);
+  }
+})();
+
 //connect to local node server
 const server = createServer(app);
 const io = new Server(server, {
   connectionStateRecovery: {},
   //cors allow connections
   cors: {
-    origin: ["http://localhost:8100", "http://localhost:4200"],
+    origin: (process.env.CORS_ORIGINS || "").split(",").filter(Boolean),
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
@@ -131,6 +149,12 @@ io.use((socket, next) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
+
+    // 检查用户是否被封禁
+    if (decoded.role !== "admin" && isBanned(decoded.id)) {
+      return next(new Error("BANNED"));
+    }
+
     socket.user = decoded;
     return next();
   } catch (e) {
@@ -149,6 +173,44 @@ io.on("connection", (socket) => {
 
   // 这里调用修正后的函数
   registerChatHandler(io, socket);
+});
+
+// 客服 Socket.io namespace
+const supportNsp = io.of("/support");
+
+// 客服 namespace 复用相同的 JWT 认证中间件
+supportNsp.use((socket, next) => {
+  try {
+    let token = socket.handshake.auth?.token;
+    if (!token && socket.handshake.headers?.authorization) {
+      const authHeader = socket.handshake.headers.authorization;
+      if (authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+    if (!token) {
+      return next(new Error("NO_TOKEN"));
+    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    socket.user = decoded;
+    return next();
+  } catch (e) {
+    console.warn("客服 Socket.IO JWT 验证失败:", e.message);
+    return next(new Error("INVALID_TOKEN"));
+  }
+});
+
+supportNsp.on("connection", (socket) => {
+  // 管理员加入以 "0" 为名的个人房间，用于接收客服通知
+  if (socket.user && socket.user.role === "admin") {
+    socket.join("0");
+  }
+  // 普通用户加入以 userId 为名的个人房间
+  if (socket.user && socket.user.id) {
+    socket.join(socket.user.id.toString());
+  }
+
+  registerSupportHandler(supportNsp, socket);
 });
 
 //server listen on port 3000

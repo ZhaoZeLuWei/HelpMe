@@ -5,6 +5,25 @@ const jwt = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
+// 内存级封禁名单：封禁时立即加入，服务器重启后从数据库重新加载
+const bannedUserIds = new Set();
+
+function banUser(userId) {
+  bannedUserIds.add(Number(userId));
+}
+
+function unbanUser(userId) {
+  bannedUserIds.delete(Number(userId));
+}
+
+function isBanned(userId) {
+  return bannedUserIds.has(Number(userId));
+}
+
+function getBannedUserIds() {
+  return bannedUserIds;
+}
+
 // 只放必要信息进 token（不要放手机号/身份证等敏感信息）
 // role: 'user' | 'admin'，默认 'user'
 function signToken(user, role = "user") {
@@ -41,6 +60,12 @@ function authRequired(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+
+    // 检查用户是否被封禁（内存级，O(1) 查询）
+    if (isBanned(decoded.id)) {
+      return res.status(403).json({ success: false, error: "BANNED" });
+    }
+
     req.user = decoded; // { id, name, iat, exp }
     return next();
   } catch (err) {
@@ -91,4 +116,8 @@ module.exports = {
   authRequired,
   authOptional,
   adminRequired,
+  banUser,
+  unbanUser,
+  isBanned,
+  getBannedUserIds,
 };

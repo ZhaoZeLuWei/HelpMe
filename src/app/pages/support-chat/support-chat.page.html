@@ -1,0 +1,127 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/tab4"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ t.pageTitle }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content #chatContent class="chat-content">
+  @if (loading()) {
+  <div class="loading-container">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>{{ t.connecting }}</p>
+  </div>
+  } @else {
+  <div class="chat-container">
+    <!-- 欢迎提示 -->
+    <div class="welcome-hint">
+      <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+      <p>{{ t.welcomeHint }}</p>
+    </div>
+
+    @for (msg of messages(); track $index) {
+    <div
+      class="message-group"
+      [class.me]="isMyMessage(msg)"
+      [class.system]="isSystemMessage(msg)"
+    >
+      @if (isSystemMessage(msg)) {
+      <div class="system-msg">
+        <span>{{ msg.text | tText }}</span>
+      </div>
+      } @else {
+      <div class="message-row">
+        <ion-avatar class="message-avatar">
+          <img
+            [src]="getMessageAvatar(msg)"
+            alt="Avatar"
+            (error)="$any($event).target.src = defaultAvatar"
+          />
+        </ion-avatar>
+        <div class="message-main">
+          <div class="message-meta">
+            <span class="user-name"
+              >{{ isMyMessage(msg) ? t.me : (msg.userName || t.customerService)
+              | tText }}</span
+            >
+            <span class="timestamp">{{ msg.sendTime | date:'HH:mm' }}</span>
+          </div>
+          <div class="message-bubble">
+            @if (msg.messageType === 'image' && msg.imageUrl) {
+            <div class="msg-image-wrap">
+              <img
+                [src]="env.apiBase + msg.imageUrl"
+                alt="Image"
+                class="msg-image"
+                (click)="previewImage(env.apiBase + msg.imageUrl)"
+              />
+            </div>
+            } @else if (msg.messageType === 'location' && msg.location) {
+            <div class="msg-location" (click)="openMapLocation(msg.location!)">
+              <ion-icon name="location-outline" class="loc-icon"></ion-icon>
+              <div class="loc-info">
+                <span class="loc-address">{{ msg.location!.address }}</span>
+                <span class="loc-coords"
+                  >{{ msg.location!.lat.toFixed(4) }}, {{
+                  msg.location!.lng.toFixed(4) }}</span
+                >
+              </div>
+            </div>
+            } @else { {{ msg.text | tText }} }
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+    }
+  </div>
+  }
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-item lines="none" class="chat-footer-item">
+      <input
+        #chatFileInput
+        type="file"
+        accept="image/*"
+        hidden
+        (change)="onFileSelected($event)"
+      />
+      <ion-button
+        slot="start"
+        fill="clear"
+        size="small"
+        (click)="triggerFileInput()"
+        [disabled]="uploadingImage()"
+        class="chat-action-btn"
+      >
+        @if (uploadingImage()) {
+        <ion-spinner name="crescent" slot="icon-only"></ion-spinner>
+        } @else {
+        <ion-icon slot="icon-only" name="image-outline"></ion-icon>
+        }
+      </ion-button>
+      <ion-button
+        slot="start"
+        fill="clear"
+        size="small"
+        (click)="sendLocation()"
+        class="chat-action-btn"
+      >
+        <ion-icon slot="icon-only" name="location-outline"></ion-icon>
+      </ion-button>
+      <ion-input
+        [formControl]="messageInput"
+        [placeholder]="t.inputMessage"
+        (keyup.enter)="sendMessage()"
+      >
+      </ion-input>
+      <ion-button slot="end" fill="clear" (click)="sendMessage()">
+        {{ t.send }}
+      </ion-button>
+    </ion-item>
+  </ion-toolbar>
+</ion-footer>

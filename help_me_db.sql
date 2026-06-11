@@ -29,6 +29,8 @@ CREATE TABLE Users (
   BirthDate     DATE         NOT NULL,
   Introduction   VARCHAR(255) NULL,
   FollowerCount  INT(6)       NOT NULL DEFAULT 0 COMMENT '粉丝数',
+  IsBanned       TINYINT(1)   NOT NULL DEFAULT 0 COMMENT '是否被封禁 0=正常 1=封禁',
+  BannedAt       DATETIME     DEFAULT NULL COMMENT '封禁时间',
   CreateTime     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   UNIQUE KEY uk_users_phone (PhoneNumber),

@@ -32,8 +32,9 @@ export class StaffManagementComponent implements OnInit {
   currentUser: any = null;
   showDetailModal = false;
 
-  // 删除确认
-  showDeleteDialog = false;
+  // 封禁确认
+  showBanDialog = false;
+  banAction: 'ban' | 'unban' = 'ban';
 
   private api = inject(ServeAPIService);
   public baseUrl: string = this.api.getBaseUrl();
@@ -150,25 +151,28 @@ export class StaffManagementComponent implements OnInit {
     return this.baseUrl + avatar;
   }
 
-  confirmDelete() {
-    this.showDeleteDialog = true;
+  confirmBan(action: 'ban' | 'unban') {
+    this.banAction = action;
+    this.showBanDialog = true;
   }
 
-  onDeleteConfirmed() {
+  onBanConfirmed() {
     if (!this.currentUser) return;
-    this.api.deleteUser(this.currentUser.UserId).subscribe({
+    const isBan = this.banAction === 'ban';
+    this.api.banUser(this.currentUser.UserId, isBan).subscribe({
       next: (res) => {
         if (res.success) {
-          this.closeDetail();
+          this.currentUser.IsBanned = isBan ? 1 : 0;
+          this.currentUser.BannedAt = isBan ? new Date().toISOString() : null;
           this.loadUsersList();
-          this.showDeleteDialog = false;
+          this.showBanDialog = false;
         }
       },
-      error: () => alert('删除用户失败'),
+      error: () => alert(isBan ? '封禁用户失败' : '解封用户失败'),
     });
   }
 
-  onDeleteCancelled() {
-    this.showDeleteDialog = false;
+  onBanCancelled() {
+    this.showBanDialog = false;
   }
 }
